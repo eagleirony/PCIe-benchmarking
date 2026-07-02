@@ -1,8 +1,11 @@
+#! /usr/bin/env python
+## encoding: utf-8
+
 #
 # App Waf script
 #
-import uboot
-import fdt
+import software.firmware.uboot as uboot
+import software.firmware.fdt as fdt
 
 rtems_version = "7"
 
@@ -35,15 +38,15 @@ def build(bld):
     rtems_waf.rtems.build(bld)
 
     sources = [
-        'main.c',
-        'init.c',
+        'software/platform/main.c',
+        'software/platform/init.c',
     ]
 
     cflags = ['-g', '-O2', '-DFDT=1']
 
     if 'aarch64' in bld.cmd:
-        fdt.build_fdt_blob(bld, 'axu2cgb')
-        sources.append('axu2cgb-fdt.c')
+        fdt.build_fdt_blob(bld, 'software/firmware/axu2cgb')
+        sources.append('software/firmware/axu2cgb-fdt.c')
         cflags += ['-DZYNQMP=1']
 
     bld(features = 'c cprogram',
