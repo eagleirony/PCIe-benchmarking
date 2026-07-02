@@ -1,0 +1,89 @@
+/*
+ * RTEMS Configuration
+ */
+
+#include <inttypes.h>
+#include <stdlib.h>
+
+#include <rtems.h>
+#include <rtems/fatal.h>
+
+#include <bsp.h>
+#include <bsp/bootcard.h>
+
+#ifdef CONFIGURE_MICROSECONDS_PER_TICK
+    #undef CONFIGURE_MICROSECONDS_PER_TICK
+#endif
+
+#define CONFIGURE_MICROSECONDS_PER_TICK RTEMS_MILLISECONDS_TO_MICROSECONDS(1)
+
+/*
+ * Configure base RTEMS resources.
+ */
+#define CONFIGURE_UNIFIED_WORK_AREAS
+#define CONFIGURE_UNLIMITED_OBJECTS
+#define CONFIGURE_UNLIMITED_ALLOCATION_SIZE          32
+#define CONFIGURE_MEMORY_OVERHEAD                    4096
+
+#define CONFIGURE_MAXIMUM_POSIX_KEYS                 200
+#define CONFIGURE_MAXIMUM_USER_EXTENSIONS            2
+
+#if defined(RTEMS_SMP)
+ /*
+  * Configure the number of processors and this is an SMP application.
+  */
+ #if defined(LIBBSP_AARCH64_XILINX_ZYNQMP_BSP_H)
+  #define CONFIGURE_MAXIMUM_PROCESSORS (2)
+ #else
+  #define CONFIGURE_MAXIMUM_PROCESSORS (2)
+ #endif /* LIBBSP_AARCH64_XILINX_ZYNQMP_BSP_H */
+ #define CONFIGURE_SCHEDULER_EDF_SMP
+#endif
+
+/*
+ * Configure drivers.
+ */
+#define CONFIGURE_MAXIMUM_DRIVERS                    10
+#define CONFIGURE_APPLICATION_NEEDS_CONSOLE_DRIVER
+#define CONFIGURE_APPLICATION_NEEDS_CLOCK_DRIVER
+#define CONFIGURE_APPLICATION_NEEDS_NULL_DRIVER
+#define CONFIGURE_APPLICATION_NEEDS_ZERO_DRIVER
+
+/*
+ * Enable FIFO support.
+ */
+#define CONFIGURE_FIFOS_ENABLED
+#define CONFIGURE_IMFS_ENABLE_MKFIFO
+
+/*
+ * Configure file system and libblock.
+ */
+#define CONFIGURE_MAXIMUM_FILE_DESCRIPTORS           200
+#define CONFIGURE_USE_IMFS_AS_BASE_FILESYSTEM
+#define CONFIGURE_FILESYSTEM_IMFS
+#define CONFIGURE_FILESYSTEM_NFS
+#define CONFIGURE_FILESYSTEM_RFS
+#define CONFIGURE_FILESYSTEM_DOSFS
+
+#define CONFIGURE_APPLICATION_NEEDS_LIBBLOCK
+#define CONFIGURE_SWAPOUT_TASK_PRIORITY              24
+#define CONFIGURE_BDBUF_READ_AHEAD_TASK_PRIORITY     24
+#define CONFIGURE_BDBUF_CACHE_MEMORY_SIZE            (8 * 1024 * 1024)
+#define CONFIGURE_BDBUF_MAX_READ_AHEAD_BLOCKS        0
+#define CONFIGURE_BDBUF_MAX_WRITE_BLOCKS             512
+
+
+#define CONFIGURE_RTEMS_INIT_TASKS_TABLE
+#define CONFIGURE_INIT_TASK_INITIAL_MODES            RTEMS_DEFAULT_MODES
+#define CONFIGURE_INIT_TASK_ATTRIBUTES               RTEMS_DEFAULT_ATTRIBUTES
+#define CONFIGURE_INIT_TASK_STACK_SIZE               (64 * 1024)
+#define CONFIGURE_INIT_TASK_PRIORITY                 (190)
+
+#define CONFIGURE_STACK_CHECKER_ENABLED
+
+/*
+ * Tell confdefs.h to provide the configuration.
+ */
+#define CONFIGURE_INIT
+
+#include <rtems/confdefs.h>
