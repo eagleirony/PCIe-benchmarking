@@ -1,0 +1,9 @@
+# VHDL
+hardware/srcs/endpoint/axil_bus.vhd
+hardware/srcs/endpoint/registers.vhd
+hardware/srcs/endpoint/pn23.vhd
+hardware/srcs/endpoint/top.vhd top=top
+hardware/srcs/endpoint/dma_top.vhd
+
+# IP
+hardware/ip/endpoint/xdma_0.xci
