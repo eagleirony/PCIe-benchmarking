@@ -102,3 +102,5 @@ _info
 waf
 build
 __pycache__
+.lock*
+.waf*
