@@ -59,7 +59,7 @@ def configure(conf):
 def build(bld):
     buildcontrol.recurse(bld, directories)
 
-    bld.objects(features='c cprogram',
+    bld.objects(features='cxx cxxprogram',
                 target='app',
                 cflags=builditems.get_cflags(bld, cflags),
                 include=builditems.get_includes(bld, includes),

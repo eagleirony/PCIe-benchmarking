@@ -18,14 +18,22 @@
  * Header file for generated file containing the unix time of build
  */
 
-#ifndef FLARE_BUILD_ID
-#define FLARE_BUILD_ID
+#ifndef APP_BUILD_ID
+#define APP_BUILD_ID
+
+#ifdef __cplusplus
+extern "C" {
+#endif /* __cplusplus */
 
 #include <stddef.h>
 #include <stdio.h>
 
-const char* flare_build_id();
+const char* app_build_id();
 
-size_t flare_build_id_length();
+size_t app_build_id_length();
 
-#endif /* FLARE_BUILD_ID */
+#ifdef __cplusplus
+}
+#endif /* __cplusplus */
+
+#endif /* APP_BUILD_ID */

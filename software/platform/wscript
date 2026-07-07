@@ -10,11 +10,14 @@ import software.firmware.fdt as fdt
 
 sources = [
     'init.c',
-    'main.c',
+    'network.cpp',
     'app-build-id.c',
+    'bspinit.c',
+    'pl.cpp',
+    'main.cpp',
 ]
 
-includes = ['..']
+includes = ['../include/']
 
 defines = []
 
@@ -37,7 +40,7 @@ def build(bld):
     buildver.build(bld)
 
     bld.objects(target='app_platform',
-                features='c',
+                features='cxx',
                 source=sources,
                 includes=builditems.get_includes(bld, includes),
                 cflags=builditems.get_cflags(bld, cflags),

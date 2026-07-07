@@ -1,0 +1,120 @@
+/*
+ *  COPYRIGHT (c) 1989-2009.
+ *  On-Line Applications Research Corporation (OAR).
+ *
+ *  The license and distribution terms for this file may be
+ *  found in the file LICENSE in this distribution or at
+ *  http://www.rtems.com/license/LICENSE.
+ */
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include <bsp.h>
+#include <bsp/bootcard.h>
+
+#include <rtems/score/threadimpl.h>
+
+/*
+ * This routine calls main from a confdefs.h default Init task
+ * set up. The bootcard will provide the task argument as
+ * command line string (ASCIIZ).
+ */
+
+int main (int argc, char* argv[]);
+void Init (rtems_task_argument arg);
+
+static void zombie_cleaner(rtems_task_argument arg) {
+    (void) arg;
+    while (true) {
+        _RTEMS_Lock_allocator();
+        _Thread_Kill_zombies();
+        _RTEMS_Unlock_allocator();
+    }
+}
+
+void start_zombie_cleaner(void) {
+    rtems_id id;
+    rtems_status_code sc =
+        rtems_task_create(rtems_build_name('R', 'Z', 'C', 'T'),
+                          254, 8 * 1024,
+                          RTEMS_NO_FLOATING_POINT | RTEMS_LOCAL,
+                          RTEMS_PREEMPT | RTEMS_TIMESLICE | RTEMS_NO_ASR,
+                          &id);
+    if (sc != RTEMS_SUCCESSFUL) {
+        printf("error: cannot create zombie cleaner: %s\n", rtems_status_text(sc));
+        return;
+    }
+
+    sc = rtems_task_start(id, zombie_cleaner, (rtems_task_argument) NULL);
+    if (sc != RTEMS_SUCCESSFUL) {
+        printf("error: cannot start zombie cleaner: %s\n", rtems_status_text(sc));
+        return;
+    }
+}
+
+void Init (rtems_task_argument arg)
+{
+  const char* boot_cmdline = *((const char**) arg);
+  char*       cmdline = 0;
+  char*       command;
+  int         argc = 0;
+  char**      argv = NULL;
+  int         result = -124;
+
+  if (boot_cmdline)
+  {
+    cmdline = malloc (strlen (boot_cmdline) + 1);
+
+    if (cmdline)
+    {
+      strcpy (cmdline, boot_cmdline);
+
+      command = cmdline;
+
+      /*
+       * Break the line up into arguments with "" being ignored.
+       */
+      while (true)
+      {
+        command = strtok (command, " \t\r\n");
+        if (command == NULL)
+          break;
+        argc++;
+        command = '\0';
+      }
+
+      argv = calloc (argc, sizeof (char*));
+
+      if (argv)
+      {
+        int a;
+
+        command = cmdline;
+        argv[0] = command;
+
+        for (a = 1; a < argc; a++)
+        {
+          command += strlen (command) + 1;
+          argv[a] = command;
+        }
+      }
+      else
+        argc = 0;
+    }
+  }
+
+  result = main (argc, argv);
+
+  free (argv);
+  free (cmdline);
+
+  exit (result);
+}
+
+/*
+ * By making this a weak alias and a user can provide there own.
+ */
+
+void Init (rtems_task_argument arg) __attribute__ ((weak));
