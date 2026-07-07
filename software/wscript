@@ -1,0 +1,29 @@
+#! /usr/bin/env python
+# encoding: utf-8
+#
+# PCIe Benchmark App
+#
+
+import buildcontrol
+import builditems
+
+directories = [
+    'firmware',
+    'platform',
+]
+
+
+def init(ctx):
+    buildcontrol.recurse(ctx, directories)
+
+
+def options(opt):
+    buildcontrol.recurse(opt, directories)
+
+
+def configure(conf):
+    buildcontrol.recurse(conf, directories)
+
+
+def build(bld):
+    buildcontrol.recurse(bld, directories)

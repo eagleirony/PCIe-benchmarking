@@ -1,0 +1,44 @@
+#! /usr/bin/env python
+# encoding: utf-8
+#
+# PCIe Benchmark App
+#
+
+import builditems
+import buildver
+import software.firmware.fdt as fdt
+
+sources = [
+    'init.c',
+    'main.c',
+    'app-build-id.c',
+]
+
+includes = ['..']
+
+defines = []
+
+cflags = []
+
+
+def init(ctx):
+    pass
+
+
+def options(opt):
+    pass
+
+
+def configure(conf):
+    pass
+
+
+def build(bld):
+    buildver.build(bld)
+
+    bld.objects(target='app_platform',
+                features='c',
+                source=sources,
+                includes=builditems.get_includes(bld, includes),
+                cflags=builditems.get_cflags(bld, cflags),
+                defines=builditems.get_defines(bld, defines))

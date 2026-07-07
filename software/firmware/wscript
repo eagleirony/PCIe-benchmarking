@@ -1,0 +1,45 @@
+#! /usr/bin/env python
+# encoding: utf-8
+#
+# PCIe Benchmark App
+#
+
+import builditems
+import software.firmware.fdt as fdt
+
+board = "axu2cgb"
+
+sources = [
+    board + '-fdt.c',
+]
+
+includes = ['..']
+
+defines = []
+
+cflags = []
+
+
+def init(ctx):
+    pass
+
+
+def options(opt):
+    fdt.options(opt)
+    pass
+
+
+def configure(conf):
+    fdt.configure(conf)
+    pass
+
+
+def build(bld):
+    fdt.build_fdt_blob(bld, board)
+
+    bld.objects(target='app_firmware',
+                features='c',
+                source=sources,
+                includes=builditems.get_includes(bld, includes),
+                cflags=builditems.get_cflags(bld, cflags),
+                defines=builditems.get_defines(bld, defines))
