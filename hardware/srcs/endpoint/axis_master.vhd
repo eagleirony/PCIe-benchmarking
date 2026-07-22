@@ -15,7 +15,9 @@ entity axis_master is
 		-- Width of S_AXIS address bus. The slave accepts the read and write addresses of width C_M_AXIS_TDATA_WIDTH.
 		C_M_AXIS_TDATA_WIDTH	: integer	:= 32;
 		-- Start count is the number of clock cycles the master will wait before initiating/issuing any transaction.
-		C_M_START_COUNT	: integer	:= 32
+		C_M_START_COUNT	: integer	:= 32;
+		-- FIFO depth
+		FIFO_DEPTH : integer := 14
 	);
 	port (
 		-- Users to add ports here
@@ -216,7 +218,8 @@ begin
 	      elsif (read_pointer = NUMBER_OF_OUTPUT_WORDS) then                         
 	        -- tx_done is asserted when NUMBER_OF_OUTPUT_WORDS numbers of streaming data
 	        -- has been out.                                                         
-	        tx_done <= '1';                                                          
+	        tx_done <= '1';  
+	        read_pointer <= 0;                                                        
 	      end  if;                                                                   
 	    end  if;                                                                     
 	  end  if;                                                                       
@@ -232,9 +235,9 @@ begin
 	-- Streaming output data is read from FIFO                                      
 	axis_fifo : fifo
     generic map (
-        DATA_WIDTH : positive := C_M_AXIS_TDATA_WIDTH;
-        FIFO_DEPTH : positive := 15
-    );
+        DATA_WIDTH => C_M_AXIS_TDATA_WIDTH,
+        FIFO_DEPTH => FIFO_DEPTH
+    )
     port map (
         clk     => M_AXIS_ACLK,
         rstn    => M_AXIS_ARESETN,
@@ -244,7 +247,7 @@ begin
         empty   => fifo_empty,
         full    => fifo_full,
         dout    => stream_data_out,
-        status  => FIFO_STATUS,
+        status  => FIFO_STATUS
     );
 
 	-- Add user logic here

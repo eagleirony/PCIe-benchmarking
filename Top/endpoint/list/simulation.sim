@@ -1,1 +1,2 @@
 hardware/sim/endpoint/pn23_TB.vhd
+hardware/sim/endpoint/axis_TB.vhd

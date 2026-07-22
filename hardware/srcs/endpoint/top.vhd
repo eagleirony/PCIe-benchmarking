@@ -3,10 +3,18 @@ library ieee;
 use     ieee.std_logic_1164.all;
 use     ieee.numeric_std.all;
 
+library work;
+use work.utils_param.all;
+
 -- ------------------------------------------------------------------------------------------
 -- Entity 
 -- ------------------------------------------------------------------------------------------
 entity top is
+generic
+(
+  DATA_WIDTH : integer := 32;
+  FIFO_DEPTH : integer := 16
+);
 port 
 (
   -- ---------------------------------------------------
@@ -51,5 +59,6 @@ end entity top;
 -- ------------------------------------------------------------------------------------------
 architecture rtl of top is
 begin
+
 
 end rtl;
