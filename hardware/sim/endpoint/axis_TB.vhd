@@ -105,7 +105,7 @@ begin
       rstn <= '0';
       wait for 40 ns;
       rstn <= '1';
-      wait for 5us;
+      wait for 20us;
     end process;
 
     test: pn23 port map (

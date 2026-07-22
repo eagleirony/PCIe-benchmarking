@@ -138,17 +138,17 @@ begin
 	          -- The slave starts accepting tdata when                                          
 	          -- there tvalid is asserted to mark the                                           
 	          -- presence of valid streaming data                                               
-	          --if (count = "0")then                                                            
+	          if (count = "0000") then                                                            
 	            mst_exec_state <= INIT_COUNTER;                                                 
-	          --else                                                                              
-	          --  mst_exec_state <= IDLE;                                                         
-	          --end if;                                                                           
+	          else                                                                              
+	            mst_exec_state <= SEND_STREAM;                                                         
+	          end if;                                                                           
 	                                                                                            
 	          when INIT_COUNTER =>                                                              
 	            -- This state is responsible to wait for user defined C_M_START_COUNT           
 	            -- number of clock cycles.                                                      
 	            if ( count = std_logic_vector(to_unsigned((C_M_START_COUNT - 1), WAIT_COUNT_BITS))) then
-	              mst_exec_state  <= SEND_STREAM;                                               
+	              mst_exec_state  <= IDLE;                                               
 	            else                                                                            
 	              count <= std_logic_vector (unsigned(count) + 1);                              
 	              mst_exec_state  <= INIT_COUNTER;                                              
@@ -217,9 +217,14 @@ begin
 	        end if;                                                                  
 	      elsif (read_pointer = NUMBER_OF_OUTPUT_WORDS) then                         
 	        -- tx_done is asserted when NUMBER_OF_OUTPUT_WORDS numbers of streaming data
-	        -- has been out.                                                         
-	        tx_done <= '1';  
-	        read_pointer <= 0;                                                        
+	        -- has been out.
+	        if (mst_exec_state = SEND_STREAM) then
+	          tx_done <= '1'; 
+            elsif (mst_exec_state = IDLE) then
+              -- reset read pointer
+              read_pointer <= 0;    
+              tx_done <= '0';
+            end if;         
 	      end  if;                                                                   
 	    end  if;                                                                     
 	  end  if;                                                                       
