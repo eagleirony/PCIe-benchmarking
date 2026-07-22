@@ -4,7 +4,7 @@
     "xci_name": "xdma_0",
     "component_reference": "xilinx.com:ip:xdma:4.2",
     "ip_revision": "0",
-    "gen_directory": "../../../../endpoint.gen/sources_1/ip/xdma_0",
+    "gen_directory": "../../../Projects/endpoint/endpoint.gen/sources_1/ip/xdma_0",
     "parameters": {
       "component_parameters": {
         "Component_Name": [ { "value": "xdma_0", "resolve_type": "user", "usage": "all" } ],
@@ -1302,7 +1302,7 @@
         "IPCONTEXT": [ { "value": "IP_Flow" } ],
         "IPREVISION": [ { "value": "0" } ],
         "MANAGED": [ { "value": "TRUE" } ],
-        "OUTPUTDIR": [ { "value": "../../../../endpoint.gen/sources_1/ip/xdma_0" } ],
+        "OUTPUTDIR": [ { "value": "../../../Projects/endpoint/endpoint.gen/sources_1/ip/xdma_0" } ],
         "SELECTEDSIMMODEL": [ { "value": "" } ],
         "SHAREDDIR": [ { "value": "." } ],
         "SWVERSION": [ { "value": "2025.1" } ],
