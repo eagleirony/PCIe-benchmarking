@@ -65,6 +65,7 @@ VivadoProject
 SimulationLib
 profpga
 dfx_runtime.txt
+xvlog.pb
 
 ## Intel Quartus Prime
 Projects
