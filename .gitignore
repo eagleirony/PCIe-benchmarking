@@ -100,7 +100,6 @@ _info
 **.qpg
 **.qtl
 
-waf
 build
 __pycache__
 .lock*
