@@ -1,0 +1,6 @@
+rule:
+  global:
+    indent_style: 'spaces'
+    indent_size: 2
+  length_001:
+    length: 80
