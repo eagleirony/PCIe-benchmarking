@@ -23,8 +23,8 @@
         "en_axi_slave_if": [ { "value": "true", "resolve_type": "user", "format": "bool", "usage": "all" } ],
         "en_axi_master_if": [ { "value": "true", "resolve_type": "user", "format": "bool", "usage": "all" } ],
         "pipe_sim": [ { "value": "false", "resolve_type": "user", "format": "bool", "usage": "all" } ],
-        "en_ext_ch_gt_drp": [ { "value": "false", "resolve_type": "user", "format": "bool", "usage": "all" } ],
-        "en_pcie_drp": [ { "value": "false", "resolve_type": "user", "format": "bool", "usage": "all" } ],
+        "en_ext_ch_gt_drp": [ { "value": "false", "value_src": "user", "resolve_type": "user", "format": "bool", "usage": "all" } ],
+        "en_pcie_drp": [ { "value": "false", "value_src": "user", "resolve_type": "user", "format": "bool", "usage": "all" } ],
         "dedicate_perst": [ { "value": "false", "resolve_type": "user", "format": "bool", "enabled": false, "usage": "all" } ],
         "sys_reset_polarity": [ { "value": "ACTIVE_LOW", "resolve_type": "user", "usage": "all" } ],
         "mcap_enablement": [ { "value": "None", "resolve_type": "user", "usage": "all" } ],
@@ -71,7 +71,7 @@
         "Shared_Logic_Gtc_7xG2": [ { "value": "false", "resolve_type": "user", "format": "bool", "usage": "all" } ],
         "Shared_Logic_Clk_7xG2": [ { "value": "false", "resolve_type": "user", "format": "bool", "usage": "all" } ],
         "Shared_Logic_Both_7xG2": [ { "value": "false", "resolve_type": "user", "format": "bool", "usage": "all" } ],
-        "en_transceiver_status_ports": [ { "value": "false", "resolve_type": "user", "format": "bool", "usage": "all" } ],
+        "en_transceiver_status_ports": [ { "value": "false", "value_src": "user", "resolve_type": "user", "format": "bool", "usage": "all" } ],
         "xdma_rnum_chnl": [ { "value": "1", "resolve_type": "user", "usage": "all" } ],
         "xdma_wnum_chnl": [ { "value": "1", "resolve_type": "user", "usage": "all" } ],
         "xdma_axilite_slave": [ { "value": "false", "value_src": "user", "resolve_type": "user", "usage": "all" } ],
@@ -95,13 +95,13 @@
         "xdma_pcie_64bit_en": [ { "value": "false", "resolve_type": "user", "format": "bool", "usage": "all" } ],
         "silicon_rev": [ { "value": "Pre-Production", "resolve_type": "user", "usage": "all" } ],
         "xdma_dsc_bypass": [ { "value": "false", "resolve_type": "user", "format": "bool", "usage": "all" } ],
-        "performance": [ { "value": "false", "resolve_type": "user", "format": "bool", "usage": "all" } ],
+        "performance": [ { "value": "false", "value_src": "user", "resolve_type": "user", "format": "bool", "usage": "all" } ],
         "pcie_extended_tag": [ { "value": "true", "resolve_type": "user", "format": "bool", "usage": "all" } ],
         "rx_detect": [ { "value": "Default", "resolve_type": "user", "usage": "all" } ],
         "pf0_link_status_slot_clock_config": [ { "value": "true", "resolve_type": "user", "usage": "all" } ],
         "dsc_bypass_rd": [ { "value": "0000", "resolve_type": "user", "usage": "all" } ],
         "dsc_bypass_wr": [ { "value": "0000", "resolve_type": "user", "usage": "all" } ],
-        "xdma_sts_ports": [ { "value": "false", "resolve_type": "user", "format": "bool", "usage": "all" } ],
+        "xdma_sts_ports": [ { "value": "true", "value_src": "user", "resolve_type": "user", "format": "bool", "usage": "all" } ],
         "pf0_msix_enabled": [ { "value": "false", "resolve_type": "user", "usage": "all" } ],
         "pf0_msix_cap_table_size": [ { "value": "000", "resolve_type": "user", "enabled": false, "usage": "all" } ],
         "pf0_msix_cap_table_offset": [ { "value": "00000000", "resolve_type": "user", "enabled": false, "usage": "all" } ],
@@ -114,16 +114,16 @@
         "pf1_msix_cap_table_bir": [ { "value": "BAR_0", "resolve_type": "user", "enabled": false, "usage": "all" } ],
         "pf1_msix_cap_pba_offset": [ { "value": "00000000", "resolve_type": "user", "enabled": false, "usage": "all" } ],
         "pf1_msix_cap_pba_bir": [ { "value": "BAR_0", "resolve_type": "user", "enabled": false, "usage": "all" } ],
-        "cfg_mgmt_if": [ { "value": "true", "resolve_type": "user", "format": "bool", "usage": "all" } ],
+        "cfg_mgmt_if": [ { "value": "false", "value_src": "user", "resolve_type": "user", "format": "bool", "usage": "all" } ],
         "ins_loss_profile": [ { "value": "Add-in_Card", "resolve_type": "user", "usage": "all" } ],
         "axil_master_64bit_en": [ { "value": "false", "resolve_type": "user", "format": "bool", "usage": "all" } ],
         "axi_bypass_64bit_en": [ { "value": "false", "resolve_type": "user", "format": "bool", "enabled": false, "usage": "all" } ],
         "axil_master_prefetchable": [ { "value": "false", "resolve_type": "user", "enabled": false, "usage": "all" } ],
         "xdma_pcie_prefetchable": [ { "value": "false", "resolve_type": "user", "enabled": false, "usage": "all" } ],
         "axi_bypass_prefetchable": [ { "value": "false", "resolve_type": "user", "enabled": false, "usage": "all" } ],
-        "cfg_ext_if": [ { "value": "false", "resolve_type": "user", "format": "bool", "usage": "all" } ],
+        "cfg_ext_if": [ { "value": "false", "value_src": "user", "resolve_type": "user", "format": "bool", "usage": "all" } ],
         "legacy_cfg_ext_if": [ { "value": "false", "resolve_type": "user", "format": "bool", "enabled": false, "usage": "all" } ],
-        "parity_settings": [ { "value": "None", "resolve_type": "user", "usage": "all" } ],
+        "parity_settings": [ { "value": "Check_Parity", "value_src": "user", "resolve_type": "user", "usage": "all" } ],
         "ecc_en": [ { "value": "false", "resolve_type": "user", "usage": "all" } ],
         "en_debug_ports": [ { "value": "false", "resolve_type": "user", "format": "bool", "usage": "all" } ],
         "axi_id_width": [ { "value": "4", "resolve_type": "user", "usage": "all" } ],
@@ -1079,7 +1079,7 @@
         "C_PRI_ENABLE": [ { "value": "FALSE", "resolve_type": "generated", "usage": "all" } ],
         "DSC_BYPASS_RD": [ { "value": "0", "resolve_type": "generated", "format": "long", "usage": "all" } ],
         "DSC_BYPASS_WR": [ { "value": "0", "resolve_type": "generated", "format": "long", "usage": "all" } ],
-        "XDMA_STS_PORTS": [ { "value": "FALSE", "resolve_type": "generated", "usage": "all" } ],
+        "XDMA_STS_PORTS": [ { "value": "TRUE", "resolve_type": "generated", "usage": "all" } ],
         "MSIX_ENABLED": [ { "value": "FALSE", "resolve_type": "generated", "usage": "all" } ],
         "WR_CH0_ENABLED": [ { "value": "FALSE", "resolve_type": "generated", "usage": "all" } ],
         "WR_CH1_ENABLED": [ { "value": "FALSE", "resolve_type": "generated", "usage": "all" } ],
@@ -1089,12 +1089,12 @@
         "RD_CH1_ENABLED": [ { "value": "FALSE", "resolve_type": "generated", "usage": "all" } ],
         "RD_CH2_ENABLED": [ { "value": "FALSE", "resolve_type": "generated", "usage": "all" } ],
         "RD_CH3_ENABLED": [ { "value": "FALSE", "resolve_type": "generated", "usage": "all" } ],
-        "CFG_MGMT_IF": [ { "value": "TRUE", "resolve_type": "generated", "usage": "all" } ],
+        "CFG_MGMT_IF": [ { "value": "FALSE", "resolve_type": "generated", "usage": "all" } ],
         "RQ_SEQ_NUM_IGNORE": [ { "value": "0", "resolve_type": "generated", "format": "long", "usage": "all" } ],
         "CFG_EXT_IF": [ { "value": "FALSE", "resolve_type": "generated", "usage": "all" } ],
         "LEGACY_CFG_EXT_IF": [ { "value": "FALSE", "resolve_type": "generated", "usage": "all" } ],
-        "C_PARITY_CHECK": [ { "value": "0", "resolve_type": "generated", "format": "long", "usage": "all" } ],
-        "C_PARITY_GEN": [ { "value": "0", "resolve_type": "generated", "format": "long", "usage": "all" } ],
+        "C_PARITY_CHECK": [ { "value": "1", "resolve_type": "generated", "format": "long", "usage": "all" } ],
+        "C_PARITY_GEN": [ { "value": "1", "resolve_type": "generated", "format": "long", "usage": "all" } ],
         "C_PARITY_PROP": [ { "value": "0", "resolve_type": "generated", "format": "long", "usage": "all" } ],
         "C_ECC_ENABLE": [ { "value": "0", "resolve_type": "generated", "format": "long", "usage": "all" } ],
         "EN_DEBUG_PORTS": [ { "value": "FALSE", "resolve_type": "generated", "usage": "all" } ],
@@ -1344,13 +1344,6 @@
         "m_axil_rresp": [ { "direction": "in", "size_left": "1", "size_right": "0", "driver_value": "0" } ],
         "m_axil_rvalid": [ { "direction": "in", "driver_value": "0" } ],
         "m_axil_rready": [ { "direction": "out" } ],
-        "cfg_mgmt_addr": [ { "direction": "in", "size_left": "18", "size_right": "0", "driver_value": "0" } ],
-        "cfg_mgmt_write": [ { "direction": "in", "driver_value": "0" } ],
-        "cfg_mgmt_write_data": [ { "direction": "in", "size_left": "31", "size_right": "0", "driver_value": "0" } ],
-        "cfg_mgmt_byte_enable": [ { "direction": "in", "size_left": "3", "size_right": "0", "driver_value": "0" } ],
-        "cfg_mgmt_read": [ { "direction": "in", "driver_value": "0" } ],
-        "cfg_mgmt_read_data": [ { "direction": "out", "size_left": "31", "size_right": "0" } ],
-        "cfg_mgmt_read_write_done": [ { "direction": "out" } ],
         "s_axis_c2h_tdata_0": [ { "direction": "in", "size_left": "63", "size_right": "0", "driver_value": "0" } ],
         "s_axis_c2h_tlast_0": [ { "direction": "in", "driver_value": "0" } ],
         "s_axis_c2h_tvalid_0": [ { "direction": "in", "driver_value": "0" } ],
@@ -1360,7 +1353,9 @@
         "m_axis_h2c_tlast_0": [ { "direction": "out" } ],
         "m_axis_h2c_tvalid_0": [ { "direction": "out" } ],
         "m_axis_h2c_tready_0": [ { "direction": "in", "driver_value": "0" } ],
-        "m_axis_h2c_tkeep_0": [ { "direction": "out", "size_left": "7", "size_right": "0" } ]
+        "m_axis_h2c_tkeep_0": [ { "direction": "out", "size_left": "7", "size_right": "0" } ],
+        "c2h_sts_0": [ { "direction": "out", "size_left": "7", "size_right": "0" } ],
+        "h2c_sts_0": [ { "direction": "out", "size_left": "7", "size_right": "0" } ]
       },
       "interfaces": {
         "CLK.SYS_CLK": {
@@ -1566,20 +1561,6 @@
             "TVALID": [ { "physical_name": "m_axis_h2c_tvalid_0" } ]
           }
         },
-        "pcie_cfg_mgmt": {
-          "vlnv": "xilinx.com:interface:pcie_cfg_mgmt:1.0",
-          "abstraction_type": "xilinx.com:interface:pcie_cfg_mgmt_rtl:1.0",
-          "mode": "slave",
-          "port_maps": {
-            "ADDR": [ { "physical_name": "cfg_mgmt_addr" } ],
-            "BYTE_EN": [ { "physical_name": "cfg_mgmt_byte_enable" } ],
-            "READ_DATA": [ { "physical_name": "cfg_mgmt_read_data" } ],
-            "READ_EN": [ { "physical_name": "cfg_mgmt_read" } ],
-            "READ_WRITE_DONE": [ { "physical_name": "cfg_mgmt_read_write_done" } ],
-            "WRITE_DATA": [ { "physical_name": "cfg_mgmt_write_data" } ],
-            "WRITE_EN": [ { "physical_name": "cfg_mgmt_write" } ]
-          }
-        },
         "pcie_mgt": {
           "vlnv": "xilinx.com:interface:pcie_7x_mgt:1.0",
           "abstraction_type": "xilinx.com:interface:pcie_7x_mgt_rtl:1.0",
@@ -1592,6 +1573,15 @@
             "rxp": [ { "physical_name": "pci_exp_rxp" } ],
             "txn": [ { "physical_name": "pci_exp_txn" } ],
             "txp": [ { "physical_name": "pci_exp_txp" } ]
+          }
+        },
+        "dma_status_ports": {
+          "vlnv": "xilinx.com:display_xdma:xdma_status_ports:1.0",
+          "abstraction_type": "xilinx.com:display_xdma:xdma_status_ports_rtl:1.0",
+          "mode": "master",
+          "port_maps": {
+            "c2h_sts0": [ { "physical_name": "c2h_sts_0" } ],
+            "h2c_sts0": [ { "physical_name": "h2c_sts_0" } ]
           }
         }
       },

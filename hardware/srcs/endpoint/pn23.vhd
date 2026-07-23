@@ -4,8 +4,7 @@ library ieee;
 
 entity pn23 is
   generic (
-    data_width   : positive := 32;
-    bits_per_clk : positive := 16
+    data_width   : positive := 32
   );
   port (
     clk   : in    std_logic;
@@ -16,6 +15,8 @@ entity pn23 is
 end entity pn23;
 
 architecture behavioral of pn23 is
+
+  constant bits_per_clk : positive := 16;
 
   signal sreg  : std_logic_vector(23 downto 0);
   signal oreg  : std_logic_vector(data_width - 1 downto 0);

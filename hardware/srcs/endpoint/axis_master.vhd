@@ -14,6 +14,8 @@ entity axis_master is
 
     -- Width of S_AXIS address bus. The slave accepts the read and write addresses of width C_M_AXIS_TDATA_WIDTH.
     c_m_axis_tdata_width : integer := 32;
+    -- Width of FIFO status register.
+    fifo_status_width : integer := 32;
     -- Start count is the number of clock cycles the master will wait before initiating/issuing any transaction.
     c_m_start_count : integer := 32;
     -- FIFO depth
@@ -22,7 +24,7 @@ entity axis_master is
   port (
     -- Users to add ports here
 
-    fifo_status  : out   std_logic_vector(c_m_axis_tdata_width - 1 downto 0);
+    fifo_status  : out   std_logic_vector(fifo_status_width - 1 downto 0);
     fifo_data_in : in    std_logic_vector(c_m_axis_tdata_width - 1 downto 0);
     fifo_wr_ena  : in    std_logic;
 

@@ -7,6 +7,7 @@ library ieee;
 entity fifo is
   generic (
     data_width : positive := 32;
+    status_width : positive := 32;
     fifo_depth : positive := 5
   );
   port (
@@ -18,7 +19,7 @@ entity fifo is
     empty  : out   std_logic;
     full   : out   std_logic;
     dout   : out   std_logic_vector(data_width - 1 downto 0);
-    status : out   std_logic_vector(data_width - 1 downto 0)
+    status : out   std_logic_vector(status_width - 1 downto 0)
   );
 end entity fifo;
 
@@ -53,9 +54,9 @@ begin
   int_wrp  <= wrp(fifo_depth - 1 downto 0);
   sig_used <= wrp - rdp;
 
-  sig_status(DATA_WIDTH - 1)                       <= sig_full;
-  sig_status(DATA_WIDTH - 2)                       <= sig_empty;
-  sig_status(DATA_WIDTH - 3 downto FIFO_DEPTH + 1) <= (others => '0');
+  sig_status(status_width - 1)                       <= sig_full;
+  sig_status(status_width - 2)                       <= sig_empty;
+  sig_status(status_width - 3 downto FIFO_DEPTH + 1) <= (others => '0');
   sig_status(FIFO_DEPTH downto 0)                  <= std_logic_vector(sig_used);
 
   process (rdp, wrp, int_rdp, int_wrp) is
