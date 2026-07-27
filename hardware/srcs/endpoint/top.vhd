@@ -210,9 +210,7 @@ pcie_dma_inst : xdma_0
     h2c_sts_0 => h2c_sts
     );
 
-   pn23_gen_comp: pn23 generic map (
-    data_width => AXIS_DATA_WIDTH
-  )
+   pn23_gen_comp: pn23_64bit
    port map (
         clk => axi_aclk,
         rstn => axi_aresetn,

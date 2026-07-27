@@ -2,25 +2,20 @@
 library ieee;
   use ieee.std_logic_1164.all;
 
-entity pn23 is
-  generic (
-    data_width   : positive := 32
-  );
+entity pn23_64bit is
   port (
     clk   : in    std_logic;
     rstn  : in    std_logic;
-    value : out   std_logic_vector(data_width - 1 downto 0);
+    value : out   std_logic_vector(63 downto 0);
     ready : out   std_logic
   );
-end entity pn23;
+end entity pn23_64bit;
 
-architecture behavioral of pn23 is
+architecture behavioral of pn23_64bit is
 
-  constant bits_per_clk : positive := 16;
-
-  signal sreg  : std_logic_vector(23 downto 0);
-  signal oreg  : std_logic_vector(data_width - 1 downto 0);
-  signal count : integer range 0 to data_width;
+  signal sreg  : std_logic_vector(31 downto 0);
+  signal oreg  : std_logic_vector(63 downto 0);
+  signal count : integer range 0 to 64;
 
 begin
 
@@ -28,27 +23,39 @@ begin
   begin
 
     if (rstn = '0') then
-      sreg(23 downto 0)             <= x"FF5C00";
-      oreg(data_width - 1 downto 0) <= (others => '0');
+      sreg(31 downto 0)  <= x"FF5C0029";
+      oreg(63 downto 0) <= (others => '0');
       count                         <= 0;
       ready                         <= '0';
       value                         <= (others => '0');
       oreg                          <= (others => '0');
     else
       if (rising_edge(clk) or falling_edge(clk)) then
-        oreg(data_width - 1 downto bits_per_clk) <= oreg(data_width - bits_per_clk - 1 downto 0);
-        sreg(23 downto bits_per_clk)             <= sreg(23 - bits_per_clk downto 0);
+        oreg(63 downto 32) <= oreg(31 downto 0);
+        oreg(31 downto 0) <= sreg;
 
-        for i in 0 to bits_per_clk - 1 loop
 
-          sreg(i) <= sreg(23 - bits_per_clk + i) xor sreg(18 - bits_per_clk + i);
-          oreg(i) <= sreg(24 - bits_per_clk + i);
+        for i in 14 to 31 loop
 
+          sreg(i) <= sreg(i - 14) xor sreg(i - 9);
+
+        end loop;
+        
+        for i in 9 to 13 loop
+        
+          sreg(i) <= (sreg(i + 4) xor sreg(i + 9)) xor sreg(i - 9);
+        
+        end loop;
+        
+        for i in 0 to 12 loop
+        
+          sreg(i) <= (sreg(i + 4) xor sreg(i + 9)) xor (sreg(i + 9) xor sreg(i + 14));
+        
         end loop;
 
       end if;
       if rising_edge(clk) then
-        if (count = data_width / bits_per_clk / 2) then
+        if (count = 1) then
           value <= oreg;
           ready <= '1';
           count <= 1;

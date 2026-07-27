@@ -33,16 +33,13 @@ use IEEE.STD_LOGIC_1164.ALL;
 
 entity pn23_TB is
         generic (
-            DATA_WIDTH : positive := 32
+            DATA_WIDTH : positive := 64
         );
 end pn23_TB;
 
 architecture Behavioral of pn23_TB is
 
-    component pn23 is
-        generic (
-            DATA_WIDTH : positive := 32
-        );
+    component pn23_64bit is
         Port ( clk : in STD_LOGIC;
                rstn : in STD_LOGIC;
                value : out STD_LOGIC_VECTOR (DATA_WIDTH - 1 downto 0);
@@ -67,7 +64,7 @@ begin
       wait for 10us;
     end process;
 
-    test: pn23 port map (
+    test: pn23_64bit port map (
         clk => clk,
         rstn => rstn,
         value => value,
