@@ -28,6 +28,8 @@
 #include <platform/pl.hpp>
 #include <platform/app-build-id.h>
 
+#include <framework/pcie-dma.hpp>
+
 int main(int argc, char** argv) {
     rtems_status_code sc;
 
@@ -37,6 +39,8 @@ int main(int argc, char** argv) {
     app::platform::network::start(30, false);
 
     std::cout << std::endl << "PCITB version: " << app_build_id() << std::endl;
+
+    app::framework::pcie::dma::init();
 
     sc = rtems_shell_init(
         "PCITB",

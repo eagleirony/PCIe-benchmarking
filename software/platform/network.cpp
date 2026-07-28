@@ -53,6 +53,8 @@ extern "C" {
 #include <rtems/bsd/iface.h>
 }
 
+#include <platform/network.hpp>
+
 namespace app {
 namespace platform {
 namespace network {

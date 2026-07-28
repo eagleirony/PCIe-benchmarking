@@ -9,6 +9,7 @@ import builditems
 
 directories = [
     'firmware',
+    'framework',
     'platform',
 ]
 
