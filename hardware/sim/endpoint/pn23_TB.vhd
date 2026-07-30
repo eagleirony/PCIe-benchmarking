@@ -39,18 +39,24 @@ end pn23_TB;
 
 architecture Behavioral of pn23_TB is
 
-    component pn23_64bit is
-        Port ( clk : in STD_LOGIC;
-               rstn : in STD_LOGIC;
-               value : out STD_LOGIC_VECTOR (DATA_WIDTH - 1 downto 0);
-               ready : out STD_LOGIC
-        );
-    end component;
+  component pn23 is
+    generic (
+      data_width : positive := 64
+    );
+    port (
+      clk   : in    std_logic;
+      rstn  : in    std_logic;
+      hold  : in    std_logic;
+      valid : out   std_logic;
+      value : out   std_logic_vector(63 downto 0)
+    );
+  end component pn23;
 
     signal clk : std_logic := '0';
     signal rstn : std_logic := '0';
     signal value : STD_LOGIC_VECTOR (DATA_WIDTH - 1 downto 0);
-    signal ready : std_logic;
+    signal hold : std_logic;
+    signal valid : std_logic;
 
 begin
 
@@ -59,16 +65,22 @@ begin
     process is
     begin
       rstn <= '0';
+      hold <= '0';
       wait for 40 ns;
       rstn <= '1';
+      wait for 80 ns;
+      hold <= '1';
+      wait for 40 ns;
+      hold <= '0';
       wait for 10us;
     end process;
 
-    test: pn23_64bit port map (
+    test: pn23 port map (
         clk => clk,
         rstn => rstn,
-        value => value,
-        ready => ready
+        hold => hold,
+        valid => valid,
+        value => value
     );
 
 end Behavioral;

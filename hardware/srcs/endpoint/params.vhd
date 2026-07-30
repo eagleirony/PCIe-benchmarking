@@ -72,14 +72,18 @@ package utils_param is
     );
   end component fifo;
 
-  component pn23_64bit is
+  component pn23 is
+    generic (
+      data_width : positive := 64
+    );
     port (
       clk   : in    std_logic;
       rstn  : in    std_logic;
-      value : out   std_logic_vector(63 downto 0);
-      ready : out   std_logic
+      hold  : in    std_logic;
+      valid : out   std_logic;
+      value : out   std_logic_vector(63 downto 0)
     );
-  end component pn23_64bit;
+  end component pn23;
 
   component axis_master is
     generic (

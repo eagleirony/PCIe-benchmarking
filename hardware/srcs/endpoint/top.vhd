@@ -74,8 +74,8 @@ signal axi_aresetn : std_logic;
 signal aclk_double : std_logic;
 
 signal pcie_link_status : std_logic;
-signal msi_req : std_logic;
-signal msi_ack : std_logic;
+signal msi_req : std_logic_vector(0 downto 0);
+signal msi_ack : std_logic_vector(0 downto 0);
 
 signal pn23_value : std_logic_vector( AXIS_DATA_WIDTH - 1 downto 0 );
 signal pn23_ready : std_logic;
@@ -108,7 +108,7 @@ signal axis_h2c_tready : std_logic;
 signal axis_h2c_tkeep : std_logic_vector( (AXIS_DATA_WIDTH / 8) - 1 downto 0 );
 
 -- AXI Lite Bar space
-signal axil_awaddr  : std_logic_vector(AXIL_ADDR_WIDTH - 1 downto 0);
+signal axil_awaddr  : std_logic_vector(31 downto 0);
 signal axil_awprot  : std_logic_vector(2 downto 0);
 signal axil_awvalid : std_logic;
 signal axil_awready : std_logic;
@@ -119,7 +119,7 @@ signal axil_wready  : std_logic;
 signal axil_bvalid  : std_logic;
 signal axil_bresp   : std_logic_vector(1 downto 0);
 signal axil_bready  : std_logic;
-signal axil_araddr  : std_logic_vector(AXIL_ADDR_WIDTH - 1 downto 0);
+signal axil_araddr  : std_logic_vector(31 downto 0);
 signal axil_arprot  : std_logic_vector(2 downto 0);
 signal axil_arvalid : std_logic;
 signal axil_arready : std_logic;
@@ -201,11 +201,11 @@ pcie_dma_inst : xdma_0
     s_axis_c2h_tvalid_0 => axis_c2h_tvalid,
     s_axis_c2h_tready_0 => axis_c2h_tready,
     s_axis_c2h_tkeep_0 => axis_c2h_tkeep,
-    s_axis_h2c_tdata_0 => axis_h2c_tdata,
-    s_axis_h2c_tlast_0 => axis_h2c_tlast,
-    s_axis_h2c_tvalid_0 => axis_h2c_tvalid,
-    s_axis_h2c_tready_0 => axis_h2c_tready,
-    s_axis_h2c_tkeep_0 => axis_h2c_tkeep,
+    m_axis_h2c_tdata_0 => axis_h2c_tdata,
+    m_axis_h2c_tlast_0 => axis_h2c_tlast,
+    m_axis_h2c_tvalid_0 => axis_h2c_tvalid,
+    m_axis_h2c_tready_0 => axis_h2c_tready,
+    m_axis_h2c_tkeep_0 => axis_h2c_tkeep,
     c2h_sts_0 => c2h_sts,
     h2c_sts_0 => h2c_sts
     );
@@ -248,7 +248,7 @@ pcie_dma_inst : xdma_0
     -- Control interface (AXI4-Lite) slave
     s_axil_aclk    => axi_aclk,
     s_axil_aresetn => axi_aresetn,
-    s_axil_awaddr  => axil_awaddr,
+    s_axil_awaddr  => axil_awaddr(AXIL_ADDR_WIDTH - 1 downto 0),
     s_axil_awprot  => axil_awprot,
     s_axil_awvalid => axil_awvalid,
     s_axil_awready => axil_awready,
@@ -259,7 +259,7 @@ pcie_dma_inst : xdma_0
     s_axil_bresp   => axil_bresp,
     s_axil_bvalid  => axil_bvalid,
     s_axil_bready  => axil_bready,
-    s_axil_araddr  => axil_araddr,
+    s_axil_araddr  => axil_araddr(AXIL_ADDR_WIDTH - 1 downto 0),
     s_axil_arprot  => axil_arprot,
     s_axil_arvalid => axil_arvalid,
     s_axil_arready => axil_arready,
