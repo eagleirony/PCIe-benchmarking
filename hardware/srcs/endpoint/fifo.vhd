@@ -35,13 +35,13 @@ architecture arch of fifo is
   signal int_wrp : unsigned(fifo_depth - 1 downto 0);
 
   signal sig_used   : unsigned(fifo_depth downto 0);
-  signal sig_status : std_logic_vector(data_width - 1 downto 0);
+  signal sig_status : std_logic_vector(status_width - 1 downto 0);
 
   signal sig_full  : std_logic;
   signal sig_empty : std_logic;
 
   signal sig_din  : std_logic_vector(data_width - 1 downto 0);
-  signal sig_dout : std_logic_vector(data_width - 1 downto 0) := x"DEADC0DE";
+  signal sig_dout : std_logic_vector(data_width - 1 downto 0) := x"DEADC0DEDEADC0DE";
 
 begin
 
@@ -82,7 +82,7 @@ begin
     if (rstn = '0') then
       rdp      <= (others => '0');
       wrp      <= (others => '0');
-      sig_dout <= x"DEADC0DE";
+      sig_dout <= x"DEADC0DEDEADC0DE";
     else
       if rising_edge(clk) then
         if (rd = '1' and sig_empty = '0') then

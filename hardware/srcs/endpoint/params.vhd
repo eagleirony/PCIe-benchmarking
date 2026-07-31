@@ -57,6 +57,7 @@ package utils_param is
   component fifo is
     generic (
       data_width : positive := 32;
+      status_width : positive := 32;
       fifo_depth : positive := 5
     );
     port (
@@ -68,7 +69,7 @@ package utils_param is
       empty  : out   std_logic;
       full   : out   std_logic;
       dout   : out   std_logic_vector(DATA_WIDTH - 1 downto 0);
-      status : out   std_logic_vector(DATA_WIDTH - 1 downto 0)
+      status : out   std_logic_vector(status_width - 1 downto 0)
     );
   end component fifo;
 
@@ -85,17 +86,40 @@ package utils_param is
     );
   end component pn23;
 
+  component axis_slave is
+    generic (
+      C_S_AXIS_TDATA_WIDTH  : integer  := 32;
+      fifo_status_width : integer := 32;
+      fifo_depth : integer := 14
+    );
+    port (
+      fifo_status  : out   std_logic_vector(fifo_status_width - 1 downto 0);
+      fifo_data_out: out   std_logic_vector(c_s_axis_tdata_width - 1 downto 0);
+      fifo_rd_ena  : in    std_logic;
+      fifo_empty   : out   std_logic;
+
+      S_AXIS_ACLK  : in std_logic;
+      S_AXIS_ARESETN  : in std_logic;
+      S_AXIS_TREADY  : out std_logic;
+      S_AXIS_TDATA  : in std_logic_vector(C_S_AXIS_TDATA_WIDTH-1 downto 0);
+      S_AXIS_TSTRB  : in std_logic_vector((C_S_AXIS_TDATA_WIDTH/8)-1 downto 0);
+      S_AXIS_TLAST  : in std_logic;
+      S_AXIS_TVALID  : in std_logic
+    );
+  end component;
+
   component axis_master is
     generic (
-      c_m_axis_tdata_width : integer  := 32;
-    fifo_status_width : integer := 32;
+      c_m_axis_tdata_width : integer  := 64;
+      fifo_status_width : integer := 32;
       c_m_start_count : integer  := 32;
       fifo_depth : integer := 14
     );
     port (
-      fifo_status  : out   std_logic_vector(C_M_AXIS_TDATA_WIDTH - 1 downto 0);
-      fifo_data_in : in    std_logic_vector(C_M_AXIS_TDATA_WIDTH - 1 downto 0);
+      fifo_status  : out   std_logic_vector(fifo_status_width - 1 downto 0);
+      fifo_data_in : in    std_logic_vector(c_m_axis_tdata_width - 1 downto 0);
       fifo_wr_ena  : in    std_logic;
+      fifo_full    : out   std_logic;
 
       m_axis_aclk : in    std_logic;
       m_axis_aresetn : in    std_logic;
@@ -124,11 +148,11 @@ package utils_param is
     c_s_axi_addr_width : integer := 8
   );
   port (
-    reg_6_r : in std_logic_vector(c_s_axi_addr_width - 1 downto 0);
-    reg_7_r : in std_logic_vector(c_s_axi_addr_width - 1 downto 0);
-    reg_8_r : in std_logic_vector(c_s_axi_addr_width - 1 downto 0);
-    reg_9_r : in std_logic_vector(c_s_axi_addr_width - 1 downto 0);
-    reg_10_r : in std_logic_vector(c_s_axi_addr_width - 1 downto 0);
+    reg_6_r : in std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_7_r : in std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_8_r : in std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_9_r : in std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_10_r : in std_logic_vector(c_s_axi_data_width - 1 downto 0);
     s_axi_aclk : in    std_logic;
     s_axi_aresetn : in    std_logic;
     s_axi_awaddr : in    std_logic_vector(c_s_axi_addr_width - 1 downto 0);
@@ -183,7 +207,8 @@ package utils_param is
     s_axil_rready  : in    std_logic;
 
     -- User registers
-    fifo_status_reg : in    std_logic_vector(data_width - 1 downto 0);
+    h2c_fifo_status_reg : in    std_logic_vector(data_width - 1 downto 0);
+    c2h_fifo_status_reg : in    std_logic_vector(data_width - 1 downto 0);
 
     msi_ena : in std_logic;
     msi_count : in std_logic_vector(2 downto 0);

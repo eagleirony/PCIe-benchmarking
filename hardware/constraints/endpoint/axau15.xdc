@@ -20,13 +20,13 @@ set_property CONFIG_MODE SPIx4 [current_design]
 # ###################################################################
 # 200MHz 
 # ###################################################################
-set_property PACKAGE_PIN T24 [get_ports Clk200_p]
-set_property PACKAGE_PIN U24 [get_ports Clk200_n]
-set_property IOSTANDARD LVDS [get_ports Clk200_p]
-set_property IOSTANDARD LVDS [get_ports Clk200_n]
-set_property DIFF_TERM_ADV TERM_100 [get_ports Clk200_p]
+set_property PACKAGE_PIN T24 [get_ports clk200_p]
+set_property PACKAGE_PIN U24 [get_ports clk200_n]
+set_property IOSTANDARD LVDS [get_ports clk200_p]
+set_property IOSTANDARD LVDS [get_ports clk200_n]
+set_property DIFF_TERM_ADV TERM_100 [get_ports clk200_p]
 
-create_clock -period 5.000 -name clk200_p [get_ports Clk200_p]
+create_clock -period 5.000 -name clk200_p [get_ports clk200_p]
 
 # ###################################################################
 # LEDs
@@ -40,38 +40,38 @@ set_property PACKAGE_PIN W21 [get_ports Led]
 # ###################################################################
 
 # 100MHz Reference clock
-set_property PACKAGE_PIN AB7 [get_ports {Sys_clk_p}]
-set_property PACKAGE_PIN AB6 [get_ports {Sys_clk_n}]
+set_property PACKAGE_PIN AB7 [get_ports {sys_clk_p}]
+set_property PACKAGE_PIN AB6 [get_ports {sys_clk_n}]
 
-create_clock -period 10.000 -name Sys_clk [get_ports Sys_clk_p]
+create_clock -period 10.000 -name sys_clk [get_ports sys_clk_p]
 
 # Reset
-set_property IOSTANDARD LVCMOS18 [get_ports Sys_rst_n]
-set_property PACKAGE_PIN T19 [get_ports Sys_rst_n]
+set_property IOSTANDARD LVCMOS18 [get_ports sys_rst_n]
+set_property PACKAGE_PIN T19 [get_ports sys_rst_n]
 
 # RX
-set_property PACKAGE_PIN AB2 [get_ports {Pcie_rx_p[0]}]
-set_property PACKAGE_PIN AB1 [get_ports {Pcie_rx_n[0]}]
+set_property PACKAGE_PIN AB2 [get_ports {pcie_rx_p[0]}]
+set_property PACKAGE_PIN AB1 [get_ports {pcie_rx_n[0]}]
 
-set_property PACKAGE_PIN AD2 [get_ports {Pcie_rx_p[1]}]
-set_property PACKAGE_PIN AD1 [get_ports {Pcie_rx_n[1]}]
+set_property PACKAGE_PIN AD2 [get_ports {pcie_rx_p[1]}]
+set_property PACKAGE_PIN AD1 [get_ports {pcie_rx_n[1]}]
 
-set_property PACKAGE_PIN AE4 [get_ports {Pcie_rx_p[2]}]
-set_property PACKAGE_PIN AE3 [get_ports {Pcie_rx_n[2]}]
+set_property PACKAGE_PIN AE4 [get_ports {pcie_rx_p[2]}]
+set_property PACKAGE_PIN AE3 [get_ports {pcie_rx_n[2]}]
 
-set_property PACKAGE_PIN AF2 [get_ports {Pcie_rx_p[3]}]
-set_property PACKAGE_PIN AF1 [get_ports {Pcie_rx_n[3]}]
+set_property PACKAGE_PIN AF2 [get_ports {pcie_rx_p[3]}]
+set_property PACKAGE_PIN AF1 [get_ports {pcie_rx_n[3]}]
 
 # TX
-set_property PACKAGE_PIN AC5 [get_ports {Pcie_tx_p[0]}]
-set_property PACKAGE_PIN AC4 [get_ports {Pcie_tx_n[0]}]
+set_property PACKAGE_PIN AC5 [get_ports {pcie_tx_p[0]}]
+set_property PACKAGE_PIN AC4 [get_ports {pcie_tx_n[0]}]
 
-set_property PACKAGE_PIN AD7 [get_ports {Pcie_tx_p[1]}]
-set_property PACKAGE_PIN AD6 [get_ports {Pcie_tx_n[1]}]
+set_property PACKAGE_PIN AD7 [get_ports {pcie_tx_p[1]}]
+set_property PACKAGE_PIN AD6 [get_ports {pcie_tx_n[1]}]
 
-set_property PACKAGE_PIN AE9 [get_ports {Pcie_tx_p[2]}]
-set_property PACKAGE_PIN AE8 [get_ports {Pcie_tx_n[2]}]
+set_property PACKAGE_PIN AE9 [get_ports {pcie_tx_p[2]}]
+set_property PACKAGE_PIN AE8 [get_ports {pcie_tx_n[2]}]
 
-set_property PACKAGE_PIN AF7 [get_ports {Pcie_tx_p[3]}]
-set_property PACKAGE_PIN AF6 [get_ports {Pcie_tx_n[3]}]
+set_property PACKAGE_PIN AF7 [get_ports {pcie_tx_p[3]}]
+set_property PACKAGE_PIN AF6 [get_ports {pcie_tx_n[3]}]
 

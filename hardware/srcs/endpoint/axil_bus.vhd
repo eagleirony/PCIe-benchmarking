@@ -20,17 +20,17 @@ entity axil_bus is
     -- User ports ends
 
     -- Read only ports
-    reg_6_r : in std_logic_vector(c_s_axi_addr_width - 1 downto 0);
-    reg_7_r : in std_logic_vector(c_s_axi_addr_width - 1 downto 0);
-    reg_8_r : in std_logic_vector(c_s_axi_addr_width - 1 downto 0);
-    reg_9_r : in std_logic_vector(c_s_axi_addr_width - 1 downto 0);
-    reg_10_r : in std_logic_vector(c_s_axi_addr_width - 1 downto 0);
-    --reg_11_r : in std_logic_vector(c_s_axi_addr_width - 1 downto 0);
-    --reg_12_r : in std_logic_vector(c_s_axi_addr_width - 1 downto 0);
+    reg_6_r : in std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_7_r : in std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_8_r : in std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_9_r : in std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_10_r : in std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    --reg_11_r : in std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    --reg_12_r : in std_logic_vector(c_s_axi_data_width - 1 downto 0);
 
     -- Read Write ports
-    --reg_32_r : in std_logic_vector(c_s_axi_addr_width - 1 downto 0);
-    --reg_32_w : out std_logic_vector(c_s_axi_addr_width - 1 downto 0);
+    --reg_32_r : in std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    --reg_32_w : out std_logic_vector(c_s_axi_data_width - 1 downto 0);
 
     -- Do not modify the ports beyond this line
 

@@ -22,7 +22,7 @@ architecture behavioral of pn23 is
 
 begin
 
-  process (clk) is
+  process (clk, rstn) is
     variable pn23_var : std_logic_vector(23 downto 1);
     variable next_bit : std_logic;
   begin

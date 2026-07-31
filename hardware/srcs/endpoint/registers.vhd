@@ -63,7 +63,8 @@ entity registers is
     s_axil_rready  : in    std_logic;
 
     -- User registers
-    fifo_status_reg : in    std_logic_vector(data_width - 1 downto 0);
+    h2c_fifo_status_reg : in    std_logic_vector(data_width - 1 downto 0);
+    c2h_fifo_status_reg : in    std_logic_vector(data_width - 1 downto 0);
 
     msi_ena : in std_logic;
     msi_count : in std_logic_vector(2 downto 0);
@@ -82,10 +83,10 @@ signal pcie_status_reg : std_logic_vector(data_width - 1 downto 0);
 begin
 
   pcie_status_reg(7 downto 0) <= c2h_sts;
-  pcie_status_reg(13 downto 8) <= h2c_sts;
-  pcie_status_reg(14) <= msi_ena;
-  pcie_status_reg(17 downto 15) <= msi_count;
-  pcie_status_reg(data_width - 1 downto 18) <= (others => '0');
+  pcie_status_reg(15 downto 8) <= h2c_sts;
+  pcie_status_reg(16) <= msi_ena;
+  pcie_status_reg(19 downto 17) <= msi_count;
+  pcie_status_reg(data_width - 1 downto 20) <= (others => '0');
 
   axil_bus_regs : axil_bus
   generic map (
@@ -94,7 +95,7 @@ begin
   )
   port map (
     reg_6_r => pcie_status_reg,
-    reg_7_r => fifo_status_reg,
+    reg_7_r => c2h_fifo_status_reg,
     reg_8_r => uptime_counter((data_width * 2) - 1 downto data_width),
     reg_9_r => uptime_counter(data_width - 1 downto 0),
     reg_10_r => user_counter,

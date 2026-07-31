@@ -78,13 +78,19 @@ signal msi_req : std_logic_vector(0 downto 0);
 signal msi_ack : std_logic_vector(0 downto 0);
 
 signal pn23_value : std_logic_vector( AXIS_DATA_WIDTH - 1 downto 0 );
-signal pn23_ready : std_logic;
+signal pn23_valid : std_logic;
+signal pn23_hold : std_logic;
+
+signal h2c_data_out : std_logic_vector( AXIS_DATA_WIDTH - 1 downto 0 );
+signal h2c_rd_ena : std_logic;
+signal h2c_empty : std_logic;
 
 -- AXI Lite register values
 signal uptime_counter : std_logic_vector ( (AXIL_DATA_WIDTH * 2) - 1 downto 0);
 signal user_counter : std_logic_vector ( AXIL_DATA_WIDTH - 1 downto 0);
 
-signal fifo_status : std_logic_vector ( AXIL_DATA_WIDTH - 1 downto 0);
+signal c2h_fifo_status : std_logic_vector ( AXIL_DATA_WIDTH - 1 downto 0);
+signal h2c_fifo_status : std_logic_vector ( AXIL_DATA_WIDTH - 1 downto 0);
 
 signal msi_ena : std_logic;
 signal msi_count : std_logic_vector(2 downto 0);
@@ -161,7 +167,12 @@ begin
     IB                                 => sys_clk_n
   );
 
-pcie_dma_inst : xdma_0
+  msi_req <= "0";
+
+  axis_c2h_tkeep <= (others => '1');
+  axis_h2c_tstrb <= (others => '1');
+
+  pcie_dma_inst : xdma_0
   port map ( 
     sys_clk => sys_clk,
     sys_clk_gt => sys_clk_gt,
@@ -210,12 +221,13 @@ pcie_dma_inst : xdma_0
     h2c_sts_0 => h2c_sts
     );
 
-   pn23_gen_comp: pn23_64bit
+   pn23_gen_comp: pn23
    port map (
         clk => axi_aclk,
         rstn => axi_aresetn,
-        value => pn23_value,
-        ready => pn23_ready
+        hold => pn23_hold,
+        valid => pn23_valid,
+        value => pn23_value
     );
 
     axis_c2h_inst : axis_master
@@ -226,9 +238,10 @@ pcie_dma_inst : xdma_0
         FIFO_DEPTH => 5
     )
     port map (
-        FIFO_STATUS => fifo_status,
+        FIFO_STATUS => c2h_fifo_status,
         FIFO_DATA_IN => pn23_value,
-        FIFO_WR_ENA => pn23_ready,
+        FIFO_WR_ENA => pn23_valid,
+        FIFO_FULL => pn23_hold,
         M_AXIS_ACLK => axi_aclk,
         M_AXIS_ARESETN => axi_aresetn,
         M_AXIS_TVALID => axis_c2h_tvalid,
@@ -238,6 +251,27 @@ pcie_dma_inst : xdma_0
         M_AXIS_TREADY => axis_c2h_tready
     );
 
+    h2c_rd_ena <= '0';
+
+    axis_h2c_inst : axis_slave
+    generic map (
+        c_s_axis_tdata_width => AXIS_DATA_WIDTH,
+        fifo_status_width => AXIL_DATA_WIDTH,
+        FIFO_DEPTH => 5
+    )
+    port map (
+        FIFO_STATUS => h2c_fifo_status,
+        FIFO_DATA_OUT => h2c_data_out,
+        FIFO_RD_ENA => h2c_rd_ena,
+        FIFO_EMPTY => h2c_empty,
+        S_AXIS_ACLK => axi_aclk,
+        S_AXIS_ARESETN => axi_aresetn,
+        S_AXIS_TVALID => axis_h2c_tvalid,
+        S_AXIS_TDATA => axis_h2c_tdata,
+        S_AXIS_TSTRB => axis_h2c_tstrb,
+        S_AXIS_TLAST => axis_h2c_tlast,
+        S_AXIS_TREADY => axis_h2c_tready
+    );
 
   pcie_bar_registers_inst : registers
   generic map (
@@ -269,8 +303,9 @@ pcie_dma_inst : xdma_0
     s_axil_rready  => axil_rready,
 
     -- User registers
-    fifo_status_reg => fifo_status,
-    
+    c2h_fifo_status_reg => c2h_fifo_status,
+    h2c_fifo_status_reg => h2c_fifo_status,
+
     msi_ena => msi_ena,
     msi_count => msi_count,
     c2h_sts => c2h_sts,
@@ -292,7 +327,7 @@ pcie_dma_inst : xdma_0
 
   user_counter_inst : counter
   generic map (
-    data_width => 2 * AXIL_DATA_WIDTH
+    data_width => AXIL_DATA_WIDTH
   )
   port map (
     clk   => clk200_out,
