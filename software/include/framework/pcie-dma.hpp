@@ -19,9 +19,17 @@
 #ifndef FRAMEWORK_PCIE_DMA_H
 #define FRAMEWORK_PCIE_DMA_H
 
+#include <vector>
 #include <cstdint>
+#include <memory>
 
-// Descriptors
+#include <externals/cs/aligned.hpp>
+
+constexpr uint32_t XLNX_PCIE_DMA_MAX_CHANS = 4;
+
+/* Descriptors */
+constexpr uint32_t XLNX_PCIE_DMA_DESC_SIZE = 0x20;
+
 constexpr uint32_t XLNX_PCIE_DMA_DESC_MAGIC_NXT_CTRL_OFF = 0x00;
 constexpr uint32_t XLNX_PCIE_DMA_DESC_LEN_OFF            = 0x04;
 constexpr uint32_t XLNX_PCIE_DMA_DESC_SRC_ADDR_LOWER_OFF = 0x08;
@@ -42,9 +50,12 @@ constexpr uint32_t XLNX_PCIE_DMA_DESC_CTRL_COMP = 0x02;
 constexpr uint32_t XLNX_PCIE_DMA_DESC_CTRL_EOP  = 0x10;
 
 /* Register addresses */
-constexpr uint32_t XLNX_PCIE_DMA_REG_TAR_ADDR_MASK  = 0x0000F000;
-constexpr uint32_t XLNX_PCIE_DMA_REG_CHAN_ADDR_MASK = 0x00000F00;
-constexpr uint32_t XLNX_PCIE_DMA_REG_BYTE_ADDR_MASK = 0x000000FF;
+constexpr uint32_t XLNX_PCIE_DMA_REG_TAR_ADDR_MASK   = 0x0000F000;
+constexpr uint32_t XLNX_PCIE_DMA_REG_TAR_ADDR_SHIFT  = 12;
+constexpr uint32_t XLNX_PCIE_DMA_REG_CHAN_ADDR_MASK  = 0x00000F00;
+constexpr uint32_t XLNX_PCIE_DMA_REG_CHAN_ADDR_SHIFT = 8;
+constexpr uint32_t XLNX_PCIE_DMA_REG_BYTE_ADDR_MASK  = 0x000000FF;
+constexpr uint32_t XLNX_PCIE_DMA_REG_BYTE_ADDR_SHIFT = 0;
 
 constexpr uint32_t XLNX_PCIE_DMA_TARGET_H2C_CHANS = 0;
 constexpr uint32_t XLNX_PCIE_DMA_TARGET_C2H_CHANS = 1;
@@ -57,15 +68,19 @@ constexpr uint32_t XLNX_PCIE_DMA_TARGET_MSIX      = 8;
 
 /* H2C and C2H registers */
 constexpr uint32_t XLNX_PCIE_DMA_CHAN_ID           = 0x00;
+  constexpr uint32_t XLNX_PCIE_CHAN_ID_AXIS_MASK     = (1 << 15);
 constexpr uint32_t XLNX_PCIE_DMA_CHAN_CTRL_RW      = 0x04;
 constexpr uint32_t XLNX_PCIE_DMA_CHAN_STS          = 0x40;
 constexpr uint32_t XLNX_PCIE_DMA_CHAN_ALIGN        = 0x4C;
 constexpr uint32_t XLNX_PCIE_DMA_CHAN_INTR         = 0x90;
 constexpr uint32_t XLNX_PCIE_DMA_CHAN_PERF_CTRL    = 0xC0;
+  constexpr uint32_t XLNX_PCIE_DMA_CHAN_PERF_CTRL_AUTO = 0x00000001;
 constexpr uint32_t XLNX_PCIE_DMA_CHAN_PERF_CYC_LO  = 0xC4;
 constexpr uint32_t XLNX_PCIE_DMA_CHAN_PERF_CYC_HI  = 0xC8;
 constexpr uint32_t XLNX_PCIE_DMA_CHAN_PERF_DATA_LO = 0xCC;
 constexpr uint32_t XLNX_PCIE_DMA_CHAN_PERF_DATA_HI = 0xD0;
+  constexpr uint32_t XLNX_PCIE_DMA_CHAN_PERF_HI_COUNT_MASK = 0x000003FF;
+  constexpr uint32_t XLNX_PCIE_DMA_CHAN_PERF_HI_MAXED_MASK = 0x00010000;
 
 /* IRQ block */
 constexpr uint32_t XLNX_PCIE_DMA_IRQ_ID          = 0x00;
@@ -109,6 +124,69 @@ namespace app {
 namespace framework {
 namespace pcie {
 namespace dma {
+
+struct registers {
+    void* base;
+
+    registers() : base(nullptr) {};
+    registers(const registers& src) {
+        base = src.base;
+    }
+
+    uint32_t read(uint32_t target, uint32_t channel, uint32_t offset);
+    void write(uint32_t target, uint32_t channel, uint32_t offset,
+        uint32_t value);
+
+protected:
+    uint32_t* address(uint32_t target, uint32_t channel, uint32_t offset);
+};
+
+struct descriptor {
+    void* desc;
+    void* buf;
+    uint32_t length;
+    std::shared_ptr<descriptor> next;
+
+    descriptor(void* desc_) : desc(desc_) {};
+};
+
+struct descriptor_chain {
+    std::shared_ptr<descriptor> start;
+    std::shared_ptr<descriptor> end;
+
+    descriptor_chain(std::vector<descriptor> descs, size_t length);
+};
+
+struct channel {
+    registers regs;
+    size_t id;
+    bool streamed;
+    uint32_t dir;
+    size_t desc_count;
+    size_t desc_size;
+    cs::pool::aligned::pool<descriptor> descs;
+
+    channel(registers& regs, uint32_t dir, size_t id, size_t desc_count,
+        size_t desc_size);
+
+    uint32_t read(uint32_t offset);
+    void write(uint32_t offset, uint32_t value);
+
+    void report();
+};
+
+struct controller {
+    registers regs;
+
+    std::vector<std::shared_ptr<channel>> c2h_chans;
+    std::vector<std::shared_ptr<channel>> h2c_chans;
+    size_t c2h_count;
+    size_t h2c_count;
+
+    controller(std::string& path);
+
+    void report();
+};
 
 void init();
 
