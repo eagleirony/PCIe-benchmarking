@@ -33,27 +33,29 @@ use IEEE.STD_LOGIC_1164.ALL;
 
 entity axis_TB is
         generic (
-            DATA_WIDTH : positive := 32
+            DATA_WIDTH : positive := 64
         );
 end axis_TB;
 
 architecture Behavioral of axis_TB is
 
     component pn23 is
-        generic (
-            DATA_WIDTH : positive := 32
-        );
-        Port ( clk : in STD_LOGIC;
-               rstn : in STD_LOGIC;
-               value : out STD_LOGIC_VECTOR (DATA_WIDTH - 1 downto 0);
-               ready : out STD_LOGIC
-        );
-    end component;
+    generic (
+      data_width : positive := 64
+    );
+    port (
+      clk   : in    std_logic;
+      rstn  : in    std_logic;
+      hold  : in    std_logic;
+      valid : out   std_logic;
+      value : out   std_logic_vector(63 downto 0)
+    );
+  end component pn23;
     
     component axis_master is
         generic (
             -- Width of S_AXIS address bus. The slave accepts the read and write addresses of width C_M_AXIS_TDATA_WIDTH.
-            C_M_AXIS_TDATA_WIDTH	: integer	:= 32;
+            C_M_AXIS_TDATA_WIDTH	: integer	:= 64;
             -- Start count is the number of clock cycles the master will wait before initiating/issuing any transaction.
             C_M_START_COUNT	: integer	:= 32;
             -- FIFO depth
@@ -61,7 +63,7 @@ architecture Behavioral of axis_TB is
         );
         port (
             -- FIFO ports
-            FIFO_STATUS : out std_logic_vector(C_M_AXIS_TDATA_WIDTH-1 downto 0);
+            FIFO_STATUS : out std_logic_vector(32-1 downto 0);
             FIFO_DATA_IN : in std_logic_vector(C_M_AXIS_TDATA_WIDTH-1 downto 0);
             FIFO_WR_ENA : in std_logic;
     
@@ -87,7 +89,7 @@ architecture Behavioral of axis_TB is
     signal value : STD_LOGIC_VECTOR (DATA_WIDTH - 1 downto 0);
     signal ready : std_logic;
     
-    signal fifo_status : std_logic_vector(DATA_WIDTH - 1 downto 0);
+    signal fifo_status : std_logic_vector(32 - 1 downto 0);
     
     signal axis_tdata : std_logic_vector(DATA_WIDTH - 1 downto 0);
     signal axis_tvalid : std_logic;
@@ -98,21 +100,26 @@ architecture Behavioral of axis_TB is
 begin
 
     clk <= not clk after 10 ns;
-    axis_tready <= '1';
 
     process is
     begin
       rstn <= '0';
       wait for 40 ns;
+      axis_tready <= '1';
       rstn <= '1';
+      wait for 400ns;
+      axis_tready <= '0';
+      wait for 40ns;
+      axis_tready <= '1';
       wait for 20us;
     end process;
 
     test: pn23 port map (
         clk => clk,
         rstn => rstn,
+        hold => not(axis_tready),
         value => value,
-        ready => ready
+        valid => ready
     );
     
     axis_c2h : axis_master

@@ -221,8 +221,8 @@ begin
     h2c_sts_0 => h2c_sts
     );
 
-   pn23_gen_comp: pn23
-   port map (
+    pn23_gen_comp: pn23
+    port map (
         clk => axi_aclk,
         rstn => axi_aresetn,
         hold => pn23_hold,
@@ -235,7 +235,7 @@ begin
         c_m_axis_tdata_width => AXIS_DATA_WIDTH,
         fifo_status_width => AXIL_DATA_WIDTH,
         C_M_START_COUNT => 16,
-        FIFO_DEPTH => 5
+        FIFO_DEPTH => 8
     )
     port map (
         FIFO_STATUS => c2h_fifo_status,
@@ -320,7 +320,7 @@ begin
     data_width => 2 * AXIL_DATA_WIDTH
   )
   port map (
-    clk   => clk200_out,
+    clk   => axi_aclk,
     rstn  => sys_rst_n,
     value => uptime_counter
   );
@@ -330,7 +330,7 @@ begin
     data_width => AXIL_DATA_WIDTH
   )
   port map (
-    clk   => clk200_out,
+    clk   => axi_aclk,
     rstn  => sys_rst_n,
     value => user_counter
   );

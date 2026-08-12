@@ -214,6 +214,12 @@ begin
                    when (s_axi_awvalid = '1') else
                    axi_awaddr(addr_lsb + opt_mem_addr_bits downto addr_lsb);
 
+  slv_reg6 <= reg_6_r;
+  slv_reg7 <= reg_7_r;
+  slv_reg8 <= reg_8_r;
+  slv_reg9 <= reg_9_r;
+  slv_reg10 <= reg_10_r;
+
   -- Implement Write state machine
   -- Outstanding write transactions are not supported by the slave i.e.,
   -- master should assert bready to receive response on or before it starts
@@ -322,11 +328,11 @@ begin
         slv_reg3  <= x"FFFFFFFF";
         slv_reg4  <= x"01234567";
         slv_reg5  <= x"89abcdef";
-        slv_reg6  <= (others => '0');
-        slv_reg7  <= (others => '0');
-        slv_reg8  <= (others => '0');
-        slv_reg9  <= (others => '0');
-        slv_reg10 <= (others => '0');
+        -- slv_reg6  <= (others => '0');
+        -- slv_reg7  <= (others => '0');
+        -- slv_reg8  <= (others => '0');
+        -- slv_reg9  <= (others => '0');
+        -- slv_reg10 <= (others => '0');
         slv_reg11 <= (others => '0');
         slv_reg12 <= (others => '0');
         slv_reg13 <= (others => '0');
@@ -527,8 +533,10 @@ begin
                 if (s_axi_wstrb(byte_index) = '1') then
                   -- Respective byte enables are asserted as per write strobes
                   -- slave registor 9
-                  slv_reg9(byte_index * 8 + 7 downto byte_index * 8) <=
-                    s_axi_wdata(byte_index * 8 + 7 downto byte_index * 8);
+                  -- slv_reg9(byte_index * 8 + 7 downto byte_index * 8) <=
+                  --   s_axi_wdata(byte_index * 8 + 7 downto byte_index * 8);
+
+                  -- READ ONLY
                 end if;
 
               end loop;
@@ -540,8 +548,10 @@ begin
                 if (s_axi_wstrb(byte_index) = '1') then
                   -- Respective byte enables are asserted as per write strobes
                   -- slave registor 10
-                  slv_reg10(byte_index * 8 + 7 downto byte_index * 8) <=
-                    s_axi_wdata(byte_index * 8 + 7 downto byte_index * 8);
+                  -- slv_reg10(byte_index * 8 + 7 downto byte_index * 8) <=
+                  --  s_axi_wdata(byte_index * 8 + 7 downto byte_index * 8);
+
+                  -- READ ONLY
                 end if;
 
               end loop;
