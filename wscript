@@ -64,7 +64,7 @@ def build(bld):
                 cflags=builditems.get_cflags(bld, cflags),
                 include=builditems.get_includes(bld, includes),
                 defines=builditems.get_defines(bld, defines),
-                use=['app_firmware', 'app_platform', 'app_framework'],
+                use=['app_firmware', 'app_platform', 'app_framework', 'app_externals'],
                 source=sources)
 
     rtems_waf.rtems.build(bld)

@@ -5,15 +5,13 @@
 #
 
 import builditems
-import software.firmware.fdt as fdt
-
-board = "axu2cgb"
 
 sources = [
-    board + '-fdt.c',
+    'thread.cpp',
+    'error.cpp'
 ]
 
-includes = []
+includes = ['../../include']
 
 defines = []
 
@@ -25,19 +23,15 @@ def init(ctx):
 
 
 def options(opt):
-    fdt.options(opt)
     pass
 
 
 def configure(conf):
-    fdt.configure(conf)
     pass
 
 
 def build(bld):
-    fdt.build_fdt_blob(bld, board)
-
-    bld.objects(target='app_firmware',
+    bld.objects(target='app_externals',
                 features='c',
                 source=sources,
                 includes=builditems.get_includes(bld, includes),

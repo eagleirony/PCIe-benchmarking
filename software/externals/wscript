@@ -1,17 +1,14 @@
 #! /usr/bin/env python
 # encoding: utf-8
 #
-# PCIe Benchmark App
+# Externals
 #
 
 import buildcontrol
 import builditems
 
 directories = [
-    'firmware',
-    'framework',
-    'platform',
-    'externals',
+    'rtems'
 ]
 
 

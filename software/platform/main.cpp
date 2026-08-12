@@ -36,7 +36,7 @@ int main(int argc, char** argv) {
     app::platform::network::init();
     app::platform::pl::init();
 
-    app::platform::network::start(30, false);
+    //app::platform::network::start(30, false);
 
     std::cout << std::endl << "PCITB version: " << app_build_id() << std::endl;
 

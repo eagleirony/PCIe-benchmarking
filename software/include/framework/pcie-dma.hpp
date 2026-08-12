@@ -24,30 +24,32 @@
 #include <memory>
 
 #include <externals/cs/aligned.hpp>
+#include <externals/rtems/thread.hpp>
 
 constexpr uint32_t XLNX_PCIE_DMA_MAX_CHANS = 4;
 
 /* Descriptors */
 constexpr uint32_t XLNX_PCIE_DMA_DESC_SIZE = 0x20;
+constexpr uint32_t XLNX_PCIE_DMA_DESC_ALIGN = 0x1000;
 
 constexpr uint32_t XLNX_PCIE_DMA_DESC_MAGIC_NXT_CTRL_OFF = 0x00;
+  constexpr uint32_t XLNX_PCIE_DMA_DESC_MAGIC_VAL  = 0xAD4B0000;
+  constexpr uint32_t XLNX_PCIE_DMA_DESC_MAGIC_MASK = 0xFFFF0000;
+  constexpr uint32_t XLNX_PCIE_DMA_DESC_NXT_MASK   = 0x3F00;
+  constexpr uint32_t XLNX_PCIE_DMA_DESC_NXT_SHIFT  = 8;
+  constexpr uint32_t XLNX_PCIE_DMA_DESC_CTRL_MASK = 0x000000FF;
+  constexpr uint32_t XLNX_PCIE_DMA_DESC_CTRL_STOP  = (1 << 0);
+  constexpr uint32_t XLNX_PCIE_DMA_DESC_CTRL_CMPL  = (1 << 1);
+  constexpr uint32_t XLNX_PCIE_DMA_DESC_CTRL_EOP   = (1 << 4);
 constexpr uint32_t XLNX_PCIE_DMA_DESC_LEN_OFF            = 0x04;
+  constexpr uint32_t XLNX_PCIE_DMA_DESC_LEN_MASK           = 0x0FFFFFFF;
+  constexpr uint32_t XLNX_PCIE_DMA_DESC_LEN_GRAN           = 0x0000003F;;
 constexpr uint32_t XLNX_PCIE_DMA_DESC_SRC_ADDR_LOWER_OFF = 0x08;
 constexpr uint32_t XLNX_PCIE_DMA_DESC_SRC_ADDR_UPPER_OFF = 0x0C;
 constexpr uint32_t XLNX_PCIE_DMA_DESC_DST_ADDR_LOWER_OFF = 0x10;
 constexpr uint32_t XLNX_PCIE_DMA_DESC_DST_ADDR_UPPER_OFF = 0x14;
 constexpr uint32_t XLNX_PCIE_DMA_DESC_NXT_ADDR_LOWER_OFF = 0x18;
 constexpr uint32_t XLNX_PCIE_DMA_DESC_NXT_ADDR_UPPER_OFF = 0x1C;
-
-constexpr uint32_t XLNX_PCIE_DMA_DESC_MAGIC_MASK = 0xFFFF0000;
-constexpr uint32_t XLNX_PCIE_DMA_DESC_NXT_ADJ_MASK = 0x00003F00;
-constexpr uint32_t XLNX_PCIE_DMA_DESC_CTRL_MASK = 0x000000FF;
-
-constexpr uint32_t XLNX_PCIE_DMA_DESC_MAGIC_VAL = 0xAD4B0000;
-
-constexpr uint32_t XLNX_PCIE_DMA_DESC_CTRL_STOP = 0x01;
-constexpr uint32_t XLNX_PCIE_DMA_DESC_CTRL_COMP = 0x02;
-constexpr uint32_t XLNX_PCIE_DMA_DESC_CTRL_EOP  = 0x10;
 
 /* Register addresses */
 constexpr uint32_t XLNX_PCIE_DMA_REG_TAR_ADDR_MASK   = 0x0000F000;
@@ -69,11 +71,15 @@ constexpr uint32_t XLNX_PCIE_DMA_TARGET_MSIX      = 8;
 /* H2C and C2H registers */
 constexpr uint32_t XLNX_PCIE_DMA_CHAN_ID           = 0x00;
   constexpr uint32_t XLNX_PCIE_CHAN_ID_AXIS_MASK     = (1 << 15);
-constexpr uint32_t XLNX_PCIE_DMA_CHAN_CTRL_RW      = 0x04;
+constexpr uint32_t XLNX_PCIE_DMA_CHAN_CTRL         = 0x04;
+  constexpr uint32_t XLNX_PCIE_DMA_CHAN_CTRL_RUN     = (1 << 0);
 constexpr uint32_t XLNX_PCIE_DMA_CHAN_STS          = 0x40;
+constexpr uint32_t XLNX_PCIE_DMA_CHAN_DESC_COMP    = 0x48;
 constexpr uint32_t XLNX_PCIE_DMA_CHAN_ALIGN        = 0x4C;
 constexpr uint32_t XLNX_PCIE_DMA_CHAN_INTR         = 0x90;
 constexpr uint32_t XLNX_PCIE_DMA_CHAN_PERF_CTRL    = 0xC0;
+  constexpr uint32_t XLNX_PCIE_DMA_CHAN_PERF_CTRL_RUN  = 0x00000004;
+  constexpr uint32_t XLNX_PCIE_DMA_CHAN_PERF_CTRL_CLR  = 0x00000002;
   constexpr uint32_t XLNX_PCIE_DMA_CHAN_PERF_CTRL_AUTO = 0x00000001;
 constexpr uint32_t XLNX_PCIE_DMA_CHAN_PERF_CYC_LO  = 0xC4;
 constexpr uint32_t XLNX_PCIE_DMA_CHAN_PERF_CYC_HI  = 0xC8;
@@ -143,18 +149,13 @@ protected:
 
 struct descriptor {
     void* desc;
-    void* buf;
     uint32_t length;
     std::shared_ptr<descriptor> next;
 
-    descriptor(void* desc_) : desc(desc_) {};
-};
+    uint32_t read(uint32_t offset);
+    void write(uint32_t offset, uint32_t value);
 
-struct descriptor_chain {
-    std::shared_ptr<descriptor> start;
-    std::shared_ptr<descriptor> end;
-
-    descriptor_chain(std::vector<descriptor> descs, size_t length);
+    descriptor();
 };
 
 struct channel {
@@ -163,20 +164,27 @@ struct channel {
     bool streamed;
     uint32_t dir;
     size_t desc_count;
-    size_t desc_size;
-    cs::pool::aligned::pool<descriptor> descs;
+    cs::pool::pool<descriptor> descs;
 
-    channel(registers& regs, uint32_t dir, size_t id, size_t desc_count,
-        size_t desc_size);
+    channel(registers& regs, uint32_t dir, size_t id, size_t desc_count);
 
-    uint32_t read(uint32_t offset);
-    void write(uint32_t offset, uint32_t value);
+    std::shared_ptr<descriptor> transfer(void* buf, size_t length);
 
     void report();
+
+protected:
+    uint32_t read_chan(uint32_t offset);
+    void write_chan(uint32_t offset, uint32_t value);
+    uint32_t read_sgdma(uint32_t offset);
+    void write_sgdma(uint32_t offset, uint32_t value);
 };
 
 struct controller {
     registers regs;
+    registers axis;
+    int fd;
+    std::shared_ptr<rtems::thread::thread> msi_thread;
+    uint64_t* buf;
 
     std::vector<std::shared_ptr<channel>> c2h_chans;
     std::vector<std::shared_ptr<channel>> h2c_chans;
@@ -186,6 +194,11 @@ struct controller {
     controller(std::string& path);
 
     void report();
+
+protected:
+    void start_msi_thread();
+    void msi_worker();
+    void join_msi_thread();
 };
 
 void init();
