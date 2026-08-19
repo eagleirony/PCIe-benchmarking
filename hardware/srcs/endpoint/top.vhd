@@ -92,6 +92,8 @@ signal user_counter : std_logic_vector ( AXIL_DATA_WIDTH - 1 downto 0);
 signal c2h_fifo_status : std_logic_vector ( AXIL_DATA_WIDTH - 1 downto 0);
 signal h2c_fifo_status : std_logic_vector ( AXIL_DATA_WIDTH - 1 downto 0);
 
+signal c2h_chan_0_packet_len : std_logic_vector(AXIL_DATA_WIDTH - 1 downto 0);
+
 signal msi_ena : std_logic;
 signal msi_count : std_logic_vector(2 downto 0);
 signal c2h_sts : std_logic_vector(7 downto 0);
@@ -233,7 +235,7 @@ begin
     axis_c2h_inst : axis_master
     generic map (
         c_m_axis_tdata_width => AXIS_DATA_WIDTH,
-        fifo_status_width => AXIL_DATA_WIDTH,
+        register_width => AXIL_DATA_WIDTH,
         C_M_START_COUNT => 16,
         FIFO_DEPTH => 8
     )
@@ -242,6 +244,7 @@ begin
         FIFO_DATA_IN => pn23_value,
         FIFO_WR_ENA => pn23_valid,
         FIFO_FULL => pn23_hold,
+        PACKET_LENGTH => c2h_chan_0_packet_len,
         M_AXIS_ACLK => axi_aclk,
         M_AXIS_ARESETN => axi_aresetn,
         M_AXIS_TVALID => axis_c2h_tvalid,
@@ -305,6 +308,8 @@ begin
     -- User registers
     c2h_fifo_status_reg => c2h_fifo_status,
     h2c_fifo_status_reg => h2c_fifo_status,
+
+    c2h_chan_0_packet_len => c2h_chan_0_packet_len,
 
     msi_ena => msi_ena,
     msi_count => msi_count,

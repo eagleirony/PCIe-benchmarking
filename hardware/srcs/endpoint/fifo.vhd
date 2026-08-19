@@ -76,7 +76,7 @@ begin
 
   end process;
 
-  process (clk) is
+  process (clk, rstn) is
   begin
 
     if (rstn = '0') then

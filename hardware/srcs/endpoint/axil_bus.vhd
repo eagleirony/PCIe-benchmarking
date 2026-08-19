@@ -19,18 +19,137 @@ entity axil_bus is
 
     -- User ports ends
 
-    -- Read only ports
+    -- Read ports
+    reg_0_r : in std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_1_r : in std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_2_r : in std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_3_r : in std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_4_r : in std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_5_r : in std_logic_vector(c_s_axi_data_width - 1 downto 0);
     reg_6_r : in std_logic_vector(c_s_axi_data_width - 1 downto 0);
     reg_7_r : in std_logic_vector(c_s_axi_data_width - 1 downto 0);
     reg_8_r : in std_logic_vector(c_s_axi_data_width - 1 downto 0);
     reg_9_r : in std_logic_vector(c_s_axi_data_width - 1 downto 0);
     reg_10_r : in std_logic_vector(c_s_axi_data_width - 1 downto 0);
-    --reg_11_r : in std_logic_vector(c_s_axi_data_width - 1 downto 0);
-    --reg_12_r : in std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_11_r : in std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_12_r : in std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_13_r : in std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_14_r : in std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_15_r : in std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_16_r : in std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_17_r : in std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_18_r : in std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_19_r : in std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_20_r : in std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_21_r : in std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_22_r : in std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_23_r : in std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_24_r : in std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_25_r : in std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_26_r : in std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_27_r : in std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_28_r : in std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_29_r : in std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_30_r : in std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_31_r : in std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_32_r : in std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_33_r : in std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_34_r : in std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_35_r : in std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_36_r : in std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_37_r : in std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_38_r : in std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_39_r : in std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_40_r : in std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_41_r : in std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_42_r : in std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_43_r : in std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_44_r : in std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_45_r : in std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_46_r : in std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_47_r : in std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_48_r : in std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_49_r : in std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_50_r : in std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_51_r : in std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_52_r : in std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_53_r : in std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_54_r : in std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_55_r : in std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_56_r : in std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_57_r : in std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_58_r : in std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_59_r : in std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_60_r : in std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_61_r : in std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_62_r : in std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_63_r : in std_logic_vector(c_s_axi_data_width - 1 downto 0);
 
-    -- Read Write ports
-    --reg_32_r : in std_logic_vector(c_s_axi_data_width - 1 downto 0);
-    --reg_32_w : out std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    -- Write ports
+    reg_0_w : out std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_1_w : out std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_2_w : out std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_3_w : out std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_4_w : out std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_5_w : out std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_6_w : out std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_7_w : out std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_8_w : out std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_9_w : out std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_10_w : out std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_11_w : out std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_12_w : out std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_13_w : out std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_14_w : out std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_15_w : out std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_16_w : out std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_17_w : out std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_18_w : out std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_19_w : out std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_20_w : out std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_21_w : out std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_22_w : out std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_23_w : out std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_24_w : out std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_25_w : out std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_26_w : out std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_27_w : out std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_28_w : out std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_29_w : out std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_30_w : out std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_31_w : out std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_32_w : out std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_33_w : out std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_34_w : out std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_35_w : out std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_36_w : out std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_37_w : out std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_38_w : out std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_39_w : out std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_40_w : out std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_41_w : out std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_42_w : out std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_43_w : out std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_44_w : out std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_45_w : out std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_46_w : out std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_47_w : out std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_48_w : out std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_49_w : out std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_50_w : out std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_51_w : out std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_52_w : out std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_53_w : out std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_54_w : out std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_55_w : out std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_56_w : out std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_57_w : out std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_58_w : out std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_59_w : out std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_60_w : out std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_61_w : out std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_62_w : out std_logic_vector(c_s_axi_data_width - 1 downto 0);
+    reg_63_w : out std_logic_vector(c_s_axi_data_width - 1 downto 0);
 
     -- Do not modify the ports beyond this line
 
@@ -214,11 +333,70 @@ begin
                    when (s_axi_awvalid = '1') else
                    axi_awaddr(addr_lsb + opt_mem_addr_bits downto addr_lsb);
 
-  slv_reg6 <= reg_6_r;
-  slv_reg7 <= reg_7_r;
-  slv_reg8 <= reg_8_r;
-  slv_reg9 <= reg_9_r;
-  slv_reg10 <= reg_10_r;
+  reg_0_w <= slv_reg0;
+  reg_1_w <= slv_reg1;
+  reg_2_w <= slv_reg2;
+  reg_3_w <= slv_reg3;
+  reg_4_w <= slv_reg4;
+  reg_5_w <= slv_reg5;
+  reg_6_w <= slv_reg6;
+  reg_7_w <= slv_reg7;
+  reg_8_w <= slv_reg8;
+  reg_9_w <= slv_reg9;
+  reg_10_w <= slv_reg10;
+  reg_11_w <= slv_reg11;
+  reg_12_w <= slv_reg12;
+  reg_13_w <= slv_reg13;
+  reg_14_w <= slv_reg14;
+  reg_15_w <= slv_reg15;
+  reg_16_w <= slv_reg16;
+  reg_17_w <= slv_reg17;
+  reg_18_w <= slv_reg18;
+  reg_19_w <= slv_reg19;
+  reg_20_w <= slv_reg20;
+  reg_21_w <= slv_reg21;
+  reg_22_w <= slv_reg22;
+  reg_23_w <= slv_reg23;
+  reg_24_w <= slv_reg24;
+  reg_25_w <= slv_reg25;
+  reg_26_w <= slv_reg26;
+  reg_27_w <= slv_reg27;
+  reg_28_w <= slv_reg28;
+  reg_29_w <= slv_reg29;
+  reg_30_w <= slv_reg30;
+  reg_31_w <= slv_reg31;
+  reg_32_w <= slv_reg32;
+  reg_33_w <= slv_reg33;
+  reg_34_w <= slv_reg34;
+  reg_35_w <= slv_reg35;
+  reg_36_w <= slv_reg36;
+  reg_37_w <= slv_reg37;
+  reg_38_w <= slv_reg38;
+  reg_39_w <= slv_reg39;
+  reg_40_w <= slv_reg40;
+  reg_41_w <= slv_reg41;
+  reg_42_w <= slv_reg42;
+  reg_43_w <= slv_reg43;
+  reg_44_w <= slv_reg44;
+  reg_45_w <= slv_reg45;
+  reg_46_w <= slv_reg46;
+  reg_47_w <= slv_reg47;
+  reg_48_w <= slv_reg48;
+  reg_49_w <= slv_reg49;
+  reg_50_w <= slv_reg50;
+  reg_51_w <= slv_reg51;
+  reg_52_w <= slv_reg52;
+  reg_53_w <= slv_reg53;
+  reg_54_w <= slv_reg54;
+  reg_55_w <= slv_reg55;
+  reg_56_w <= slv_reg56;
+  reg_57_w <= slv_reg57;
+  reg_58_w <= slv_reg58;
+  reg_59_w <= slv_reg59;
+  reg_60_w <= slv_reg60;
+  reg_61_w <= slv_reg61;
+  reg_62_w <= slv_reg62;
+  reg_63_w <= slv_reg63;
 
   -- Implement Write state machine
   -- Outstanding write transactions are not supported by the slave i.e.,
@@ -321,72 +499,7 @@ begin
   begin
 
     if rising_edge(s_axi_aclk) then
-      if (s_axi_aresetn = '0') then
-        slv_reg0  <= x"55AA55AA";
-        slv_reg1  <= x"AA55AA55";
-        slv_reg2  <= x"00000000";
-        slv_reg3  <= x"FFFFFFFF";
-        slv_reg4  <= x"01234567";
-        slv_reg5  <= x"89abcdef";
-        -- slv_reg6  <= (others => '0');
-        -- slv_reg7  <= (others => '0');
-        -- slv_reg8  <= (others => '0');
-        -- slv_reg9  <= (others => '0');
-        -- slv_reg10 <= (others => '0');
-        slv_reg11 <= (others => '0');
-        slv_reg12 <= (others => '0');
-        slv_reg13 <= (others => '0');
-        slv_reg14 <= (others => '0');
-        slv_reg15 <= (others => '0');
-        slv_reg16 <= (others => '0');
-        slv_reg17 <= (others => '0');
-        slv_reg18 <= (others => '0');
-        slv_reg19 <= (others => '0');
-        slv_reg20 <= (others => '0');
-        slv_reg21 <= (others => '0');
-        slv_reg22 <= (others => '0');
-        slv_reg23 <= (others => '0');
-        slv_reg24 <= (others => '0');
-        slv_reg25 <= (others => '0');
-        slv_reg26 <= (others => '0');
-        slv_reg27 <= (others => '0');
-        slv_reg28 <= (others => '0');
-        slv_reg29 <= (others => '0');
-        slv_reg30 <= (others => '0');
-        slv_reg31 <= (others => '0');
-        slv_reg32 <= (others => '0');
-        slv_reg33 <= (others => '0');
-        slv_reg34 <= (others => '0');
-        slv_reg35 <= (others => '0');
-        slv_reg36 <= (others => '0');
-        slv_reg37 <= (others => '0');
-        slv_reg38 <= (others => '0');
-        slv_reg39 <= (others => '0');
-        slv_reg40 <= (others => '0');
-        slv_reg41 <= (others => '0');
-        slv_reg42 <= (others => '0');
-        slv_reg43 <= (others => '0');
-        slv_reg44 <= (others => '0');
-        slv_reg45 <= (others => '0');
-        slv_reg46 <= (others => '0');
-        slv_reg47 <= (others => '0');
-        slv_reg48 <= (others => '0');
-        slv_reg49 <= (others => '0');
-        slv_reg50 <= (others => '0');
-        slv_reg51 <= (others => '0');
-        slv_reg52 <= (others => '0');
-        slv_reg53 <= (others => '0');
-        slv_reg54 <= (others => '0');
-        slv_reg55 <= (others => '0');
-        slv_reg56 <= (others => '0');
-        slv_reg57 <= (others => '0');
-        slv_reg58 <= (others => '0');
-        slv_reg59 <= (others => '0');
-        slv_reg60 <= (others => '0');
-        slv_reg61 <= (others => '0');
-        slv_reg62 <= (others => '0');
-        slv_reg63 <= (others => '0');
-      else
+      if (s_axi_aresetn = '1') then
         if (s_axi_wvalid = '1') then
 
           case (mem_logic) is
@@ -398,10 +511,8 @@ begin
                 if (s_axi_wstrb(byte_index) = '1') then
                   -- Respective byte enables are asserted as per write strobes
                   -- slave registor 0
-                  -- slv_reg0(byte_index * 8 + 7 downto byte_index * 8) <=
-                  --  s_axi_wdata(byte_index * 8 + 7 downto byte_index * 8);
-
-                  -- READ ONLY
+                  slv_reg0(byte_index * 8 + 7 downto byte_index * 8) <=
+                    s_axi_wdata(byte_index * 8 + 7 downto byte_index * 8);
                 end if;
 
               end loop;
@@ -413,10 +524,8 @@ begin
                 if (s_axi_wstrb(byte_index) = '1') then
                   -- Respective byte enables are asserted as per write strobes
                   -- slave registor 1
-                  -- slv_reg1(byte_index * 8 + 7 downto byte_index * 8) <=
-                  --  s_axi_wdata(byte_index * 8 + 7 downto byte_index * 8);
-
-                  -- READ ONLY
+                  slv_reg1(byte_index * 8 + 7 downto byte_index * 8) <=
+                    s_axi_wdata(byte_index * 8 + 7 downto byte_index * 8);
                 end if;
 
               end loop;
@@ -428,10 +537,8 @@ begin
                 if (s_axi_wstrb(byte_index) = '1') then
                   -- Respective byte enables are asserted as per write strobes
                   -- slave registor 2
-                  -- slv_reg2(byte_index * 8 + 7 downto byte_index * 8) <=
-                  --  s_axi_wdata(byte_index * 8 + 7 downto byte_index * 8);
-
-                  -- READ ONLY
+                  slv_reg2(byte_index * 8 + 7 downto byte_index * 8) <=
+                    s_axi_wdata(byte_index * 8 + 7 downto byte_index * 8);
                 end if;
 
               end loop;
@@ -443,10 +550,8 @@ begin
                 if (s_axi_wstrb(byte_index) = '1') then
                   -- Respective byte enables are asserted as per write strobes
                   -- slave registor 3
-                  -- slv_reg3(byte_index * 8 + 7 downto byte_index * 8) <=
-                  --  s_axi_wdata(byte_index * 8 + 7 downto byte_index * 8);
-
-                  -- READ ONLY
+                  slv_reg3(byte_index * 8 + 7 downto byte_index * 8) <=
+                    s_axi_wdata(byte_index * 8 + 7 downto byte_index * 8);
                 end if;
 
               end loop;
@@ -458,10 +563,8 @@ begin
                 if (s_axi_wstrb(byte_index) = '1') then
                   -- Respective byte enables are asserted as per write strobes
                   -- slave registor 4
-                  -- slv_reg4(byte_index * 8 + 7 downto byte_index * 8) <=
-                  --  s_axi_wdata(byte_index * 8 + 7 downto byte_index * 8);
-
-                  -- READ ONLY
+                  slv_reg4(byte_index * 8 + 7 downto byte_index * 8) <=
+                    s_axi_wdata(byte_index * 8 + 7 downto byte_index * 8);
                 end if;
 
               end loop;
@@ -473,10 +576,8 @@ begin
                 if (s_axi_wstrb(byte_index) = '1') then
                   -- Respective byte enables are asserted as per write strobes
                   -- slave registor 5
-                  -- slv_reg5(byte_index * 8 + 7 downto byte_index * 8) <=
-                  --  s_axi_wdata(byte_index * 8 + 7 downto byte_index * 8);
-
-                  -- READ ONLY
+                  slv_reg5(byte_index * 8 + 7 downto byte_index * 8) <=
+                    s_axi_wdata(byte_index * 8 + 7 downto byte_index * 8);
                 end if;
 
               end loop;
@@ -488,10 +589,8 @@ begin
                 if (s_axi_wstrb(byte_index) = '1') then
                   -- Respective byte enables are asserted as per write strobes
                   -- slave registor 6
-                  -- slv_reg6(byte_index * 8 + 7 downto byte_index * 8) <=
-                  --  s_axi_wdata(byte_index * 8 + 7 downto byte_index * 8);
-
-                  -- READ ONLY
+                  slv_reg6(byte_index * 8 + 7 downto byte_index * 8) <=
+                    s_axi_wdata(byte_index * 8 + 7 downto byte_index * 8);
                 end if;
 
               end loop;
@@ -503,10 +602,8 @@ begin
                 if (s_axi_wstrb(byte_index) = '1') then
                   -- Respective byte enables are asserted as per write strobes
                   -- slave registor 7
-                  -- slv_reg7(byte_index * 8 + 7 downto byte_index * 8) <=
-                  --  s_axi_wdata(byte_index * 8 + 7 downto byte_index * 8);
-
-                  -- READ ONLY
+                  slv_reg7(byte_index * 8 + 7 downto byte_index * 8) <=
+                    s_axi_wdata(byte_index * 8 + 7 downto byte_index * 8);
                 end if;
 
               end loop;
@@ -518,10 +615,8 @@ begin
                 if (s_axi_wstrb(byte_index) = '1') then
                   -- Respective byte enables are asserted as per write strobes
                   -- slave registor 8
-                  -- slv_reg8(byte_index * 8 + 7 downto byte_index * 8) <=
-                  --  s_axi_wdata(byte_index * 8 + 7 downto byte_index * 8);
-
-                  -- READ ONLY
+                  slv_reg8(byte_index * 8 + 7 downto byte_index * 8) <=
+                    s_axi_wdata(byte_index * 8 + 7 downto byte_index * 8);
                 end if;
 
               end loop;
@@ -533,10 +628,8 @@ begin
                 if (s_axi_wstrb(byte_index) = '1') then
                   -- Respective byte enables are asserted as per write strobes
                   -- slave registor 9
-                  -- slv_reg9(byte_index * 8 + 7 downto byte_index * 8) <=
-                  --   s_axi_wdata(byte_index * 8 + 7 downto byte_index * 8);
-
-                  -- READ ONLY
+                  slv_reg9(byte_index * 8 + 7 downto byte_index * 8) <=
+                    s_axi_wdata(byte_index * 8 + 7 downto byte_index * 8);
                 end if;
 
               end loop;
@@ -548,10 +641,8 @@ begin
                 if (s_axi_wstrb(byte_index) = '1') then
                   -- Respective byte enables are asserted as per write strobes
                   -- slave registor 10
-                  -- slv_reg10(byte_index * 8 + 7 downto byte_index * 8) <=
-                  --  s_axi_wdata(byte_index * 8 + 7 downto byte_index * 8);
-
-                  -- READ ONLY
+                  slv_reg10(byte_index * 8 + 7 downto byte_index * 8) <=
+                    s_axi_wdata(byte_index * 8 + 7 downto byte_index * 8);
                 end if;
 
               end loop;
@@ -1382,70 +1473,70 @@ begin
   end process;
 
   -- Implement memory mapped register select and read logic generation
-  s_axi_rdata <= slv_reg0 when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "000000") else
-                 slv_reg1 when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "000001") else
-                 slv_reg2 when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "000010") else
-                 slv_reg3 when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "000011") else
-                 slv_reg4 when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "000100") else
-                 slv_reg5 when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "000101") else
-                 slv_reg6 when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "000110") else
-                 slv_reg7 when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "000111") else
-                 slv_reg8 when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "001000") else
-                 slv_reg9 when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "001001") else
-                 slv_reg10 when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "001010") else
-                 slv_reg11 when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "001011") else
-                 slv_reg12 when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "001100") else
-                 slv_reg13 when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "001101") else
-                 slv_reg14 when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "001110") else
-                 slv_reg15 when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "001111") else
-                 slv_reg16 when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "010000") else
-                 slv_reg17 when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "010001") else
-                 slv_reg18 when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "010010") else
-                 slv_reg19 when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "010011") else
-                 slv_reg20 when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "010100") else
-                 slv_reg21 when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "010101") else
-                 slv_reg22 when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "010110") else
-                 slv_reg23 when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "010111") else
-                 slv_reg24 when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "011000") else
-                 slv_reg25 when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "011001") else
-                 slv_reg26 when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "011010") else
-                 slv_reg27 when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "011011") else
-                 slv_reg28 when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "011100") else
-                 slv_reg29 when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "011101") else
-                 slv_reg30 when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "011110") else
-                 slv_reg31 when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "011111") else
-                 slv_reg32 when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "100000") else
-                 slv_reg33 when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "100001") else
-                 slv_reg34 when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "100010") else
-                 slv_reg35 when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "100011") else
-                 slv_reg36 when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "100100") else
-                 slv_reg37 when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "100101") else
-                 slv_reg38 when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "100110") else
-                 slv_reg39 when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "100111") else
-                 slv_reg40 when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "101000") else
-                 slv_reg41 when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "101001") else
-                 slv_reg42 when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "101010") else
-                 slv_reg43 when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "101011") else
-                 slv_reg44 when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "101100") else
-                 slv_reg45 when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "101101") else
-                 slv_reg46 when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "101110") else
-                 slv_reg47 when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "101111") else
-                 slv_reg48 when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "110000") else
-                 slv_reg49 when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "110001") else
-                 slv_reg50 when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "110010") else
-                 slv_reg51 when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "110011") else
-                 slv_reg52 when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "110100") else
-                 slv_reg53 when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "110101") else
-                 slv_reg54 when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "110110") else
-                 slv_reg55 when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "110111") else
-                 slv_reg56 when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "111000") else
-                 slv_reg57 when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "111001") else
-                 slv_reg58 when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "111010") else
-                 slv_reg59 when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "111011") else
-                 slv_reg60 when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "111100") else
-                 slv_reg61 when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "111101") else
-                 slv_reg62 when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "111110") else
-                 slv_reg63 when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "111111") else
+  s_axi_rdata <= reg_0_r when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "000000") else
+                 reg_1_r when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "000001") else
+                 reg_2_r when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "000010") else
+                 reg_3_r when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "000011") else
+                 reg_4_r when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "000100") else
+                 reg_5_r when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "000101") else
+                 reg_6_r when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "000110") else
+                 reg_7_r when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "000111") else
+                 reg_8_r when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "001000") else
+                 reg_9_r when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "001001") else
+                 reg_10_r when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "001010") else
+                 reg_11_r when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "001011") else
+                 reg_12_r when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "001100") else
+                 reg_13_r when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "001101") else
+                 reg_14_r when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "001110") else
+                 reg_15_r when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "001111") else
+                 reg_16_r when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "010000") else
+                 reg_17_r when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "010001") else
+                 reg_18_r when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "010010") else
+                 reg_19_r when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "010011") else
+                 reg_20_r when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "010100") else
+                 reg_21_r when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "010101") else
+                 reg_22_r when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "010110") else
+                 reg_23_r when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "010111") else
+                 reg_24_r when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "011000") else
+                 reg_25_r when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "011001") else
+                 reg_26_r when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "011010") else
+                 reg_27_r when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "011011") else
+                 reg_28_r when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "011100") else
+                 reg_29_r when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "011101") else
+                 reg_30_r when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "011110") else
+                 reg_31_r when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "011111") else
+                 reg_32_r when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "100000") else
+                 reg_33_r when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "100001") else
+                 reg_34_r when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "100010") else
+                 reg_35_r when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "100011") else
+                 reg_36_r when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "100100") else
+                 reg_37_r when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "100101") else
+                 reg_38_r when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "100110") else
+                 reg_39_r when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "100111") else
+                 reg_40_r when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "101000") else
+                 reg_41_r when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "101001") else
+                 reg_42_r when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "101010") else
+                 reg_43_r when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "101011") else
+                 reg_44_r when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "101100") else
+                 reg_45_r when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "101101") else
+                 reg_46_r when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "101110") else
+                 reg_47_r when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "101111") else
+                 reg_48_r when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "110000") else
+                 reg_49_r when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "110001") else
+                 reg_50_r when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "110010") else
+                 reg_51_r when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "110011") else
+                 reg_52_r when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "110100") else
+                 reg_53_r when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "110101") else
+                 reg_54_r when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "110110") else
+                 reg_55_r when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "110111") else
+                 reg_56_r when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "111000") else
+                 reg_57_r when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "111001") else
+                 reg_58_r when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "111010") else
+                 reg_59_r when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "111011") else
+                 reg_60_r when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "111100") else
+                 reg_61_r when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "111101") else
+                 reg_62_r when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "111110") else
+                 reg_63_r when (axi_araddr(addr_lsb + opt_mem_addr_bits downto addr_lsb) = "111111") else
                  (others => '0');
 
 -- Add user logic here

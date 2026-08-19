@@ -15,7 +15,7 @@ entity axis_master is
     -- Width of S_AXIS address bus. The slave accepts the read and write addresses of width C_M_AXIS_TDATA_WIDTH.
     c_m_axis_tdata_width : integer := 64;
     -- Width of FIFO status register.
-    fifo_status_width : integer := 32;
+    register_width : integer := 32;
     -- Start count is the number of clock cycles the master will wait before initiating/issuing any transaction.
     c_m_start_count : integer := 32;
     -- FIFO depth
@@ -24,10 +24,12 @@ entity axis_master is
   port (
     -- Users to add ports here
 
-    fifo_status  : out   std_logic_vector(fifo_status_width - 1 downto 0);
+    fifo_status  : out   std_logic_vector(register_width - 1 downto 0);
     fifo_data_in : in    std_logic_vector(c_m_axis_tdata_width - 1 downto 0);
     fifo_wr_ena  : in    std_logic;
     fifo_full    : out   std_logic;
+
+    packet_length : in  std_logic_vector(register_width - 1 downto 0);
 
     -- User ports ends
     -- Do not modify the ports beyond this line
@@ -50,9 +52,6 @@ entity axis_master is
 end entity axis_master;
 
 architecture implementation of axis_master is
-
-  -- Total number of output data
-  constant number_of_output_words : integer := 8;
 
   -- function called clogb2 that returns an integer which has the
   -- value of the ceiling of the log base 2.
@@ -88,13 +87,6 @@ architecture implementation of axis_master is
   -- WAIT_COUNT_BITS is the width of the wait counter.
   constant wait_count_bits : integer := clogb2(c_m_start_count - 1);
 
-  -- In this example, Depth of FIFO is determined by the greater of
-  -- the number of input words and output words.
-  constant depth : integer := number_of_output_words;
-
-  -- bit_num gives the minimum number of bits needed to address 'depth' size of FIFO
-  constant bit_num : integer := clogb2(depth);
-
   -- Define the states of state machine
   -- The control state machine oversees the writing of input streaming data to the FIFO,
   -- and outputs the streaming data from the FIFO
@@ -111,7 +103,7 @@ architecture implementation of axis_master is
   -- State variable
   signal mst_exec_state : state;
   -- Example design FIFO read pointer
-  signal read_pointer : integer range 0 to depth - 1;
+  signal read_pointer : integer;
 
   -- AXI Stream internal signals
   -- wait counter. The master waits for the user defined number of clock cycles before initiating a transfer.
@@ -130,6 +122,14 @@ architecture implementation of axis_master is
   signal fifo_empty      : std_logic;
   -- The master has issued all the streaming data stored in FIFO
   signal tx_done : std_logic;
+
+  signal fifo_read : std_logic;
+  signal fifo_read_last : std_logic;
+
+  signal axis_tvalid_new : std_logic;
+
+  -- Total number of output data
+  signal number_of_output_words : unsigned(register_width - 1 downto 0);
 
 begin
 
@@ -158,7 +158,7 @@ begin
             -- The slave starts accepting tdata when
             -- there tvalid is asserted to mark the
             -- presence of valid streaming data
-            if (count = "0000") then
+            if (count = "000") then
               mst_exec_state <= init_counter;
             else
               mst_exec_state <= send_stream;
@@ -197,11 +197,38 @@ begin
 
   end process;
 
+  number_of_output_words <= unsigned(packet_length);
+
   -- tvalid generation
   -- axis_tvalid is asserted when the control state machine's state is SEND_STREAM and
   -- number of output streaming data is less than the NUMBER_OF_OUTPUT_WORDS.
-  axis_tvalid <= '1' when ((mst_exec_state = send_stream) and (read_pointer < number_of_output_words) and (fifo_empty = '0')) else
-                 '0';
+
+  process (m_axis_aclk) is
+  begin
+    if (rising_edge (m_axis_aclk)) then
+      if (m_axis_aresetn = '0') then
+        -- Synchronous reset (active low)
+        axis_tvalid <= '0';
+        fifo_read_last <= '0';
+      else
+        axis_tvalid <= '1' when (
+                        (fifo_read = '1')
+                        and (mst_exec_state = send_stream)
+                        and (axis_tlast = '0'))
+                        else '0' when (axis_tlast = '1')
+                        else axis_tvalid;
+        fifo_read_last <= fifo_read;
+      end if;
+    end if;
+  end process;
+
+  fifo_read <= '1' when (
+                  (read_pointer < number_of_output_words)
+                  and (mst_exec_state = send_stream)
+                  and ((m_axis_tready = '1')
+                    or ((axis_tvalid = '0') and (fifo_read_last = '0') and (fifo_empty = '0'))))
+                  else '0';
+  tx_en <= fifo_read;
 
   -- AXI tlast generation
   -- axis_tlast is asserted number of output streaming data is NUMBER_OF_OUTPUT_WORDS-1
@@ -223,7 +250,6 @@ begin
         axis_tlast_delay  <= axis_tlast;
       end if;
     end if;
-
   end process;
 
   -- read_pointer pointer
@@ -261,22 +287,20 @@ begin
 
   -- FIFO read enable generation
 
-  tx_en <= m_axis_tready and axis_tvalid;
-
   -- FIFO Implementation
 
   -- Streaming output data is read from FIFO
   axis_fifo : component fifo
     generic map (
       data_width => c_m_axis_tdata_width,
-      status_width => fifo_status_width,
+      status_width => register_width,
       fifo_depth => fifo_depth
     )
     port map (
       clk    => m_axis_aclk,
       rstn   => m_axis_aresetn,
       wr     => fifo_wr_ena,
-      rd     => tx_en,
+      rd     => fifo_read,
       din    => fifo_data_in,
       empty  => fifo_empty,
       full   => fifo_full,

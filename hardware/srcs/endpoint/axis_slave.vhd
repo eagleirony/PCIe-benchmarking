@@ -146,6 +146,7 @@ begin
   -- FIFO write enable generation
   fifo_wren <= S_AXIS_TVALID and axis_tready;
 
+
   -- FIFO Implementation
   axis_fifo : component fifo
     generic map (

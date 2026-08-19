@@ -18,7 +18,6 @@ end entity pn23;
 architecture behavioral of pn23 is
 
   signal sreg  : std_logic_vector(23 downto 1);
-  signal oreg  : std_logic_vector(data_width - 1 downto 0);
 
 begin
 
@@ -29,9 +28,7 @@ begin
 
     if (rstn = '0') then
       sreg(23 downto 1) <= 23x"7FAE00";
-      oreg(data_width - 1 downto 0) <= (others => '0');
       value                         <= (others => '0');
-      oreg                          <= (others => '0');
       valid <= '0';
     else
       if (rising_edge(clk)) then
@@ -42,14 +39,13 @@ begin
           for i in 0 to data_width - 1 loop
             next_bit := pn23_var(23) xor pn23_var(18);
 
-            oreg(data_width - 1 - i) <= pn23_var(23);
+            value(data_width - 1 - i) <= pn23_var(23);
 
             pn23_var := pn23_var(22 downto 1) & next_bit;
           end loop;
 
           sreg <= pn23_var;
 
-          value <= oreg;
           valid <= '1';
         else
           valid <= '0';
