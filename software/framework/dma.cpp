@@ -27,9 +27,8 @@
 #include <dev/io/iodev.h>
 
 #include <rtems/bsd/pci-iodev.h>
-#include <rtems/rtems/cache.h>
 
-#include <framework/pcie-dma.hpp>
+#include <framework/dma.hpp>
 
 namespace app {
 namespace framework {
@@ -45,7 +44,14 @@ constexpr uint16_t dma_subdevice = 0x0007;
 
 constexpr size_t dma_chan_desc_count = 16;
 
-std::vector<controller> eps;
+controllers_ptr eps;
+
+controllers_ptr make_controllers() {
+    if (!eps) {
+        eps = std::make_shared<controllers>();
+    }
+    return eps;
+}
 
 uint32_t* registers::address(uint32_t target,
     uint32_t channel, uint32_t offset) {
@@ -73,6 +79,12 @@ uint32_t registers::read(uint32_t target, uint32_t channel, uint32_t offset) {
     return *reg;
 }
 
+uint32_t registers::read(uint32_t target, uint32_t offset) {
+    uint32_t* reg = address(target, 0, offset);
+
+    return *reg;
+}
+
 void registers::write(uint32_t target, uint32_t channel, uint32_t offset,
     uint32_t value) {
     uint32_t* reg = address(target, channel, offset);
@@ -80,21 +92,9 @@ void registers::write(uint32_t target, uint32_t channel, uint32_t offset,
     *reg = value;
 }
 
-descriptor::descriptor() {
-    desc = calloc(1, XLNX_PCIE_DMA_DESC_SIZE);
-}
+void registers::write(uint32_t target, uint32_t offset, uint32_t value) {
+    uint32_t* reg = address(target, 0, offset);
 
-uint32_t descriptor::read(uint32_t offset) {
-    uint64_t address = reinterpret_cast<uint64_t>(desc);
-    address += offset;
-    uint32_t* reg = reinterpret_cast<uint32_t*>(address);
-    return *reg;
-}
-
-void descriptor::write(uint32_t offset, uint32_t value) {
-    uint64_t address = reinterpret_cast<uint64_t>(desc);
-    address += offset;
-    uint32_t* reg = reinterpret_cast<uint32_t*>(address);
     *reg = value;
 }
 
@@ -107,6 +107,8 @@ channel::channel(registers& reg_, uint32_t dir_, size_t id_,
     }
 
     descs.create(desc_count);
+    bufs.create(desc_count);
+    wbs.create(desc_count);
 
     /* Set performance tracking to auto */
     write_chan(XLNX_PCIE_DMA_CHAN_PERF_CTRL, XLNX_PCIE_DMA_CHAN_PERF_CTRL_RUN
@@ -114,39 +116,30 @@ channel::channel(registers& reg_, uint32_t dir_, size_t id_,
         | XLNX_PCIE_DMA_CHAN_PERF_CTRL_AUTO);
 
     /* Enable Intr */
-    uint32_t irq_reg = regs.read(XLNX_PCIE_DMA_TARGET_IRQ_BLOCK, 0,
+    uint32_t irq_reg = regs.read(XLNX_PCIE_DMA_TARGET_IRQ_BLOCK,
         XLNX_PCIE_DMA_IRQ_CHAN_EN);
-    regs.write(XLNX_PCIE_DMA_TARGET_IRQ_BLOCK, 0, XLNX_PCIE_DMA_IRQ_CHAN_EN,
+    regs.write(XLNX_PCIE_DMA_TARGET_IRQ_BLOCK, XLNX_PCIE_DMA_IRQ_CHAN_EN,
         irq_reg | 0x3);
 
-    write_chan(XLNX_PCIE_DMA_CHAN_INTR, 0xF83E56);
+    write_chan(XLNX_PCIE_DMA_CHAN_INTR, XLNX_PCIE_DMA_CHAN_INTR_ENA);
 }
 
-std::shared_ptr<descriptor> channel::transfer(void* buf, size_t length) {
-    uint32_t len_trunc;
-    uint32_t dst_hi;
-    uint32_t dst_lo;
+void channel::run(size_t length, transfer::callback& cb) {
     uint32_t desc_hi;
     uint32_t desc_lo;
     auto desc = descs.request();
+    auto buf = bufs.request();
+    auto wb = wbs.request();
 
-    desc->write(XLNX_PCIE_DMA_DESC_MAGIC_NXT_CTRL_OFF,
-        XLNX_PCIE_DMA_DESC_MAGIC_VAL | XLNX_PCIE_DMA_DESC_CTRL_STOP);
+    trans.cb = cb;
+    trans.desc = desc;
+    trans.buf = buf;
+    trans.wb = wb;
 
-    if (length > XLNX_PCIE_DMA_DESC_LEN_MASK) {
-        throw std::runtime_error(
-            "Request too large for single descriptor transfer");
-    }
-
-    len_trunc = static_cast<uint32_t>(length & XLNX_PCIE_DMA_DESC_LEN_MASK);
-
-    desc->write(XLNX_PCIE_DMA_DESC_LEN_OFF, len_trunc);
-
-    dst_lo = static_cast<uint32_t>(reinterpret_cast<uint64_t>(buf) & 0xFFFFFFFF);
-    dst_hi = static_cast<uint32_t>(reinterpret_cast<uint64_t>(buf) >> 32);
-
-    desc->write(XLNX_PCIE_DMA_DESC_DST_ADDR_LOWER_OFF, dst_lo);
-    desc->write(XLNX_PCIE_DMA_DESC_DST_ADDR_UPPER_OFF, dst_hi);
+    desc->init();
+    desc->set_buffer(buf);
+    desc->set_length(length);
+    desc->set_wb(wb);
 
     desc_lo = static_cast<uint32_t>(reinterpret_cast<uint64_t>(desc->desc) & 0xFFFFFFFF);
     desc_hi = static_cast<uint32_t>(reinterpret_cast<uint64_t>(desc->desc) >> 32);
@@ -154,10 +147,8 @@ std::shared_ptr<descriptor> channel::transfer(void* buf, size_t length) {
     write_sgdma(XLNX_PCIE_DMA_CHAN_SG_DESC_ADDR_HI, desc_hi);
     write_sgdma(XLNX_PCIE_DMA_CHAN_SG_DESC_ADJ, 0);
 
-    rtems_cache_flush_multiple_data_lines(desc->desc, XLNX_PCIE_DMA_DESC_SIZE);
-    write_chan(XLNX_PCIE_DMA_CHAN_CTRL, 0xF83E7E | XLNX_PCIE_DMA_CHAN_CTRL_RUN);
-
-    return desc;
+    write_chan(XLNX_PCIE_DMA_CHAN_CTRL, XLNX_PCIE_DMA_CHAN_CTRL_LOG_ENA
+        | XLNX_PCIE_DMA_CHAN_CTRL_RUN);
 }
 
 uint32_t channel::read_chan(uint32_t offset) {
@@ -322,7 +313,7 @@ void controller::report() {
 
 void controller::start_msi_thread() {
     rtems::thread::attributes attr;
-    attr.set_name("MSI");
+    attr.set_name("CTLR_MSI_IRQ");
     attr.set_rtems_priority(97);
     attr.set_stack_size(RTEMS_MINIMUM_STACK_SIZE);
     msi_thread = std::make_shared<rtems::thread::thread>(attr, &controller::msi_worker, this);
@@ -346,24 +337,34 @@ void controller::msi_worker() {
         return;
     }
 
-    event_args.index = 0;
-    event_args.timeout.tv_sec = 0;
-    event_args.timeout.tv_nsec = 0;
-    event_args.args = NULL;
+    while (true) {
+        event_args.index = 0;
+        event_args.timeout.tv_sec = 0;
+        event_args.timeout.tv_nsec = 0;
+        event_args.args = NULL;
 
-    status = ::ioctl(fd, RTEMS_IODEV_IOCTL_EVENT_WAIT, &event_args);
-    if (status == -1) {
-        std::cout << "controller: msi_worker: event wait failed" << std::endl;
-        return;
-    }
-    std::cout << "MSI event received" << std::endl;
+        status = ::ioctl(fd, RTEMS_IODEV_IOCTL_EVENT_WAIT, &event_args);
+        if (status == -1) {
+            std::cout << "controller: msi_worker: event wait failed " << errno << " " << fd << std::endl;
+            return;
+        }
+        std::cout << "MSI event received" << std::endl;
 
-    rtems_cache_invalidate_multiple_data_lines(eps[0].buf, 512);
-    eps[0].report();
-    std::cout << "Thread ending" << std::endl << "Data (" << eps[0].buf << "):" << std::endl;
-
-    for (int i = 0; i < 9; ++i) {
-        std::cout << std::hex << "0x" << eps[0].buf[i] << std::dec << std::endl;
+        uint32_t reqs = regs.read(XLNX_PCIE_DMA_TARGET_IRQ_BLOCK,
+            XLNX_PCIE_DMA_IRQ_CHAN_INT);
+        for (int i = 0; i < c2h_count + h2c_count; i++) {
+            if (reqs & (1U << i)) {
+                if (i < h2c_count) {
+                    auto& trans = h2c_chans[i]->trans;
+                    trans.cb(trans);
+                }
+                if (i >= h2c_count) {
+                    auto chan_index = i - h2c_count;
+                    auto& trans = c2h_chans[chan_index]->trans;
+                    trans.cb(trans);
+                }
+            }
+        }
     }
 }
 
@@ -408,45 +409,29 @@ void init() {
         auto path = oss.str();
         if (probe_dma(path)) {
             try {
-                controller d(path);
-                eps.push_back(d);
+                eps->emplace_back(path);
             } catch (const std::runtime_error& e) {
                 std::cout << e.what() << std::endl;
             }
         }
     }
 
-    for (auto& ep : eps) {
+    for (auto& ep : *eps) {
         ep.report();
     }
 
+    transfer::callback cb = [](transfer& trans){
+        uint64_t* buf = reinterpret_cast<uint64_t*>(trans.buf->buf);
+        eps->at(0).report();
 
-    eps[0].buf = (uint64_t*)rtems_cache_coherent_allocate(512, 64, 4096);
-    for (int i = 0; i < (512/sizeof(uint64_t)); i++) {
-        eps[0].buf[i] = 0;
-    }
-    auto desc = eps[0].c2h_chans[0]->transfer(eps[0].buf, 512);
+        std::cout << "Length: " << trans.wb->length() << std::endl;
 
-    eps[0].msi_thread->join();
+        for (int i = 0; i < 9; ++i) {
+            std::cout << std::hex << "0x" << buf[i] << std::dec << std::endl;
+        }
+    };
 
-    std::cout << std::endl << "Register Test Patterns: " << std::endl;
-    std::cout << std::hex << "0x" << eps[0].axis.read(0, 0, 0x0) << std::endl;
-    std::cout << std::hex << "0x" << eps[0].axis.read(0, 0, 0x4) << std::endl;
-    std::cout << std::hex << "0x" << eps[0].axis.read(0, 0, 0x8) << std::endl;
-    std::cout << std::hex << "0x" << eps[0].axis.read(0, 0, 0xC) << std::endl;
-    std::cout << std::hex << "0x" << eps[0].axis.read(0, 0, 0x10) << std::endl;
-    std::cout << std::hex << "0x" << eps[0].axis.read(0, 0, 0x14) << std::endl;
-    std::cout << "PCIe Status Register: ";
-    std::cout << std::hex << "0x" << eps[0].axis.read(0, 0, 0x18) << std::endl;
-    std::cout << "FIFO Status Register: ";
-    std::cout << std::hex << "0x" << eps[0].axis.read(0, 0, 0x1C) << std::endl;
-    uint64_t uptime = (((uint64_t)eps[0].axis.read(0, 0, 0x20)) << 32)
-        | (eps[0].axis.read(0, 0, 0x24));
-    std::cout << "Uptime Register: ";
-    std::cout << std::hex << "0x" << uptime << std::endl;
-    std::cout << "Counter Register: ";
-    std::cout << std::hex << "0x" << eps[0].axis.read(0, 0, 0x28) << std::endl;
-
+    eps->at(0).c2h_chans[0]->run(512, cb);
 }
 
 } // namespace dma

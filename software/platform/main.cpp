@@ -28,7 +28,8 @@
 #include <platform/pl.hpp>
 #include <platform/app-build-id.h>
 
-#include <framework/pcie-dma.hpp>
+#include <framework/dma.hpp>
+#include <framework/io.hpp>
 
 int main(int argc, char** argv) {
     rtems_status_code sc;
@@ -40,7 +41,12 @@ int main(int argc, char** argv) {
 
     std::cout << std::endl << "PCITB version: " << app_build_id() << std::endl;
 
-    app::framework::pcie::dma::init();
+    try {
+        app::framework::api::io::init();
+        app::framework::pcie::dma::init();
+    } catch (const std::exception& e) {
+        std::cout << "Error in DMA: " << e.what() << std::endl;
+    }
 
     sc = rtems_shell_init(
         "PCITB",

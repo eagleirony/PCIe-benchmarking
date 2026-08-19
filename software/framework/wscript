@@ -9,7 +9,9 @@ import buildver
 import software.firmware.fdt as fdt
 
 sources = [
-    'pcie-dma.cpp',
+    'dma.cpp',
+    'dma-mem.cpp',
+    'io.cpp',
 ]
 
 includes = ['../include/']
