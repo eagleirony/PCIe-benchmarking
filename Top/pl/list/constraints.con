@@ -1,0 +1,3 @@
+hardware/constraints/axu2cgb/gpio.xdc
+hardware/constraints/axu2cgb/mipi.xdc
+hardware/constraints/axu2cgb/system.xdc

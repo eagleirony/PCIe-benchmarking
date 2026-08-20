@@ -1,12 +1,12 @@
 # VHDL
-hardware/srcs/endpoint/axil_bus.vhd
-hardware/srcs/endpoint/axis_master.vhd
-hardware/srcs/endpoint/axis_slave.vhd
-hardware/srcs/endpoint/registers.vhd
-hardware/srcs/endpoint/pn23.vhd
-hardware/srcs/endpoint/fifo.vhd
-hardware/srcs/endpoint/params.vhd
-hardware/srcs/endpoint/counter.vhd
+hardware/srcs/shared/axil_bus.vhd
+hardware/srcs/shared/axis_master.vhd
+hardware/srcs/shared/axis_slave.vhd
+hardware/srcs/shared/registers.vhd
+hardware/srcs/shared/pn23.vhd
+hardware/srcs/shared/fifo.vhd
+hardware/srcs/shared/params.vhd
+hardware/srcs/shared/counter.vhd
 hardware/srcs/endpoint/top.vhd top=top
 
 # IP

@@ -211,12 +211,16 @@ begin
         axis_tvalid <= '0';
         fifo_read_last <= '0';
       else
-        axis_tvalid <= '1' when (
-                        (fifo_read = '1')
-                        and (mst_exec_state = send_stream)
-                        and (axis_tlast = '0'))
-                        else '0' when (axis_tlast = '1')
-                        else axis_tvalid;
+        if (fifo_read = '1'
+            and mst_exec_state = send_stream
+            and axis_tlast = '0')
+        then
+          axis_tvalid <= '1';
+        elsif (axis_tlast <= '1') then
+          axis_tvalid <= '0';
+        else
+          axis_tvalid <= axis_tvalid;
+        end if;
         fifo_read_last <= fifo_read;
       end if;
     end if;
