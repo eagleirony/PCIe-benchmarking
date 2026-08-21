@@ -276,6 +276,8 @@ controller::controller(std::string& path) {
         throw std::runtime_error("dma: error: mmap failed");
     }
 
+    axis.write(C2H_CHAN_0_PACKET_LEN_OFF, DMA_BUFF_SIZE/8);
+
     for (auto i = 0; i < XLNX_PCIE_DMA_MAX_CHANS; i++) {
         if (regs.read(XLNX_PCIE_DMA_TARGET_H2C_CHANS, i, XLNX_PCIE_DMA_CHAN_ID)
             != 0) {
@@ -425,13 +427,14 @@ void init() {
         eps->at(0).report();
 
         std::cout << "Length: " << trans.wb->length() << std::endl;
+        std::cout << "EOP: " << trans.wb->eop() << std::endl;
 
         for (int i = 0; i < 9; ++i) {
             std::cout << std::hex << "0x" << buf[i] << std::dec << std::endl;
         }
     };
 
-    eps->at(0).c2h_chans[0]->run(512, cb);
+    eps->at(0).c2h_chans[0]->run(DMA_BUFF_SIZE, cb);
 }
 
 } // namespace dma

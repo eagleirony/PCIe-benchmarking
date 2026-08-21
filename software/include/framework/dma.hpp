@@ -24,11 +24,16 @@
 #include <memory>
 
 #include <framework/dma-mem.hpp>
+#include <framework/io.hpp>
 
 #include <externals/cs/pool.hpp>
 #include <externals/rtems/thread.hpp>
 
 constexpr uint32_t XLNX_PCIE_DMA_MAX_CHANS = 4;
+
+/* AXI Lite registers */
+
+static constexpr uint32_t C2H_CHAN_0_PACKET_LEN_OFF = 0x90;
 
 /* Descriptors */
 static constexpr uint32_t XLNX_PCIE_DMA_DESC_SIZE = 0x20;
@@ -53,6 +58,8 @@ static constexpr uint32_t XLNX_PCIE_DMA_DESC_DST_ADDR_LOWER_OFF = 0x10;
 static constexpr uint32_t XLNX_PCIE_DMA_DESC_DST_ADDR_UPPER_OFF = 0x14;
 static constexpr uint32_t XLNX_PCIE_DMA_DESC_NXT_ADDR_LOWER_OFF = 0x18;
 static constexpr uint32_t XLNX_PCIE_DMA_DESC_NXT_ADDR_UPPER_OFF = 0x1C;
+
+/* Write back */
 
 static constexpr uint32_t XLNX_PCIE_DMA_WB_SIZE = 0x8;
 static constexpr uint32_t XLNX_PCIE_DMA_WB_ALIGNMENT = 0x8;
@@ -209,7 +216,7 @@ using channel_ptr = std::shared_ptr<channel>;
 
 struct controller {
     registers regs;
-    registers axis;
+    api::io::registers axis;
     int fd;
     std::shared_ptr<rtems::thread::thread> msi_thread;
 

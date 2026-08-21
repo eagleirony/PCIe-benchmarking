@@ -144,7 +144,13 @@ void init() {
         throw std::runtime_error("dma: error: mmap failed");
     }
 
-    std::cout << std::endl << "Register Test Patterns: " << std::endl;
+    std::cout << std::endl <<  "Git Hash: ";
+    uint32_t git = axis.read(0x30) & 0x0FFFFFFF;
+    bool modified = ((axis.read(0x30) & 0x80000000) != 0);
+    std::cout << std::hex << "0x" << git << " modified: " << modified << std::endl;
+    std::cout << "Build ID: ";
+    std::cout << std::hex << "0x" << axis.read(0x2C) << std::endl;
+    std::cout << "Register Test Patterns: " << std::endl;
     std::cout << std::hex << "0x" << axis.read(0x0) << std::endl;
     std::cout << std::hex << "0x" << axis.read(0x4) << std::endl;
     std::cout << std::hex << "0x" << axis.read(0x8) << std::endl;
