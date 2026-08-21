@@ -9,6 +9,7 @@ import buildcontrol
 import builditems
 import buildver
 import software.firmware.uboot as uboot
+import hog
 
 rtems_version = "7"
 
@@ -41,7 +42,6 @@ def bsp_configure(conf, arch_bsp):
     conf.env.DEFINES += ['_BSD_SOURCE=1']
     conf.env.LIB = ['bsd', 'z'] + conf.env.LIB
 
-
 def options(opt):
     buildcontrol.recurse(opt, directories)
     buildcontrol.options(opt)
@@ -70,3 +70,19 @@ def build(bld):
     rtems_waf.rtems.build(bld)
 
     uboot.mkimage(bld, 'app')
+
+def create_endpoint(bld):
+    buildver.build_vhdl()
+    hog.hog_c('endpoint')
+
+def build_endpoint(bld):
+    buildver.build_vhdl()
+    hog.hog_cw('endpoint')
+
+def create_pl(bld):
+    buildver.build_vhdl()
+    hog.hog_c('pl')
+
+def build_pl(bld):
+    buildver.build_vhdl()
+    hog.hog_cw('pl')

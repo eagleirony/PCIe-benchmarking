@@ -37,7 +37,7 @@ def configure(conf):
 
 
 def build(bld):
-    buildver.build(bld)
+    buildver.build_c(bld)
 
     bld.objects(target='app_platform',
                 features='cxx',

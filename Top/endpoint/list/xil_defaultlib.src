@@ -7,6 +7,7 @@ hardware/srcs/shared/pn23.vhd
 hardware/srcs/shared/fifo.vhd
 hardware/srcs/shared/params.vhd
 hardware/srcs/shared/counter.vhd
+hardware/generated/build_info.vhd
 hardware/srcs/endpoint/top.vhd top=top
 
 # IP

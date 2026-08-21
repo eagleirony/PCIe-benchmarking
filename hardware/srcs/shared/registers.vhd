@@ -74,7 +74,10 @@ entity registers is
     h2c_sts : in std_logic_vector(7 downto 0);
 
     uptime_counter  : in    std_logic_vector((data_width * 2) - 1 downto 0);
-    user_counter    : in    std_logic_vector(data_width - 1 downto 0)
+    user_counter    : in    std_logic_vector(data_width - 1 downto 0);
+
+    build_ver : in std_logic_vector(data_width - 1 downto 0);
+    build_id : in std_logic_vector(data_width - 1 downto 0)
   );
 end entity registers;
 
@@ -116,8 +119,8 @@ begin
     reg_8_r => uptime_counter((data_width * 2) - 1 downto data_width),
     reg_9_r => uptime_counter(data_width - 1 downto 0),
     reg_10_r => user_counter,
-    reg_11_r => x"00000000",
-    reg_12_r => x"00000000",
+    reg_11_r => build_id,
+    reg_12_r => build_ver,
     reg_13_r => x"00000000",
     reg_14_r => x"00000000",
     reg_15_r => x"00000000",

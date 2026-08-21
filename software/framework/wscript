@@ -34,8 +34,6 @@ def configure(conf):
 
 
 def build(bld):
-    buildver.build(bld)
-
     bld.objects(target='app_framework',
                 features='cxx',
                 source=sources,

@@ -347,9 +347,19 @@ package utils_param is
     h2c_sts : in std_logic_vector(7 downto 0);
 
     uptime_counter  : in    std_logic_vector((data_width * 2) - 1 downto 0);
-    user_counter    : in    std_logic_vector(data_width - 1 downto 0)
+    user_counter    : in    std_logic_vector(data_width - 1 downto 0);
+
+    build_ver : in std_logic_vector(data_width - 1 downto 0);
+    build_id : in std_logic_vector(data_width - 1 downto 0)
   );
   end component registers;
+
+  component build_info is
+    port (
+      build_ver : out   std_logic_vector(32 - 1 downto 0);
+      build_id : out   std_logic_vector(32 - 1 downto 0)
+    );
+  end component build_info;
 
 end package utils_param;
 

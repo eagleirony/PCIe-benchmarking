@@ -135,9 +135,9 @@ begin
 
   -- I/O Connections assignments
 
-  m_axis_tvalid <= axis_tvalid_delay;
+  m_axis_tvalid <= axis_tvalid;
   m_axis_tdata  <= stream_data_out;
-  m_axis_tlast  <= axis_tlast_delay;
+  m_axis_tlast  <= axis_tlast;
   m_axis_tstrb  <= (others => '1');
 
   -- Control state machine implementation
@@ -211,12 +211,12 @@ begin
         axis_tvalid <= '0';
         fifo_read_last <= '0';
       else
-        if (fifo_read = '1'
-            and mst_exec_state = send_stream
-            and axis_tlast = '0')
+        if ((fifo_read = '1')
+            and (mst_exec_state = send_stream)
+            and (axis_tlast = '0'))
         then
           axis_tvalid <= '1';
-        elsif (axis_tlast <= '1') then
+        elsif (axis_tlast = '1') then
           axis_tvalid <= '0';
         else
           axis_tvalid <= axis_tvalid;
@@ -237,7 +237,7 @@ begin
   -- AXI tlast generation
   -- axis_tlast is asserted number of output streaming data is NUMBER_OF_OUTPUT_WORDS-1
   -- (0 to NUMBER_OF_OUTPUT_WORDS-1)
-  axis_tlast <= '1' when (read_pointer = number_of_output_words - 1) else
+  axis_tlast <= '1' when (read_pointer = number_of_output_words) else
                 '0';
 
   -- Delay the axis_tvalid and axis_tlast signal by one clock cycle

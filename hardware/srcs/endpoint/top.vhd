@@ -99,6 +99,9 @@ signal msi_count : std_logic_vector(2 downto 0);
 signal c2h_sts : std_logic_vector(7 downto 0);
 signal h2c_sts : std_logic_vector(7 downto 0);
 
+signal build_ver : std_logic_vector ( AXIL_DATA_WIDTH - 1 downto 0);
+signal build_id : std_logic_vector ( AXIL_DATA_WIDTH - 1 downto 0);
+
 -- AXI Stream Card to Host
 signal axis_c2h_tdata : std_logic_vector( AXIS_DATA_WIDTH - 1 downto 0 );
 signal axis_c2h_tstrb : std_logic_vector((AXIS_DATA_WIDTH / 8) - 1 downto 0);
@@ -317,7 +320,10 @@ begin
     h2c_sts => h2c_sts,
 
     uptime_counter  => uptime_counter,
-    user_counter    => user_counter
+    user_counter    => user_counter,
+
+    build_ver => build_ver,
+    build_id => build_id
   );
   
   uptime_counter_inst : counter
@@ -338,6 +344,12 @@ begin
     clk   => axi_aclk,
     rstn  => sys_rst_n,
     value => user_counter
+  );
+
+  build_info_inst : build_info
+  port map (
+    build_ver => build_ver,
+    build_id => build_id
   );
 
 end rtl;
