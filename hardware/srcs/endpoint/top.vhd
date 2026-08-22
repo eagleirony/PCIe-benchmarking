@@ -7,7 +7,8 @@ library UNISIM;
 use UNISIM.vcomponents.all;
 
 library work;
-use work.utils_param.all;
+use work.shared_param.all;
+use work.endpoint_param.all;
 
 -- ------------------------------------------------------------------------------------------
 -- Entity 

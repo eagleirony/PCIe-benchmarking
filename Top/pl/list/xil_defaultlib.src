@@ -5,7 +5,11 @@ hardware/srcs/shared/axis_slave.vhd 93
 hardware/srcs/shared/registers.vhd 93
 hardware/srcs/shared/pn23.vhd 93
 hardware/srcs/shared/fifo.vhd 93
-hardware/srcs/shared/params.vhd 93
+hardware/srcs/shared/shared.vhd 93
 hardware/srcs/shared/counter.vhd 93
+hardware/generated/build_info.vhd 93
+
+hardware/srcs/pl/pl.vhd 93
+hardware/srcs/pl/registers.vhd 93
 
 # IP

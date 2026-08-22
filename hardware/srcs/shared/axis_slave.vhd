@@ -3,7 +3,7 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
 library work;
-  use work.utils_param.all;
+  use work.shared_param.all;
 
 entity axis_slave is
   generic (

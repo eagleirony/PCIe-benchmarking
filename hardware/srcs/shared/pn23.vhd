@@ -27,7 +27,7 @@ begin
   begin
 
     if (rstn = '0') then
-      sreg(23 downto 1) <= 23x"7FAE00";
+      sreg(23 downto 1) <= "11111111010111000000000"; -- 0x7FAE00
       value                         <= (others => '0');
       valid <= '0';
     else

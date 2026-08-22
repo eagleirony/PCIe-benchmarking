@@ -22,7 +22,7 @@ library ieee;
   use ieee.std_logic_1164.all;
 
 library work;
-  use work.utils_param.all;
+  use work.shared_param.all;
 
 -- Uncomment the following library declaration if using
 -- arithmetic functions with Signed or Unsigned values
@@ -63,16 +63,6 @@ entity registers is
     s_axil_rready  : in    std_logic;
 
     -- User registers
-    h2c_fifo_status_reg : in    std_logic_vector(data_width - 1 downto 0);
-    c2h_fifo_status_reg : in    std_logic_vector(data_width - 1 downto 0);
-
-    c2h_chan_0_packet_len : out std_logic_vector(data_width - 1 downto 0);
-
-    msi_ena : in std_logic;
-    msi_count : in std_logic_vector(2 downto 0);
-    c2h_sts : in std_logic_vector(7 downto 0);
-    h2c_sts : in std_logic_vector(7 downto 0);
-
     uptime_counter  : in    std_logic_vector((data_width * 2) - 1 downto 0);
     user_counter    : in    std_logic_vector(data_width - 1 downto 0);
 
@@ -83,24 +73,12 @@ end entity registers;
 
 architecture behavioral of registers is
 
-signal pcie_status_reg : std_logic_vector(data_width - 1 downto 0);
-
 signal scratch_0 : std_logic_vector(data_width - 1 downto 0);
 signal scratch_1 : std_logic_vector(data_width - 1 downto 0);
 signal scratch_2 : std_logic_vector(data_width - 1 downto 0);
 signal scratch_3 : std_logic_vector(data_width - 1 downto 0);
 
-signal c2h_chan_0_packet_len_sig : std_logic_vector(data_width - 1 downto 0);
-
 begin
-
-  pcie_status_reg(7 downto 0) <= c2h_sts;
-  pcie_status_reg(15 downto 8) <= h2c_sts;
-  pcie_status_reg(16) <= msi_ena;
-  pcie_status_reg(19 downto 17) <= msi_count;
-  pcie_status_reg(data_width - 1 downto 20) <= (others => '0');
-
-  c2h_chan_0_packet_len <= c2h_chan_0_packet_len_sig;
 
   axil_bus_regs : axil_bus
   generic map (
@@ -114,8 +92,8 @@ begin
     reg_3_r => x"FFFFFFFF",
     reg_4_r => x"01234567",
     reg_5_r => x"89ABCDEF",
-    reg_6_r => pcie_status_reg,
-    reg_7_r => c2h_fifo_status_reg,
+    reg_6_r => x"00000000",
+    reg_7_r => x"00000000",
     reg_8_r => uptime_counter((data_width * 2) - 1 downto data_width),
     reg_9_r => uptime_counter(data_width - 1 downto 0),
     reg_10_r => user_counter,
@@ -144,7 +122,7 @@ begin
     reg_33_r => scratch_1,
     reg_34_r => scratch_2,
     reg_35_r => scratch_3,
-    reg_36_r => c2h_chan_0_packet_len_sig,
+    reg_36_r => x"00000000",
     reg_37_r => x"00000000",
     reg_38_r => x"00000000",
     reg_39_r => x"00000000",
@@ -210,7 +188,7 @@ begin
     reg_33_w => scratch_1,
     reg_34_w => scratch_2,
     reg_35_w => scratch_3,
-    reg_36_w => c2h_chan_0_packet_len_sig,
+    reg_36_w => open,
     reg_37_w => open,
     reg_38_w => open,
     reg_39_w => open,
