@@ -18,6 +18,8 @@
 
 #include <rtems/shell.h>
 
+#include <bsp/aarch64-mmu.h>
+
 #include <dev/pm/pm.h>
 
 namespace app {
@@ -26,6 +28,8 @@ namespace pl {
 
 void init() {
     rtems_shell_add_cmd_struct(&bsp_pm_load_shell_command);
+
+    aarch64_mmu_map(0x80000000, 0x9FFFFFFF, AARCH64_MMU_DEVICE);
 }
 
 } // pl

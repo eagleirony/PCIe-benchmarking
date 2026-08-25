@@ -101,7 +101,7 @@ static void init_rc_conf(const std::string iface) {
     rc_conf << "hostname=\"PCITB\"" << std::endl;
     rc_conf << "ifconfig_" << iface << "=\"DHCP rxcsum txcsum\"" << std::endl;
     rc_conf << "dhcpcd_priority=\"200\"" << std::endl;
-    rc_conf << "dhcpcd_options=\"--debug --nobackground --timeout 30\"" << std::endl;
+    rc_conf << "dhcpcd_options=\"--nobackground --timeout 30\"" << std::endl;
     rc_conf.close();
 }
 

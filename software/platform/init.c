@@ -28,6 +28,8 @@
 #define CONFIGURE_MAXIMUM_POSIX_KEYS                 200
 #define CONFIGURE_MAXIMUM_USER_EXTENSIONS            2
 
+#define CONFIGURE_DIRTY_MEMORY
+
 #if defined(RTEMS_SMP)
  /*
   * Configure the number of processors and this is an SMP application.

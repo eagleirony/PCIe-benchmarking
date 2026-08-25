@@ -30,6 +30,7 @@
 #include <externals/rtems/thread.hpp>
 
 constexpr uint32_t XLNX_PCIE_DMA_MAX_CHANS = 4;
+constexpr size_t XLNX_PCIE_DMA_CHAN_DESC_COUNT = 16;
 
 /* AXI Lite registers */
 
@@ -95,6 +96,13 @@ static constexpr uint32_t XLNX_PCIE_DMA_CHAN_CTRL         = 0x04;
   static constexpr uint32_t XLNX_PCIE_DMA_CHAN_CTRL_RUN     = (1 << 0);
   static constexpr uint32_t XLNX_PCIE_DMA_CHAN_CTRL_LOG_ENA = 0x00F83E7E;
 static constexpr uint32_t XLNX_PCIE_DMA_CHAN_STS          = 0x40;
+  static constexpr uint32_t XLNX_PCIE_DMA_CHAN_STS_BUSY     = (1 << 0);
+  static constexpr uint32_t XLNX_PCIE_DMA_CHAN_STS_STOP     = (1 << 1);
+  static constexpr uint32_t XLNX_PCIE_DMA_CHAN_STS_COMP     = (1 << 2);
+  static constexpr uint32_t XLNX_PCIE_DMA_CHAN_STS_ALIGN    = (1 << 3);
+  static constexpr uint32_t XLNX_PCIE_DMA_CHAN_STS_MAGIC    = (1 << 4);
+  static constexpr uint32_t XLNX_PCIE_DMA_CHAN_STS_INV_LEN  = (1 << 5);
+  static constexpr uint32_t XLNX_PCIE_DMA_CHAN_STS_IDLE     = (1 << 6);
 static constexpr uint32_t XLNX_PCIE_DMA_CHAN_DESC_COMP    = 0x48;
 static constexpr uint32_t XLNX_PCIE_DMA_CHAN_ALIGN        = 0x4C;
 static constexpr uint32_t XLNX_PCIE_DMA_CHAN_INTR         = 0x90;
@@ -183,9 +191,8 @@ struct transfer {
     using callback = std::function<void(transfer& trans)>;
 
     callback cb;
-    mem::descriptor_ptr desc;
-    mem::dma_buffer_ptr buf;
-    mem::writeback_ptr wb;
+    mem::descriptor* desc;
+    struct timespec start;
 };
 
 struct channel {
@@ -193,15 +200,18 @@ struct channel {
     size_t id;
     bool streamed;
     uint32_t dir;
-    size_t desc_count;
+    size_t head;
+    size_t tail;
     transfer trans;
-    cs::pool::pool<mem::descriptor> descs;
+    std::array<mem::descriptor, XLNX_PCIE_DMA_CHAN_DESC_COUNT> descs;
+    std::array<mem::writeback, XLNX_PCIE_DMA_CHAN_DESC_COUNT> wbs;
     cs::pool::pool<mem::dma_buffer> bufs;
-    cs::pool::pool<mem::writeback> wbs;
 
     channel(registers& regs, uint32_t dir, size_t id, size_t desc_count);
 
     void run(size_t length, transfer::callback& cb);
+
+    void handle_intr();
 
     void report();
 
@@ -226,9 +236,6 @@ struct controller {
     size_t h2c_count;
 
     controller(std::string& path);
-    ~controller() {
-        std::cout << "CONTROLLER DIED" << std::endl;
-    }
 
     void report();
 

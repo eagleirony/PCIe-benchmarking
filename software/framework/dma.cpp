@@ -23,6 +23,7 @@
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
+#include <time.h>
 
 #include <dev/io/iodev.h>
 
@@ -41,8 +42,6 @@ constexpr uint32_t dma_devid = 0x902410ee;
 constexpr uint16_t dma_vendor = 0x10ee;
 constexpr uint16_t dma_subvendor = 0x10ee;
 constexpr uint16_t dma_subdevice = 0x0007;
-
-constexpr size_t dma_chan_desc_count = 16;
 
 controllers_ptr eps;
 
@@ -99,16 +98,67 @@ void registers::write(uint32_t target, uint32_t offset, uint32_t value) {
 }
 
 channel::channel(registers& reg_, uint32_t dir_, size_t id_,
-    size_t desc_count_) : regs(reg_), dir(dir_), id(id_),
-    desc_count(desc_count_) {
+    size_t desc_count_) : regs(reg_), dir(dir_), id(id_) {
+
     auto id_reg = read_chan(XLNX_PCIE_DMA_CHAN_ID);
     if (id_reg & XLNX_PCIE_CHAN_ID_AXIS_MASK) {
         streamed = true;
     }
 
-    descs.create(desc_count);
-    bufs.create(desc_count);
-    wbs.create(desc_count);
+    bufs.create(XLNX_PCIE_DMA_CHAN_DESC_COUNT);
+
+    descs[0].desc = rtems_cache_coherent_allocate(
+        XLNX_PCIE_DMA_DESC_SIZE * XLNX_PCIE_DMA_CHAN_DESC_COUNT,
+        XLNX_PCIE_DMA_DESC_ALIGNMENT,
+        XLNX_PCIE_DMA_DESC_BOUNDARY);
+    if (descs[0].desc == nullptr) {
+        throw std::bad_alloc();
+    }
+
+    wbs[0].wb = rtems_cache_coherent_allocate(
+        XLNX_PCIE_DMA_WB_SIZE * XLNX_PCIE_DMA_CHAN_DESC_COUNT,
+        XLNX_PCIE_DMA_WB_ALIGNMENT,
+        XLNX_PCIE_DMA_WB_BOUNDARY);
+    if (wbs[0].wb == nullptr) {
+        rtems_cache_coherent_free(descs[0].desc);
+        throw std::bad_alloc();
+    }
+
+    descs[0].zero();
+    descs[0].header(false, false);
+    descs[0].set_length(DMA_BUFF_SIZE);
+    descs[0].set_wb(wbs[0]);
+    auto buf = bufs.request();
+    buf->zero();
+    descs[0].set_buffer(buf);
+
+    uint64_t nxt_desc = reinterpret_cast<uint64_t>(descs[0].desc);
+    uint64_t nxt_wb = reinterpret_cast<uint64_t>(wbs[0].wb);
+    nxt_desc += XLNX_PCIE_DMA_DESC_SIZE;
+    nxt_wb += XLNX_PCIE_DMA_WB_SIZE;
+
+    for (int i = 1; i < XLNX_PCIE_DMA_CHAN_DESC_COUNT; i++) {
+        descs[i].desc = reinterpret_cast<void*>(nxt_desc);
+        wbs[i].wb = reinterpret_cast<void*>(nxt_wb);
+
+        nxt_desc += XLNX_PCIE_DMA_DESC_SIZE;
+        nxt_wb += XLNX_PCIE_DMA_WB_SIZE;
+
+        descs[i].zero();
+        descs[i].header(true, false);
+        descs[i].set_length(DMA_BUFF_SIZE);
+        descs[i].set_wb(wbs[i]);
+        auto buf = bufs.request();
+        buf->zero();
+        descs[i].set_buffer(buf);
+    }
+    for (int i = 0; i < XLNX_PCIE_DMA_CHAN_DESC_COUNT - 1; ++i) {
+        descs[i].set_next(descs[i + 1]);
+    }
+    descs[XLNX_PCIE_DMA_CHAN_DESC_COUNT - 1].set_next(descs[0]);
+
+    head = 0;
+    tail = 0;
 
     /* Set performance tracking to auto */
     write_chan(XLNX_PCIE_DMA_CHAN_PERF_CTRL, XLNX_PCIE_DMA_CHAN_PERF_CTRL_RUN
@@ -127,19 +177,13 @@ channel::channel(registers& reg_, uint32_t dir_, size_t id_,
 void channel::run(size_t length, transfer::callback& cb) {
     uint32_t desc_hi;
     uint32_t desc_lo;
-    auto desc = descs.request();
-    auto buf = bufs.request();
-    auto wb = wbs.request();
+    mem::descriptor* desc = &descs[tail];
 
+    head += 4;
     trans.cb = cb;
     trans.desc = desc;
-    trans.buf = buf;
-    trans.wb = wb;
 
-    desc->init();
-    desc->set_buffer(buf);
-    desc->set_length(length);
-    desc->set_wb(wb);
+    desc->wb->clear();
 
     desc_lo = static_cast<uint32_t>(reinterpret_cast<uint64_t>(desc->desc) & 0xFFFFFFFF);
     desc_hi = static_cast<uint32_t>(reinterpret_cast<uint64_t>(desc->desc) >> 32);
@@ -147,8 +191,21 @@ void channel::run(size_t length, transfer::callback& cb) {
     write_sgdma(XLNX_PCIE_DMA_CHAN_SG_DESC_ADDR_HI, desc_hi);
     write_sgdma(XLNX_PCIE_DMA_CHAN_SG_DESC_ADJ, 0);
 
+    clock_gettime(CLOCK_MONOTONIC, &trans.start);
     write_chan(XLNX_PCIE_DMA_CHAN_CTRL, XLNX_PCIE_DMA_CHAN_CTRL_LOG_ENA
         | XLNX_PCIE_DMA_CHAN_CTRL_RUN);
+}
+
+void channel::handle_intr() {
+    uint32_t status = read_chan(XLNX_PCIE_DMA_CHAN_STS);
+    std::string dir_str = "C2H";
+    if (dir == XLNX_PCIE_DMA_TARGET_H2C_CHANS) {
+        dir_str = "H2C";
+    }
+
+    write_chan(XLNX_PCIE_DMA_CHAN_STS, status);
+
+    trans.cb(trans);
 }
 
 uint32_t channel::read_chan(uint32_t offset) {
@@ -282,7 +339,7 @@ controller::controller(std::string& path) {
         if (regs.read(XLNX_PCIE_DMA_TARGET_H2C_CHANS, i, XLNX_PCIE_DMA_CHAN_ID)
             != 0) {
             auto chan = std::make_shared<channel>(regs,
-                XLNX_PCIE_DMA_TARGET_H2C_CHANS, i, dma_chan_desc_count);
+                XLNX_PCIE_DMA_TARGET_H2C_CHANS, i, XLNX_PCIE_DMA_CHAN_DESC_COUNT);
             h2c_chans.push_back(chan);
         }
     }
@@ -290,7 +347,7 @@ controller::controller(std::string& path) {
         if (regs.read(XLNX_PCIE_DMA_TARGET_C2H_CHANS, i, XLNX_PCIE_DMA_CHAN_ID)
             != 0) {
             auto chan = std::make_shared<channel>(regs,
-                XLNX_PCIE_DMA_TARGET_C2H_CHANS, i, dma_chan_desc_count);
+                XLNX_PCIE_DMA_TARGET_C2H_CHANS, i, XLNX_PCIE_DMA_CHAN_DESC_COUNT);
             c2h_chans.push_back(chan);
         }
     }
@@ -350,20 +407,17 @@ void controller::msi_worker() {
             std::cout << "controller: msi_worker: event wait failed " << errno << " " << fd << std::endl;
             return;
         }
-        std::cout << "MSI event received" << std::endl;
 
         uint32_t reqs = regs.read(XLNX_PCIE_DMA_TARGET_IRQ_BLOCK,
             XLNX_PCIE_DMA_IRQ_CHAN_INT);
         for (int i = 0; i < c2h_count + h2c_count; i++) {
             if (reqs & (1U << i)) {
                 if (i < h2c_count) {
-                    auto& trans = h2c_chans[i]->trans;
-                    trans.cb(trans);
+                    h2c_chans[i]->handle_intr();
                 }
                 if (i >= h2c_count) {
                     auto chan_index = i - h2c_count;
-                    auto& trans = c2h_chans[chan_index]->trans;
-                    trans.cb(trans);
+                    c2h_chans[chan_index]->handle_intr();
                 }
             }
         }
@@ -423,15 +477,18 @@ void init() {
     }
 
     transfer::callback cb = [](transfer& trans){
-        uint64_t* buf = reinterpret_cast<uint64_t*>(trans.buf->buf);
-        eps->at(0).report();
+        struct timespec end;
+        clock_gettime(CLOCK_MONOTONIC, &end);
 
-        std::cout << "Length: " << trans.wb->length() << std::endl;
-        std::cout << "EOP: " << trans.wb->eop() << std::endl;
+        long seconds = end.tv_sec - trans.start.tv_sec;
+        long nanoseconds = end.tv_nsec - trans.start.tv_nsec;
+        double elapsed = seconds + nanoseconds * 1e-9;
+        clock_gettime(CLOCK_MONOTONIC, &trans.start);
 
-        for (int i = 0; i < 9; ++i) {
-            std::cout << std::hex << "0x" << buf[i] << std::dec << std::endl;
-        }
+        /*
+        std::cout << "Bandwidth (MiB/s): "
+            << (8 * trans.desc->wb->length() / 0x100000) / elapsed << std::endl;
+            */
     };
 
     eps->at(0).c2h_chans[0]->run(DMA_BUFF_SIZE, cb);

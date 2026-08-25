@@ -164,7 +164,7 @@ void init() {
     uint64_t uptime = (((uint64_t)axis.read(0x20)) << 32)
         | (axis.read(0x24));
     std::cout << "Uptime Register: ";
-    std::cout << std::hex << "0x" << uptime << std::endl;
+    std::cout << std::hex << "0x" << uptime << " (" << uptime * 4e-9 << "s)" << std::endl;
     std::cout << "Counter Register: ";
     std::cout << std::hex << "0x" << axis.read(0x28) << std::endl;
 }

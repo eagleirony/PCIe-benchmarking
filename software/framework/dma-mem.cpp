@@ -24,16 +24,6 @@ namespace pcie {
 namespace dma {
 namespace mem {
 
-writeback::writeback() {
-    wb = rtems_cache_coherent_allocate(
-        XLNX_PCIE_DMA_WB_SIZE,
-        XLNX_PCIE_DMA_WB_ALIGNMENT,
-        XLNX_PCIE_DMA_WB_BOUNDARY);
-    if (wb == nullptr) {
-        throw std::bad_alloc();
-    }
-}
-
 uint32_t writeback::read(uint32_t offset) {
     uint64_t address = reinterpret_cast<uint64_t>(wb);
     address += offset;
@@ -72,16 +62,6 @@ uint32_t writeback::length() {
     return read(XLNX_PCIE_DMA_WB_LENGTH_OFF);
 }
 
-descriptor::descriptor() : length(0), buf(nullptr) {
-    desc = rtems_cache_coherent_allocate(
-        XLNX_PCIE_DMA_DESC_SIZE,
-        XLNX_PCIE_DMA_DESC_ALIGNMENT,
-        XLNX_PCIE_DMA_DESC_BOUNDARY);
-    if (desc == nullptr) {
-        throw std::bad_alloc();
-    }
-}
-
 uint32_t descriptor::read(uint32_t offset) {
     uint64_t address = reinterpret_cast<uint64_t>(desc);
     address += offset;
@@ -96,28 +76,36 @@ void descriptor::write(uint32_t offset, uint32_t value) {
     *reg = value;
 }
 
-void descriptor::init() {
-    write(XLNX_PCIE_DMA_DESC_MAGIC_NXT_CTRL_OFF,
-        XLNX_PCIE_DMA_DESC_MAGIC_VAL | XLNX_PCIE_DMA_DESC_CTRL_STOP);
+void descriptor::zero() {
+    write(XLNX_PCIE_DMA_DESC_MAGIC_NXT_CTRL_OFF, 0x0);
+    write(XLNX_PCIE_DMA_DESC_SRC_ADDR_LOWER_OFF, 0x0);
+    write(XLNX_PCIE_DMA_DESC_SRC_ADDR_UPPER_OFF, 0x0);
+    write(XLNX_PCIE_DMA_DESC_DST_ADDR_LOWER_OFF, 0x0);
+    write(XLNX_PCIE_DMA_DESC_DST_ADDR_UPPER_OFF, 0x0);
+    write(XLNX_PCIE_DMA_DESC_NXT_ADDR_LOWER_OFF, 0x0);
+    write(XLNX_PCIE_DMA_DESC_NXT_ADDR_UPPER_OFF, 0x0);
 }
 
-void descriptor::set_buffer(dma_buffer_ptr buf_) {
-    uint64_t buf_addr;
-    uint32_t dst_hi;
-    uint32_t dst_lo;
+void descriptor::header(bool cmpl, bool stop) {
+    uint32_t reg = XLNX_PCIE_DMA_DESC_MAGIC_VAL;
 
-    buf = buf_;
-    buf_addr = reinterpret_cast<uint64_t>(buf->buf);
+    if (stop) {
+        reg |= XLNX_PCIE_DMA_DESC_CTRL_STOP;
+    }
 
-    dst_lo = static_cast<uint32_t>(buf_addr & 0xFFFFFFFF);
-    dst_hi = static_cast<uint32_t>(buf_addr >> 32);
+    if (cmpl) {
+        reg |= XLNX_PCIE_DMA_DESC_CTRL_CMPL;
+    }
 
-    write(XLNX_PCIE_DMA_DESC_DST_ADDR_LOWER_OFF, dst_lo);
-    write(XLNX_PCIE_DMA_DESC_DST_ADDR_UPPER_OFF, dst_hi);
+    write(XLNX_PCIE_DMA_DESC_MAGIC_NXT_CTRL_OFF, reg);
 }
 
 void descriptor::set_length(size_t length) {
     uint32_t len_trunc;
+
+    if (desc == nullptr) {
+        return;
+    }
 
     if (length > XLNX_PCIE_DMA_DESC_LEN_MASK) {
         throw std::runtime_error(
@@ -129,19 +117,57 @@ void descriptor::set_length(size_t length) {
     write(XLNX_PCIE_DMA_DESC_LEN_OFF, len_trunc);
 }
 
-void descriptor::set_wb(writeback_ptr wb_) {
+void descriptor::set_wb(writeback& wb_) {
     uint64_t wb_addr;
-    uint32_t dst_hi;
-    uint32_t dst_lo;
+    uint32_t wb_hi;
+    uint32_t wb_lo;
 
-    wb = wb_;
+    if (desc == nullptr) {
+        return;
+    }
+
+    wb = &wb_;
     wb_addr = reinterpret_cast<uint64_t>(wb->wb);
 
-    dst_lo = static_cast<uint32_t>(wb_addr & 0xFFFFFFFF);
-    dst_hi = static_cast<uint32_t>(wb_addr >> 32);
+    wb_lo = static_cast<uint32_t>(wb_addr & 0xFFFFFFFF);
+    wb_hi = static_cast<uint32_t>(wb_addr >> 32);
 
-    write(XLNX_PCIE_DMA_DESC_SRC_ADDR_LOWER_OFF, dst_lo);
-    write(XLNX_PCIE_DMA_DESC_SRC_ADDR_UPPER_OFF, dst_hi);
+    write(XLNX_PCIE_DMA_DESC_SRC_ADDR_LOWER_OFF, wb_lo);
+    write(XLNX_PCIE_DMA_DESC_SRC_ADDR_UPPER_OFF, wb_hi);
+}
+
+void descriptor::set_next(descriptor& next_) {
+    uint64_t nxt_addr;
+    uint32_t nxt_hi;
+    uint32_t nxt_lo;
+    next = &next_;
+
+    nxt_addr = reinterpret_cast<uint64_t>(next->desc);
+
+    nxt_lo = static_cast<uint32_t>(nxt_addr & 0xFFFFFFFF);
+    nxt_hi = static_cast<uint32_t>(nxt_addr >> 32);
+
+    write(XLNX_PCIE_DMA_DESC_NXT_ADDR_LOWER_OFF, nxt_lo);
+    write(XLNX_PCIE_DMA_DESC_NXT_ADDR_UPPER_OFF, nxt_hi);
+}
+
+void descriptor::set_buffer(dma_buffer_ptr buf_) {
+    uint64_t buf_addr;
+    uint32_t buf_hi;
+    uint32_t buf_lo;
+
+    if (desc == nullptr) {
+        return;
+    }
+
+    buf = buf_;
+    buf_addr = reinterpret_cast<uint64_t>(buf->buf);
+
+    buf_lo = static_cast<uint32_t>(buf_addr & 0xFFFFFFFF);
+    buf_hi = static_cast<uint32_t>(buf_addr >> 32);
+
+    write(XLNX_PCIE_DMA_DESC_DST_ADDR_LOWER_OFF, buf_lo);
+    write(XLNX_PCIE_DMA_DESC_DST_ADDR_UPPER_OFF, buf_hi);
 }
 
 } // namespace mem
