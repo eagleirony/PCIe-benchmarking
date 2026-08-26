@@ -187,29 +187,24 @@ protected:
     uint32_t* address(uint32_t target, uint32_t channel, uint32_t offset);
 };
 
-struct transfer {
-    using callback = std::function<void(transfer& trans)>;
-
-    callback cb;
-    mem::descriptor* desc;
-    struct timespec start;
-};
-
 struct channel {
+    using callback = std::function<void(mem::dma_buffer_ptr buf)>;
+
     registers regs;
     size_t id;
     bool streamed;
     uint32_t dir;
     size_t head;
-    size_t tail;
-    transfer trans;
+    callback cb;
     std::array<mem::descriptor, XLNX_PCIE_DMA_CHAN_DESC_COUNT> descs;
     std::array<mem::writeback, XLNX_PCIE_DMA_CHAN_DESC_COUNT> wbs;
     cs::pool::pool<mem::dma_buffer> bufs;
 
     channel(registers& regs, uint32_t dir, size_t id, size_t desc_count);
 
-    void run(size_t length, transfer::callback& cb);
+    void set_callback(callback& cb);
+    void run();
+    void stop();
 
     void handle_intr();
 

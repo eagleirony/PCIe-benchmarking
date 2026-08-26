@@ -38,7 +38,13 @@ namespace dma {
 namespace mem {
 
 template<size_t Size, size_t Alignment, size_t Boundary> struct buffer {
+    struct statistics {
+        bool eop;
+        size_t length;
+    };
+
     void* buf;
+    statistics stats;
 
     size_t get_size() {
         return Size;
@@ -66,6 +72,11 @@ template<size_t Size, size_t Alignment, size_t Boundary> struct buffer {
             throw std::bad_alloc();
         }
     };
+
+    buffer(const buffer&) = delete;
+    buffer& operator=(const buffer&) = delete;
+    buffer(buffer&&) = delete;
+    buffer& operator=(const buffer&&) = delete;
 };
 
 using dma_buffer = buffer<DMA_BUFF_SIZE, DMA_BUFF_ALIGN, DMA_BUFF_BOUNDARY>;
@@ -76,6 +87,10 @@ struct writeback {
     void* wb;
 
     writeback() : wb(nullptr) {};
+    writeback(const writeback&) = delete;
+    writeback& operator=(const writeback&) = delete;
+    writeback(writeback&&) = delete;
+    writeback& operator=(const writeback&&) = delete;
 
     void clear();
 
@@ -96,6 +111,10 @@ struct descriptor {
     descriptor* next;
 
     descriptor() : desc(nullptr), length(0), buf(nullptr), wb(nullptr) {};
+    descriptor(const descriptor&) = delete;
+    descriptor& operator=(const descriptor&) = delete;
+    descriptor(descriptor&&) = delete;
+    descriptor& operator=(const descriptor&&) = delete;
 
     void zero();
     void header(bool cmpl, bool stop);
