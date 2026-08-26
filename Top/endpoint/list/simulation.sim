@@ -1,2 +1,3 @@
 hardware/sim/shared/pn23_TB.vhd
 hardware/sim/shared/axis_TB.vhd
+hardware/sim/shared/validate_TB.vhd

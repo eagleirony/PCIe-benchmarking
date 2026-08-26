@@ -11,7 +11,7 @@ entity pn23 is
     rstn  : in    std_logic;
     hold  : in    std_logic;
     valid : out   std_logic;
-    value : out   std_logic_vector(63 downto 0)
+    value : out   std_logic_vector(data_width - 1 downto 0)
   );
 end entity pn23;
 
