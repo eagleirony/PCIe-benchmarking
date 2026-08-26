@@ -32,8 +32,23 @@ create_clock -period 5.000 -name clk200_p [get_ports clk200_p]
 # LEDs
 # ###################################################################
 # LED1 W21
-set_property IOSTANDARD LVCMOS18 [get_ports Led]
-set_property PACKAGE_PIN W21 [get_ports Led]
+set_property IOSTANDARD LVCMOS18 [get_ports Led1]
+set_property PACKAGE_PIN W21 [get_ports Led1]
+
+# LED2 AC16
+set_property IOSTANDARD LVCMOS18 [get_ports Led2]
+set_property PACKAGE_PIN AC16 [get_ports Led2]
+
+# ###################################################################
+# Expansion Port
+# ###################################################################
+# J33_3 J15
+set_property IOSTANDARD LVCMOS33 [get_ports expand_port_in]
+set_property PACKAGE_PIN J15 [get_ports expand_port_in]
+
+# J33_4 J14
+set_property IOSTANDARD LVCMOS33 [get_ports expand_port_out]
+set_property PACKAGE_PIN J14 [get_ports expand_port_out]
 
 # ###################################################################
 # PCIe 

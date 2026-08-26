@@ -42,10 +42,14 @@ port
   sys_rst_n                            : in  std_logic;
 
   -- ---------------------------------------------------
-  -- Debug
+  -- IO Pins
   -- --------------------------------------------------- 
-  Led                                  : out std_logic;
-  
+  Led1                                  : out std_logic;
+  Led2                                  : out std_logic;
+
+  expand_port_in                        : in std_logic;
+  expand_port_out                       : out std_logic;
+
   -- ---------------------------------------------------
   -- PCIe
   -- ---------------------------------------------------   
@@ -141,8 +145,6 @@ signal axil_rvalid  : std_logic;
 signal axil_rready  : std_logic;
 
 begin
-
-  Led <= pcie_link_status;
 
   IBUFDS_INST : IBUFDS
   generic map
@@ -352,5 +354,18 @@ begin
     build_ver => build_ver,
     build_id => build_id
   );
+
+  led1_blink : blink
+    generic map (
+      CLK_FREQ_HZ => 250000000, -- 100 MHz
+      BLINK_FREQ_HZ => 1
+    )
+    port map (
+      clk => axi_aclk,
+      rstn => sys_rst_n,
+      led => Led1
+    );
+
+  Led2 <= expand_port_in;
 
 end rtl;

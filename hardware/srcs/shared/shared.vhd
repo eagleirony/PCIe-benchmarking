@@ -313,6 +313,18 @@ package shared_param is
     );
   end component build_info;
 
+  component blink is
+    generic (
+      CLK_FREQ_HZ : integer := 100000000; -- 100 MHz
+      BLINK_FREQ_HZ : integer := 1
+    );
+    port (
+      clk   : in    std_logic;
+      rstn  : in    std_logic;
+      led   : out   std_logic
+    );
+  end component blink;
+
 end package shared_param;
 
 package body shared_param is

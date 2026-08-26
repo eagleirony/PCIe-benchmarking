@@ -46,7 +46,7 @@ if { [string first $scripts_vivado_version $current_vivado_version] == -1 } {
 
 # The design that will be created by this Tcl script contains the following 
 # module references:
-# axis_master, axis_slave, registers, counter, counter, build_info, pn23
+# axis_master, axis_slave, registers, counter, counter, build_info, pn23, blink
 
 # Please add the sources of those modules before sourcing this Tcl script.
 
@@ -141,6 +141,8 @@ xilinx.com:ip:axi_dma:7.1\
 xilinx.com:ip:smartconnect:1.0\
 xilinx.com:ip:proc_sys_reset:5.0\
 xilinx.com:ip:xlconstant:1.1\
+xilinx.com:inline_hdl:ilconstant:1.0\
+xilinx.com:inline_hdl:ilconcat:1.0\
 "
 
    set list_ips_missing ""
@@ -173,6 +175,7 @@ counter\
 counter\
 build_info\
 pn23\
+blink\
 "
 
    set list_mods_missing ""
@@ -237,6 +240,9 @@ proc create_root_design { parentCell } {
   # Create interface ports
 
   # Create ports
+  set expansion_in [ create_bd_port -dir I -type data expansion_in ]
+  set expansion_out [ create_bd_port -dir O -from 0 -to 0 -type data expansion_out ]
+  set leds [ create_bd_port -dir O -from 3 -to 0 -type data leds ]
 
   # Create instance: zynq_ultra_ps_e_0, and set properties
   set zynq_ultra_ps_e_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:zynq_ultra_ps_e:3.5 zynq_ultra_ps_e_0 ]
@@ -276,7 +282,7 @@ MIO#I2C 1#I2C 1#GPIO1 MIO#GPIO1 MIO#GPIO1 MIO#PCIE#GPIO1 MIO#GPIO1 MIO#GPIO1 MIO
     CONFIG.PSU__CRF_APB__DP_AUDIO_REF_CTRL__ACT_FREQMHZ {24.999750} \
     CONFIG.PSU__CRF_APB__DP_AUDIO_REF_CTRL__SRCSEL {RPLL} \
     CONFIG.PSU__CRF_APB__DP_AUDIO__FRAC_ENABLED {0} \
-    CONFIG.PSU__CRF_APB__DP_STC_REF_CTRL__ACT_FREQMHZ {26.666401} \
+    CONFIG.PSU__CRF_APB__DP_STC_REF_CTRL__ACT_FREQMHZ {26.785446} \
     CONFIG.PSU__CRF_APB__DP_STC_REF_CTRL__SRCSEL {RPLL} \
     CONFIG.PSU__CRF_APB__DP_VIDEO_REF_CTRL__ACT_FREQMHZ {299.997009} \
     CONFIG.PSU__CRF_APB__DP_VIDEO_REF_CTRL__SRCSEL {VPLL} \
@@ -297,12 +303,12 @@ MIO#I2C 1#I2C 1#GPIO1 MIO#GPIO1 MIO#GPIO1 MIO#PCIE#GPIO1 MIO#GPIO1 MIO#GPIO1 MIO
     CONFIG.PSU__CRL_APB__GEM_TSU_REF_CTRL__ACT_FREQMHZ {249.997498} \
     CONFIG.PSU__CRL_APB__GEM_TSU_REF_CTRL__SRCSEL {IOPLL} \
     CONFIG.PSU__CRL_APB__I2C1_REF_CTRL__ACT_FREQMHZ {99.999001} \
-    CONFIG.PSU__CRL_APB__IOU_SWITCH_CTRL__ACT_FREQMHZ {266.664001} \
+    CONFIG.PSU__CRL_APB__IOU_SWITCH_CTRL__ACT_FREQMHZ {249.997498} \
     CONFIG.PSU__CRL_APB__LPD_LSBUS_CTRL__ACT_FREQMHZ {99.999001} \
     CONFIG.PSU__CRL_APB__LPD_SWITCH_CTRL__ACT_FREQMHZ {499.994995} \
     CONFIG.PSU__CRL_APB__PCAP_CTRL__ACT_FREQMHZ {187.498123} \
-    CONFIG.PSU__CRL_APB__PL0_REF_CTRL__ACT_FREQMHZ {99.999001} \
-    CONFIG.PSU__CRL_APB__PL0_REF_CTRL__FREQMHZ {100} \
+    CONFIG.PSU__CRL_APB__PL0_REF_CTRL__ACT_FREQMHZ {249.997498} \
+    CONFIG.PSU__CRL_APB__PL0_REF_CTRL__FREQMHZ {250} \
     CONFIG.PSU__CRL_APB__QSPI_REF_CTRL__ACT_FREQMHZ {299.997009} \
     CONFIG.PSU__CRL_APB__SDIO0_REF_CTRL__SRCSEL {IOPLL} \
     CONFIG.PSU__CRL_APB__SDIO1_REF_CTRL__ACT_FREQMHZ {187.498123} \
@@ -385,6 +391,7 @@ MIO#I2C 1#I2C 1#GPIO1 MIO#GPIO1 MIO#GPIO1 MIO#PCIE#GPIO1 MIO#GPIO1 MIO#GPIO1 MIO
     CONFIG.PSU__IOU_SLCR__TTC1__ACT_FREQMHZ {100.000000} \
     CONFIG.PSU__IOU_SLCR__TTC2__ACT_FREQMHZ {100.000000} \
     CONFIG.PSU__IOU_SLCR__TTC3__ACT_FREQMHZ {100.000000} \
+    CONFIG.PSU__IRQ_P2F_PCIE_MSI__INT {0} \
     CONFIG.PSU__PCIE__ACS_VIOLATION {0} \
     CONFIG.PSU__PCIE__AER_CAPABILITY {1} \
     CONFIG.PSU__PCIE__ATOMICOP_EGRESS_BLOCKED {0} \
@@ -502,6 +509,7 @@ Port;FD4A0000;FD4AFFFF;1|FPD;DPDMA;FD4C0000;FD4CFFFF;1|FPD;DDR_XMPU5_CFG;FD05000
     CONFIG.PSU__USB3_0__PERIPHERAL__IO {GT Lane1} \
     CONFIG.PSU__USB__RESET__MODE {Shared MIO Pin} \
     CONFIG.PSU__USB__RESET__POLARITY {Active Low} \
+    CONFIG.PSU__USE__IRQ0 {1} \
     CONFIG.PSU__USE__M_AXI_GP0 {0} \
     CONFIG.PSU__USE__S_AXI_GP2 {1} \
     CONFIG.SUBPRESET1 {DDR4_MICRON_MT40A256M16GE_083E} \
@@ -628,6 +636,42 @@ Port;FD4A0000;FD4AFFFF;1|FPD;DPDMA;FD4C0000;FD4CFFFF;1|FPD;DDR_XMPU5_CFG;FD05000
   set_property CONFIG.CONST_VAL {1} $xlconstant_1
 
 
+  # Create instance: ilconstant_0, and set properties
+  set ilconstant_0 [ create_bd_cell -type inline_hdl -vlnv xilinx.com:inline_hdl:ilconstant:1.0 ilconstant_0 ]
+
+  # Create instance: ilconcat_0, and set properties
+  set ilconcat_0 [ create_bd_cell -type inline_hdl -vlnv xilinx.com:inline_hdl:ilconcat:1.0 ilconcat_0 ]
+  set_property CONFIG.NUM_PORTS {4} $ilconcat_0
+
+
+  # Create instance: blink_0, and set properties
+  set block_name blink
+  set block_cell_name blink_0
+  if { [catch {set blink_0 [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
+     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
+     return 1
+   } elseif { $blink_0 eq "" } {
+     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
+     return 1
+   }
+    set_property CONFIG.CLK_FREQ_HZ {250000000} $blink_0
+
+
+  # Create instance: ilconstant_1, and set properties
+  set ilconstant_1 [ create_bd_cell -type inline_hdl -vlnv xilinx.com:inline_hdl:ilconstant:1.0 ilconstant_1 ]
+  set_property CONFIG.CONST_VAL {0} $ilconstant_1
+
+
+  # Create instance: ilconcat_1, and set properties
+  set ilconcat_1 [ create_bd_cell -type inline_hdl -vlnv xilinx.com:inline_hdl:ilconcat:1.0 ilconcat_1 ]
+  set_property CONFIG.NUM_PORTS {8} $ilconcat_1
+
+
+  # Create instance: ilconstant_2, and set properties
+  set ilconstant_2 [ create_bd_cell -type inline_hdl -vlnv xilinx.com:inline_hdl:ilconstant:1.0 ilconstant_2 ]
+  set_property CONFIG.CONST_VAL {0} $ilconstant_2
+
+
   # Create interface connections
   connect_bd_intf_net -intf_net axi_dma_0_M_AXIS_MM2S [get_bd_intf_pins axis_slave_0/S_AXIS] [get_bd_intf_pins axi_dma_0/M_AXIS_MM2S]
   connect_bd_intf_net -intf_net axi_dma_0_M_AXI_MM2S [get_bd_intf_pins axi_dma_0/M_AXI_MM2S] [get_bd_intf_pins axi_smc_1/S00_AXI]
@@ -640,8 +684,14 @@ Port;FD4A0000;FD4AFFFF;1|FPD;DPDMA;FD4C0000;FD4CFFFF;1|FPD;DDR_XMPU5_CFG;FD05000
   connect_bd_intf_net -intf_net zynq_ultra_ps_e_0_M_AXI_HPM0_LPD [get_bd_intf_pins zynq_ultra_ps_e_0/M_AXI_HPM0_LPD] [get_bd_intf_pins axi_smc/S00_AXI]
 
   # Create port connections
+  connect_bd_net -net axi_dma_0_mm2s_introut  [get_bd_pins axi_dma_0/mm2s_introut] \
+  [get_bd_pins ilconcat_1/In0]
+  connect_bd_net -net axi_dma_0_s2mm_introut  [get_bd_pins axi_dma_0/s2mm_introut] \
+  [get_bd_pins ilconcat_1/In1]
   connect_bd_net -net axis_master_0_fifo_full  [get_bd_pins axis_master_0/fifo_full] \
   [get_bd_pins pn23_0/hold]
+  connect_bd_net -net blink_0_led  [get_bd_pins blink_0/led] \
+  [get_bd_pins ilconcat_0/In0]
   connect_bd_net -net build_info_0_build_id  [get_bd_pins build_info_0/build_id] \
   [get_bd_pins registers_0/build_id]
   connect_bd_net -net build_info_0_build_ver  [get_bd_pins build_info_0/build_ver] \
@@ -650,6 +700,24 @@ Port;FD4A0000;FD4AFFFF;1|FPD;DPDMA;FD4C0000;FD4CFFFF;1|FPD;DDR_XMPU5_CFG;FD05000
   [get_bd_pins registers_0/user_counter]
   connect_bd_net -net counter_1_value  [get_bd_pins counter_1/value] \
   [get_bd_pins registers_0/uptime_counter]
+  connect_bd_net -net expansion_in_1  [get_bd_ports expansion_in] \
+  [get_bd_pins ilconcat_0/In1]
+  connect_bd_net -net ilconcat_0_dout  [get_bd_pins ilconcat_0/dout] \
+  [get_bd_ports leds]
+  connect_bd_net -net ilconcat_1_dout  [get_bd_pins ilconcat_1/dout] \
+  [get_bd_pins zynq_ultra_ps_e_0/pl_ps_irq0]
+  connect_bd_net -net ilconstant_0_dout  [get_bd_pins ilconstant_0/dout] \
+  [get_bd_ports expansion_out]
+  connect_bd_net -net ilconstant_1_dout  [get_bd_pins ilconstant_1/dout] \
+  [get_bd_pins ilconcat_0/In3] \
+  [get_bd_pins ilconcat_0/In2]
+  connect_bd_net -net ilconstant_2_dout  [get_bd_pins ilconstant_2/dout] \
+  [get_bd_pins ilconcat_1/In2] \
+  [get_bd_pins ilconcat_1/In3] \
+  [get_bd_pins ilconcat_1/In4] \
+  [get_bd_pins ilconcat_1/In5] \
+  [get_bd_pins ilconcat_1/In6] \
+  [get_bd_pins ilconcat_1/In7]
   connect_bd_net -net pn23_0_valid  [get_bd_pins pn23_0/valid] \
   [get_bd_pins axis_master_0/fifo_wr_ena]
   connect_bd_net -net pn23_0_value  [get_bd_pins pn23_0/value] \
@@ -663,7 +731,8 @@ Port;FD4A0000;FD4AFFFF;1|FPD;DPDMA;FD4C0000;FD4CFFFF;1|FPD;DDR_XMPU5_CFG;FD05000
   [get_bd_pins axi_smc_1/aresetn] \
   [get_bd_pins counter_0/rstn] \
   [get_bd_pins counter_1/rstn] \
-  [get_bd_pins pn23_0/rstn]
+  [get_bd_pins pn23_0/rstn] \
+  [get_bd_pins blink_0/rstn]
   connect_bd_net -net xlconstant_0_dout  [get_bd_pins xlconstant_0/dout] \
   [get_bd_pins axis_master_0/packet_length]
   connect_bd_net -net xlconstant_1_dout  [get_bd_pins xlconstant_1/dout] \
@@ -683,7 +752,8 @@ Port;FD4A0000;FD4AFFFF;1|FPD;DPDMA;FD4C0000;FD4CFFFF;1|FPD;DDR_XMPU5_CFG;FD05000
   [get_bd_pins axi_dma_0/m_axi_sg_aclk] \
   [get_bd_pins counter_0/clk] \
   [get_bd_pins counter_1/clk] \
-  [get_bd_pins pn23_0/clk]
+  [get_bd_pins pn23_0/clk] \
+  [get_bd_pins blink_0/clk]
   connect_bd_net -net zynq_ultra_ps_e_0_pl_resetn0  [get_bd_pins zynq_ultra_ps_e_0/pl_resetn0] \
   [get_bd_pins rst_ps8_0_99M/ext_reset_in]
 
