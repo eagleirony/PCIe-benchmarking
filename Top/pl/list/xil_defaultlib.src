@@ -2,7 +2,6 @@
 hardware/srcs/shared/axil_bus.vhd 93
 hardware/srcs/shared/axis_master.vhd 93
 hardware/srcs/shared/axis_slave.vhd 93
-hardware/srcs/shared/registers.vhd 93
 hardware/srcs/shared/pn23.vhd 93
 hardware/srcs/shared/fifo.vhd 93
 hardware/srcs/shared/shared.vhd 93
