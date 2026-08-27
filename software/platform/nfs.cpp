@@ -16,19 +16,35 @@
  * limitations under the License.
  */
 
-#ifndef PLATFORM_PL_H
-#define PLATFORM_PL_H
+#include <filesystem>
+#include <cstring>
+
+#include <rtems/fsmount.h>
+
+#include <platform/nfs.hpp>
 
 namespace app {
 namespace platform {
-namespace pl {
+namespace nfs {
 
-void init();
+static constexpr char nfs_path[] = "10.10.5.4:/opt/src";
 
-void load(std::string& path);
+void init() {
 
-}  // namespace pl
-}  // namespace platform
-}  // namespace app
+}
 
-#endif  // PLATFORM_PL_H
+void mount(std::string& mnt_path) {
+    std::filesystem::create_directories(mnt_path);
+
+    auto r = ::mount(nfs_path, mnt_path.c_str(), "nfs",
+                RTEMS_FILESYSTEM_READ_WRITE, nullptr);
+    if (r < 0) {
+        std::ostringstream oss;
+        oss << "error: fs: nfs: failed to mount: " << strerror(errno);
+        throw std::runtime_error(oss.str());
+    }
+}
+
+} // nfs
+} // platform
+} // app

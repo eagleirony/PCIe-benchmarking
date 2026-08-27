@@ -27,17 +27,33 @@
 #include <platform/network.hpp>
 #include <platform/pl.hpp>
 #include <platform/app-build-id.h>
+#include <platform/emmc.hpp>
+#include <platform/nfs.hpp>
 
 #include <framework/dma.hpp>
 #include <framework/io.hpp>
+#include <framework/axidma.h>
+
+static constexpr char emmc_mnt_path[] = "/emmc";
+static constexpr char nfs_mnt_path[] = "/net";
 
 int main(int argc, char** argv) {
     rtems_status_code sc;
 
     app::platform::network::init();
+
+    std::string emmc_mnt_path_str = emmc_mnt_path;
+    app::platform::emmc::mount(emmc_mnt_path_str);
+
     app::platform::pl::init();
 
-    //app::platform::network::start(30, false);
+    app::platform::network::start(30, false);
+
+    std::string nfs_mnt_path_str = nfs_mnt_path;
+    app::platform::nfs::mount(nfs_mnt_path_str);
+
+    std::string pl_bitfile_path_str = "/emmc/pl_4.bit";
+    app::platform::pl::load(pl_bitfile_path_str);
 
     std::cout << std::endl << "PCITB version: " << app_build_id() << std::endl;
 

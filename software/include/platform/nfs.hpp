@@ -16,19 +16,21 @@
  * limitations under the License.
  */
 
-#ifndef PLATFORM_PL_H
-#define PLATFORM_PL_H
+#ifndef PLATFORM_NFS_H
+#define PLATFORM_NFS_H
+
+#include <string>
 
 namespace app {
 namespace platform {
-namespace pl {
+namespace nfs {
 
 void init();
 
-void load(std::string& path);
+void mount(std::string& mnt_path);
 
-}  // namespace pl
+}  // namespace nfs
 }  // namespace platform
 }  // namespace app
 
-#endif  // PLATFORM_PL_H
+#endif  // PLATFORM_NFS_H

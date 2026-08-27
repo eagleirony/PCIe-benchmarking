@@ -16,19 +16,21 @@
  * limitations under the License.
  */
 
-#ifndef PLATFORM_PL_H
-#define PLATFORM_PL_H
+#ifndef PLATFORM_EMMC_H
+#define PLATFORM_EMMC_H
+
+#include <string>
 
 namespace app {
 namespace platform {
-namespace pl {
+namespace emmc {
 
 void init();
 
-void load(std::string& path);
+void mount(std::string& mnt_path);
 
-}  // namespace pl
+}  // namespace emmc
 }  // namespace platform
 }  // namespace app
 
-#endif  // PLATFORM_PL_H
+#endif  // PLATFORM_EMMC_H
