@@ -79,8 +79,8 @@ signal axi_aresetn : std_logic;
 signal aclk_double : std_logic;
 
 signal pcie_link_status : std_logic;
-signal msi_req : std_logic_vector(0 downto 0);
-signal msi_ack : std_logic_vector(0 downto 0);
+signal msi_req : std_logic_vector(1 downto 0);
+signal msi_ack : std_logic_vector(1 downto 0);
 
 signal pn23_value : std_logic_vector( AXIS_DATA_WIDTH - 1 downto 0 );
 signal pn23_valid : std_logic;
@@ -175,7 +175,7 @@ begin
     IB                                 => sys_clk_n
   );
 
-  msi_req <= "0";
+  msi_req <= "00";
 
   axis_c2h_tkeep <= (others => '1');
   axis_h2c_tstrb <= (others => '1');

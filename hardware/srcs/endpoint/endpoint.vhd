@@ -51,6 +51,56 @@ package endpoint_param is
     build_id : in std_logic_vector(data_width - 1 downto 0)
   );
   end component registers;
+  
+  component xdma_0 is
+  Port ( 
+    sys_clk : in STD_LOGIC;
+    sys_clk_gt : in STD_LOGIC;
+    sys_rst_n : in STD_LOGIC;
+    user_lnk_up : out STD_LOGIC;
+    pci_exp_txp : out STD_LOGIC_VECTOR ( 3 downto 0 );
+    pci_exp_txn : out STD_LOGIC_VECTOR ( 3 downto 0 );
+    pci_exp_rxp : in STD_LOGIC_VECTOR ( 3 downto 0 );
+    pci_exp_rxn : in STD_LOGIC_VECTOR ( 3 downto 0 );
+    axi_aclk : out STD_LOGIC;
+    axi_aresetn : out STD_LOGIC;
+    usr_irq_req : in STD_LOGIC_VECTOR ( 1 downto 0 );
+    usr_irq_ack : out STD_LOGIC_VECTOR ( 1 downto 0 );
+    msi_enable : out STD_LOGIC;
+    msi_vector_width : out STD_LOGIC_VECTOR ( 2 downto 0 );
+    m_axil_awaddr : out STD_LOGIC_VECTOR ( 31 downto 0 );
+    m_axil_awprot : out STD_LOGIC_VECTOR ( 2 downto 0 );
+    m_axil_awvalid : out STD_LOGIC;
+    m_axil_awready : in STD_LOGIC;
+    m_axil_wdata : out STD_LOGIC_VECTOR ( 31 downto 0 );
+    m_axil_wstrb : out STD_LOGIC_VECTOR ( 3 downto 0 );
+    m_axil_wvalid : out STD_LOGIC;
+    m_axil_wready : in STD_LOGIC;
+    m_axil_bvalid : in STD_LOGIC;
+    m_axil_bresp : in STD_LOGIC_VECTOR ( 1 downto 0 );
+    m_axil_bready : out STD_LOGIC;
+    m_axil_araddr : out STD_LOGIC_VECTOR ( 31 downto 0 );
+    m_axil_arprot : out STD_LOGIC_VECTOR ( 2 downto 0 );
+    m_axil_arvalid : out STD_LOGIC;
+    m_axil_arready : in STD_LOGIC;
+    m_axil_rdata : in STD_LOGIC_VECTOR ( 31 downto 0 );
+    m_axil_rresp : in STD_LOGIC_VECTOR ( 1 downto 0 );
+    m_axil_rvalid : in STD_LOGIC;
+    m_axil_rready : out STD_LOGIC;
+    s_axis_c2h_tdata_0 : in STD_LOGIC_VECTOR ( 63 downto 0 );
+    s_axis_c2h_tlast_0 : in STD_LOGIC;
+    s_axis_c2h_tvalid_0 : in STD_LOGIC;
+    s_axis_c2h_tready_0 : out STD_LOGIC;
+    s_axis_c2h_tkeep_0 : in STD_LOGIC_VECTOR ( 7 downto 0 );
+    m_axis_h2c_tdata_0 : out STD_LOGIC_VECTOR ( 63 downto 0 );
+    m_axis_h2c_tlast_0 : out STD_LOGIC;
+    m_axis_h2c_tvalid_0 : out STD_LOGIC;
+    m_axis_h2c_tready_0 : in STD_LOGIC;
+    m_axis_h2c_tkeep_0 : out STD_LOGIC_VECTOR ( 7 downto 0 );
+    c2h_sts_0 : out STD_LOGIC_VECTOR ( 7 downto 0 );
+    h2c_sts_0 : out STD_LOGIC_VECTOR ( 7 downto 0 )
+  );
+  end component xdma_0;
 
 end package endpoint_param;
 
