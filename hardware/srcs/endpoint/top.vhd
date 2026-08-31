@@ -243,7 +243,7 @@ begin
         c_m_axis_tdata_width => AXIS_DATA_WIDTH,
         register_width => AXIL_DATA_WIDTH,
         C_M_START_COUNT => 16,
-        FIFO_DEPTH => 8
+        FIFO_DEPTH => 10
     )
     port map (
         FIFO_STATUS => c2h_fifo_status,
@@ -266,7 +266,7 @@ begin
     generic map (
         c_s_axis_tdata_width => AXIS_DATA_WIDTH,
         fifo_status_width => AXIL_DATA_WIDTH,
-        FIFO_DEPTH => 5
+        FIFO_DEPTH => 10
     )
     port map (
         FIFO_STATUS => h2c_fifo_status,

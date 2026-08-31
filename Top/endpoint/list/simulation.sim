@@ -1,3 +1,4 @@
-hardware/sim/shared/pn23_TB.vhd
-hardware/sim/shared/axis_TB.vhd
-hardware/sim/shared/validate_TB.vhd
+hardware/sim/shared/pn23_TB.vhd 93
+hardware/sim/shared/axis_TB.vhd 93
+hardware/sim/shared/dual_fifo_TB.vhd 93
+hardware/sim/shared/validate_TB.vhd 93

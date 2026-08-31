@@ -8,6 +8,7 @@ hardware/srcs/shared/fifo.vhd 93
 hardware/srcs/shared/counter.vhd 93
 hardware/srcs/shared/blink.vhd 93
 hardware/srcs/shared/validate.vhd 93
+hardware/srcs/shared/dual_fifo.vhd 93
 hardware/generated/build_info.vhd 93
 
 hardware/srcs/endpoint/endpoint.vhd 93
