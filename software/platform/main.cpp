@@ -32,7 +32,6 @@
 
 #include <framework/dma.hpp>
 #include <framework/io.hpp>
-#include <framework/axidma.h>
 
 static constexpr char emmc_mnt_path[] = "/emmc";
 static constexpr char nfs_mnt_path[] = "/net";

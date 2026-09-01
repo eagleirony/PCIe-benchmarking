@@ -27,7 +27,7 @@
 
 #include <rtems/rtems/cache.h>
 
-static constexpr size_t DMA_BUFF_SIZE = 0x100000;
+static constexpr size_t DMA_BUFF_SIZE = 0x10000;
 static constexpr size_t DMA_BUFF_ALIGN = 0x100;
 static constexpr size_t DMA_BUFF_BOUNDARY = 0;
 

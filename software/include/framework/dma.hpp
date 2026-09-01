@@ -191,15 +191,17 @@ protected:
 
 struct channel {
     using callback = std::function<void(mem::dma_buffer_ptr buf)>;
-    using lock_type = std::mutex;
+    using lock_type = std::recursive_mutex;
     using lock_guard = std::lock_guard<lock_type>;
 
     lock_type lock;
     registers regs;
     size_t id;
-    bool streamed;
     uint32_t dir;
+    bool running;
+    bool pipelined;
     size_t head;
+    size_t tail;
     callback cb;
     std::array<mem::descriptor, XLNX_PCIE_DMA_CHAN_DESC_COUNT> descs;
     std::array<mem::writeback, XLNX_PCIE_DMA_CHAN_DESC_COUNT> wbs;
@@ -211,15 +213,21 @@ struct channel {
     channel(channel&&) = delete;
     channel& operator=(const channel&&) = delete;
 
-    void set_callback(callback& cb);
     void run();
+    void run(size_t length);
     void stop();
+
+    void set_callback(callback& cb);
+
+    bool is_running();
+    void report();
 
     void handle_intr();
 
-    void report();
-
 protected:
+    void set_pipeline();
+    void set_block(size_t length);
+
     uint32_t read_chan(uint32_t offset);
     void write_chan(uint32_t offset, uint32_t value);
     uint32_t read_sgdma(uint32_t offset);
@@ -229,7 +237,7 @@ protected:
 using channel_ptr = std::shared_ptr<channel>;
 
 struct controller {
-    using lock_type = std::mutex;
+    using lock_type = std::recursive_mutex;
     using lock_guard = std::lock_guard<lock_type>;
 
     lock_type lock;
