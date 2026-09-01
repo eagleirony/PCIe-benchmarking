@@ -125,7 +125,7 @@ channel::channel(registers& reg_, uint32_t dir_, size_t id_,
     }
 
     descs[0].zero();
-    descs[0].header(false, false);
+    descs[0].header(true, false);
     descs[0].set_length(DMA_BUFF_SIZE);
     descs[0].set_wb(wbs[0]);
     wbs[0].clear();
@@ -176,10 +176,12 @@ channel::channel(registers& reg_, uint32_t dir_, size_t id_,
 }
 
 void channel::set_callback(callback& cb_) {
+    lock_guard guard(lock);
     cb = cb_;
 }
 
 void channel::run() {
+    lock_guard guard(lock);
     uint32_t desc_hi;
     uint32_t desc_lo;
     mem::descriptor* desc = &descs[head];
@@ -195,10 +197,12 @@ void channel::run() {
 }
 
 void channel::stop() {
+    lock_guard guard(lock);
     write_chan(XLNX_PCIE_DMA_CHAN_CTRL, XLNX_PCIE_DMA_CHAN_CTRL_LOG_ENA);
 }
 
 void channel::handle_intr() {
+    lock_guard guard(lock);
     uint32_t status = read_chan(XLNX_PCIE_DMA_CHAN_STS);
     std::string dir_str = "C2H";
     if (dir == XLNX_PCIE_DMA_TARGET_H2C_CHANS) {
@@ -242,6 +246,7 @@ void channel::write_sgdma(uint32_t offset, uint32_t value) {
 }
 
 void channel::report() {
+    lock_guard guard(lock);
     uint64_t cycle_count;
     uint64_t data_count;
     uint32_t desc_count;
@@ -376,6 +381,7 @@ controller::controller(std::string& path) {
 }
 
 void controller::report() {
+    lock_guard guard(lock);
     std::cout << "--- PCIE DMA report ---" << std::endl;
     std::cout << "C2H channels: " << c2h_count << std::endl;
     for (auto& chan : c2h_chans) {
@@ -388,6 +394,7 @@ void controller::report() {
 }
 
 void controller::start_msi_thread() {
+    lock_guard guard(lock);
     rtems::thread::attributes attr;
     attr.set_name("CTLR_MSI_IRQ");
     attr.set_rtems_priority(97);
@@ -425,16 +432,19 @@ void controller::msi_worker() {
             return;
         }
 
-        uint32_t reqs = regs.read(XLNX_PCIE_DMA_TARGET_IRQ_BLOCK,
-            XLNX_PCIE_DMA_IRQ_CHAN_INT);
-        for (int i = 0; i < c2h_count + h2c_count; i++) {
-            if (reqs & (1U << i)) {
-                if (i < h2c_count) {
-                    h2c_chans[i]->handle_intr();
-                }
-                if (i >= h2c_count) {
-                    auto chan_index = i - h2c_count;
-                    c2h_chans[chan_index]->handle_intr();
+        {
+            lock_guard guard(lock);
+            uint32_t reqs = regs.read(XLNX_PCIE_DMA_TARGET_IRQ_BLOCK,
+                XLNX_PCIE_DMA_IRQ_CHAN_INT);
+            for (int i = 0; i < c2h_count + h2c_count; i++) {
+                if (reqs & (1U << i)) {
+                    if (i < h2c_count) {
+                        h2c_chans[i]->handle_intr();
+                    }
+                    if (i >= h2c_count) {
+                        auto chan_index = i - h2c_count;
+                        c2h_chans[chan_index]->handle_intr();
+                    }
                 }
             }
         }
@@ -482,7 +492,8 @@ void init() {
         auto path = oss.str();
         if (probe_dma(path)) {
             try {
-                eps->emplace_back(path);
+                auto ep = std::make_shared<controller>(path);
+                eps->emplace_back(ep);
             } catch (const std::runtime_error& e) {
                 std::cout << e.what() << std::endl;
             }
@@ -490,15 +501,15 @@ void init() {
     }
 
     for (auto& ep : *eps) {
-        ep.report();
+        ep->report();
     }
 
     channel::callback cb = [](mem::dma_buffer_ptr buf){
         return;
     };
 
-    eps->at(0).c2h_chans[0]->set_callback(cb);
-    eps->at(0).c2h_chans[0]->run();
+    eps->at(0)->c2h_chans[0]->set_callback(cb);
+    eps->at(0)->c2h_chans[0]->run();
 }
 
 } // namespace dma

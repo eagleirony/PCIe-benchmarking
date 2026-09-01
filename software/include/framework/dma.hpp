@@ -22,6 +22,7 @@
 #include <vector>
 #include <cstdint>
 #include <memory>
+#include <mutex>
 
 #include <framework/dma-mem.hpp>
 #include <framework/io.hpp>
@@ -162,7 +163,8 @@ namespace pcie {
 namespace dma {
 
 struct controller;
-using controllers = std::vector<controller>;
+using controller_ptr = std::shared_ptr<controller>;
+using controllers = std::vector<controller_ptr>;
 using controllers_ptr = std::shared_ptr<controllers>;
 
 controllers_ptr make_controllers();
@@ -189,7 +191,10 @@ protected:
 
 struct channel {
     using callback = std::function<void(mem::dma_buffer_ptr buf)>;
+    using lock_type = std::mutex;
+    using lock_guard = std::lock_guard<lock_type>;
 
+    lock_type lock;
     registers regs;
     size_t id;
     bool streamed;
@@ -201,6 +206,10 @@ struct channel {
     cs::pool::pool<mem::dma_buffer> bufs;
 
     channel(registers& regs, uint32_t dir, size_t id, size_t desc_count);
+    channel(const channel&) = delete;
+    channel& operator=(const channel&) = delete;
+    channel(channel&&) = delete;
+    channel& operator=(const channel&&) = delete;
 
     void set_callback(callback& cb);
     void run();
@@ -220,6 +229,10 @@ protected:
 using channel_ptr = std::shared_ptr<channel>;
 
 struct controller {
+    using lock_type = std::mutex;
+    using lock_guard = std::lock_guard<lock_type>;
+
+    lock_type lock;
     registers regs;
     api::io::registers axis;
     int fd;
@@ -231,6 +244,10 @@ struct controller {
     size_t h2c_count;
 
     controller(std::string& path);
+    controller(const controller&) = delete;
+    controller& operator=(const controller&) = delete;
+    controller(controller&&) = delete;
+    controller& operator=(const controller&&) = delete;
 
     void report();
 
