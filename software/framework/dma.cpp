@@ -19,6 +19,7 @@
 #include <iostream>
 #include <sstream>
 #include <filesystem>
+#include <algorithm>
 
 #include <fcntl.h>
 #include <sys/ioctl.h>
@@ -153,7 +154,7 @@ void channel::set_pipeline() {
         return;
     }
     descs[0].zero();
-    descs[0].header(true, false);
+    descs[0].header(true, false, XLNX_PCIE_DMA_CHAN_DESC_COUNT - 2);
     descs[0].set_length(DMA_BUFF_SIZE);
     descs[0].set_wb(wbs[0]);
     wbs[0].clear();
@@ -163,7 +164,8 @@ void channel::set_pipeline() {
 
     for (int i = 1; i < XLNX_PCIE_DMA_CHAN_DESC_COUNT; i++) {
         descs[i].zero();
-        descs[i].header(true, false);
+        auto nxt_adj = std::max(0UL, XLNX_PCIE_DMA_CHAN_DESC_COUNT - i - 2);
+        descs[i].header(true, false, nxt_adj);
         descs[i].set_length(DMA_BUFF_SIZE);
         descs[i].set_wb(wbs[i]);
         wbs[i].clear();
@@ -183,16 +185,18 @@ void channel::set_pipeline() {
 }
 
 void channel::set_block(size_t length) {
-    if (length > DMA_BUFF_SIZE * XLNX_PCIE_DMA_CHAN_DESC_COUNT) {
-        throw std::runtime_error("Length too long for block transfer");
-    }
     lock_guard guard(lock);
 
     size_t desc_index = 0;
+    auto desc_chain_len = (length + DMA_BUFF_SIZE - 1) / DMA_BUFF_SIZE;
+    if (desc_chain_len > XLNX_PCIE_DMA_CHAN_DESC_COUNT) {
+        throw std::runtime_error("Length too long for block transfer");
+    }
 
     while (length > DMA_BUFF_SIZE) {
         descs[desc_index].zero();
-        descs[desc_index].header(false, false);
+        auto nxt_adj = std::max(0UL, desc_chain_len - desc_index - 2);
+        descs[desc_index].header(false, false, nxt_adj);
         descs[desc_index].set_length(DMA_BUFF_SIZE);
         descs[desc_index].set_wb(wbs[desc_index]);
         wbs[desc_index].clear();
@@ -205,7 +209,7 @@ void channel::set_block(size_t length) {
     }
 
     descs[desc_index].zero();
-    descs[desc_index].header(false, true);
+    descs[desc_index].header(false, true, 0);
     descs[desc_index].set_length(length);
     descs[desc_index].set_wb(wbs[desc_index]);
     wbs[desc_index].clear();

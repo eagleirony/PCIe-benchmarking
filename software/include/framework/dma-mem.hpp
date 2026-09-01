@@ -118,6 +118,7 @@ struct descriptor {
 
     void zero();
     void header(bool cmpl, bool stop);
+    void header(bool cmpl, bool stop, size_t adj);
     void set_length(size_t len);
     void set_wb(writeback& wb);
     void set_next(descriptor& next);

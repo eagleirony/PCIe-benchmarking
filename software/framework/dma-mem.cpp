@@ -87,7 +87,18 @@ void descriptor::zero() {
 }
 
 void descriptor::header(bool cmpl, bool stop) {
+    header(cmpl, stop, 0);
+}
+
+void descriptor::header(bool cmpl, bool stop, size_t adj) {
     uint32_t reg = XLNX_PCIE_DMA_DESC_MAGIC_VAL;
+
+    if (adj > 0x3F) {
+        throw std::runtime_error("Too many adjacent descriptors");
+    }
+    uint32_t nxt_adj = static_cast<uint32_t>(adj & 0xFFFFFFFF);
+
+    reg |= (nxt_adj << XLNX_PCIE_DMA_DESC_NXT_SHIFT) & XLNX_PCIE_DMA_DESC_NXT_MASK;
 
     if (stop) {
         reg |= XLNX_PCIE_DMA_DESC_CTRL_STOP;
