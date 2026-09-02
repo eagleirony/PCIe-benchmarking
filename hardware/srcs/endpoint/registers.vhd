@@ -63,15 +63,18 @@ entity registers is
     s_axil_rready  : in    std_logic;
 
     -- User registers
-    h2c_fifo_status_reg : in    std_logic_vector(data_width - 1 downto 0);
-    c2h_fifo_status_reg : in    std_logic_vector(data_width - 1 downto 0);
+    c2h_0_fifo_status_reg : in    std_logic_vector(data_width - 1 downto 0);
+    c2h_1_fifo_status_reg : in    std_logic_vector(data_width - 1 downto 0);
+    h2c_0_fifo_status_reg : in    std_logic_vector(data_width - 1 downto 0);
 
     c2h_chan_0_packet_len : out std_logic_vector(data_width - 1 downto 0);
+    c2h_chan_1_packet_len : out std_logic_vector(data_width - 1 downto 0);
 
     msi_ena : in std_logic;
     msi_count : in std_logic_vector(2 downto 0);
-    c2h_sts : in std_logic_vector(7 downto 0);
-    h2c_sts : in std_logic_vector(7 downto 0);
+    c2h_sts_0 : in std_logic_vector(7 downto 0);
+    c2h_sts_1 : in std_logic_vector(7 downto 0);
+    h2c_sts_0 : in std_logic_vector(7 downto 0);
 
     uptime_counter  : in    std_logic_vector((data_width * 2) - 1 downto 0);
     user_counter    : in    std_logic_vector(data_width - 1 downto 0);
@@ -91,16 +94,19 @@ signal scratch_2 : std_logic_vector(data_width - 1 downto 0);
 signal scratch_3 : std_logic_vector(data_width - 1 downto 0);
 
 signal c2h_chan_0_packet_len_sig : std_logic_vector(data_width - 1 downto 0);
+signal c2h_chan_1_packet_len_sig : std_logic_vector(data_width - 1 downto 0);
 
 begin
 
-  pcie_status_reg(7 downto 0) <= c2h_sts;
-  pcie_status_reg(15 downto 8) <= h2c_sts;
-  pcie_status_reg(16) <= msi_ena;
-  pcie_status_reg(19 downto 17) <= msi_count;
-  pcie_status_reg(data_width - 1 downto 20) <= (others => '0');
+  pcie_status_reg(7 downto 0) <= c2h_sts_0;
+  pcie_status_reg(15 downto 8) <= c2h_sts_1;
+  pcie_status_reg(23 downto 16) <= h2c_sts_0;
+  pcie_status_reg(data_width - 1) <= msi_ena;
+  pcie_status_reg(data_width - 2 downto data_width - 4) <= msi_count;
+  pcie_status_reg(data_width - 5 downto 24) <= (others => '0');
 
   c2h_chan_0_packet_len <= c2h_chan_0_packet_len_sig;
+  c2h_chan_1_packet_len <= c2h_chan_1_packet_len_sig;
 
   axil_bus_regs : axil_bus
   generic map (
@@ -115,14 +121,14 @@ begin
     reg_4_r => x"01234567",
     reg_5_r => x"89ABCDEF",
     reg_6_r => pcie_status_reg,
-    reg_7_r => c2h_fifo_status_reg,
+    reg_7_r => c2h_0_fifo_status_reg,
     reg_8_r => uptime_counter((data_width * 2) - 1 downto data_width),
     reg_9_r => uptime_counter(data_width - 1 downto 0),
     reg_10_r => user_counter,
     reg_11_r => build_id,
     reg_12_r => build_ver,
-    reg_13_r => x"00000000",
-    reg_14_r => x"00000000",
+    reg_13_r => c2h_1_fifo_status_reg,
+    reg_14_r => h2c_0_fifo_status_reg,
     reg_15_r => x"00000000",
     reg_16_r => x"00000000",
     reg_17_r => x"00000000",
@@ -145,7 +151,7 @@ begin
     reg_34_r => scratch_2,
     reg_35_r => scratch_3,
     reg_36_r => c2h_chan_0_packet_len_sig,
-    reg_37_r => x"00000000",
+    reg_37_r => c2h_chan_1_packet_len_sig,
     reg_38_r => x"00000000",
     reg_39_r => x"00000000",
     reg_40_r => x"00000000",
@@ -211,7 +217,7 @@ begin
     reg_34_w => scratch_2,
     reg_35_w => scratch_3,
     reg_36_w => c2h_chan_0_packet_len_sig,
-    reg_37_w => open,
+    reg_37_w => c2h_chan_1_packet_len_sig,
     reg_38_w => open,
     reg_39_w => open,
     reg_40_w => open,

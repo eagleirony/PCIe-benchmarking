@@ -34,15 +34,18 @@ package endpoint_param is
     s_axil_rready  : in    std_logic;
 
     -- User registers
-    h2c_fifo_status_reg : in    std_logic_vector(data_width - 1 downto 0);
-    c2h_fifo_status_reg : in    std_logic_vector(data_width - 1 downto 0);
+    c2h_0_fifo_status_reg : in    std_logic_vector(data_width - 1 downto 0);
+    c2h_1_fifo_status_reg : in    std_logic_vector(data_width - 1 downto 0);
+    h2c_0_fifo_status_reg : in    std_logic_vector(data_width - 1 downto 0);
 
     c2h_chan_0_packet_len : out std_logic_vector(data_width - 1 downto 0);
+    c2h_chan_1_packet_len : out std_logic_vector(data_width - 1 downto 0);
 
     msi_ena : in std_logic;
     msi_count : in std_logic_vector(2 downto 0);
-    c2h_sts : in std_logic_vector(7 downto 0);
-    h2c_sts : in std_logic_vector(7 downto 0);
+    c2h_sts_0 : in std_logic_vector(7 downto 0);
+    c2h_sts_1 : in std_logic_vector(7 downto 0);
+    h2c_sts_0 : in std_logic_vector(7 downto 0);
 
     uptime_counter  : in    std_logic_vector((data_width * 2) - 1 downto 0);
     user_counter    : in    std_logic_vector(data_width - 1 downto 0);
@@ -92,13 +95,19 @@ package endpoint_param is
     s_axis_c2h_tvalid_0 : in STD_LOGIC;
     s_axis_c2h_tready_0 : out STD_LOGIC;
     s_axis_c2h_tkeep_0 : in STD_LOGIC_VECTOR ( 7 downto 0 );
+    s_axis_c2h_tdata_1 : in STD_LOGIC_VECTOR ( 63 downto 0 );
+    s_axis_c2h_tlast_1 : in STD_LOGIC;
+    s_axis_c2h_tvalid_1 : in STD_LOGIC;
+    s_axis_c2h_tready_1 : out STD_LOGIC;
+    s_axis_c2h_tkeep_1 : in STD_LOGIC_VECTOR ( 7 downto 0 );
     m_axis_h2c_tdata_0 : out STD_LOGIC_VECTOR ( 63 downto 0 );
     m_axis_h2c_tlast_0 : out STD_LOGIC;
     m_axis_h2c_tvalid_0 : out STD_LOGIC;
     m_axis_h2c_tready_0 : in STD_LOGIC;
     m_axis_h2c_tkeep_0 : out STD_LOGIC_VECTOR ( 7 downto 0 );
     c2h_sts_0 : out STD_LOGIC_VECTOR ( 7 downto 0 );
-    h2c_sts_0 : out STD_LOGIC_VECTOR ( 7 downto 0 )
+    h2c_sts_0 : out STD_LOGIC_VECTOR ( 7 downto 0 );
+    c2h_sts_1 : out STD_LOGIC_VECTOR ( 7 downto 0 )
   );
   end component xdma_0;
 
