@@ -36,6 +36,7 @@ constexpr size_t XLNX_PCIE_DMA_CHAN_DESC_COUNT = 16;
 /* AXI Lite registers */
 
 static constexpr uint32_t C2H_CHAN_0_PACKET_LEN_OFF = 0x90;
+static constexpr uint32_t C2H_CHAN_1_PACKET_LEN_OFF = 0x94;
 
 /* Descriptors */
 static constexpr uint32_t XLNX_PCIE_DMA_DESC_SIZE = 0x20;

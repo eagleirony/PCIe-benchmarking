@@ -143,7 +143,7 @@ channel::channel(registers& reg_, uint32_t dir_, size_t id_,
     uint32_t irq_reg = regs.read(XLNX_PCIE_DMA_TARGET_IRQ_BLOCK,
         XLNX_PCIE_DMA_IRQ_CHAN_EN);
     regs.write(XLNX_PCIE_DMA_TARGET_IRQ_BLOCK, XLNX_PCIE_DMA_IRQ_CHAN_EN,
-        irq_reg | 0x3);
+        irq_reg | 0x7);
 
     write_chan(XLNX_PCIE_DMA_CHAN_INTR, XLNX_PCIE_DMA_CHAN_INTR_ENA);
 }
@@ -163,8 +163,11 @@ void channel::set_pipeline() {
     descs[0].set_buffer(buf);
 
     for (int i = 1; i < XLNX_PCIE_DMA_CHAN_DESC_COUNT; i++) {
+        uint32_t nxt_adj = 0;
         descs[i].zero();
-        auto nxt_adj = std::max(0UL, XLNX_PCIE_DMA_CHAN_DESC_COUNT - i - 2);
+        if (i + 2 < XLNX_PCIE_DMA_CHAN_DESC_COUNT) {
+            nxt_adj = XLNX_PCIE_DMA_CHAN_DESC_COUNT - i - 2;
+        }
         descs[i].header(true, false, nxt_adj);
         descs[i].set_length(DMA_BUFF_SIZE);
         descs[i].set_wb(wbs[i]);
@@ -194,8 +197,11 @@ void channel::set_block(size_t length) {
     }
 
     while (length > DMA_BUFF_SIZE) {
+        uint32_t nxt_adj = 0;
         descs[desc_index].zero();
-        auto nxt_adj = std::max(0UL, desc_chain_len - desc_index - 2);
+        if (desc_index + 2 < XLNX_PCIE_DMA_CHAN_DESC_COUNT) {
+            nxt_adj = XLNX_PCIE_DMA_CHAN_DESC_COUNT - desc_index - 2;
+        }
         descs[desc_index].header(false, false, nxt_adj);
         descs[desc_index].set_length(DMA_BUFF_SIZE);
         descs[desc_index].set_wb(wbs[desc_index]);
@@ -309,9 +315,10 @@ void channel::handle_intr() {
 
     if (pipelined) {
         ++tail;
+        tail = tail % XLNX_PCIE_DMA_CHAN_DESC_COUNT;
     }
 
-    while (head < tail) {
+    while (head != tail) {
         mem::dma_buffer_ptr cmpl_buf;
         auto& d = descs[head++];
         head = head % XLNX_PCIE_DMA_CHAN_DESC_COUNT;
@@ -320,7 +327,9 @@ void channel::handle_intr() {
         d.buf = bufs.request();
 
         if (!d.wb->valid()) {
-            throw std::runtime_error("Invalid DMA transfer");
+            std::ostringstream oss;
+            oss << "Channel " << id << ": Invalid DMA transfer";
+            throw std::runtime_error(oss.str());
         }
 
         cmpl_buf->stats.eop = d.wb->eop();
@@ -453,6 +462,7 @@ controller::controller(std::string& path) {
     }
 
     axis.write(C2H_CHAN_0_PACKET_LEN_OFF, DMA_BUFF_SIZE/8);
+    axis.write(C2H_CHAN_1_PACKET_LEN_OFF, DMA_BUFF_SIZE/8);
 
     for (auto i = 0; i < XLNX_PCIE_DMA_MAX_CHANS; i++) {
         if (regs.read(XLNX_PCIE_DMA_TARGET_H2C_CHANS, i, XLNX_PCIE_DMA_CHAN_ID)
@@ -606,7 +616,9 @@ void init() {
     };
 
     eps->at(0)->c2h_chans[0]->set_callback(cb);
+    eps->at(0)->c2h_chans[1]->set_callback(cb);
     eps->at(0)->c2h_chans[0]->run();
+    eps->at(0)->c2h_chans[1]->run();
 }
 
 } // namespace dma
