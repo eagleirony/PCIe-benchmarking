@@ -80,7 +80,13 @@ entity registers is
     user_counter    : in    std_logic_vector(data_width - 1 downto 0);
 
     build_ver : in std_logic_vector(data_width - 1 downto 0);
-    build_id : in std_logic_vector(data_width - 1 downto 0)
+    build_id : in std_logic_vector(data_width - 1 downto 0);
+
+    wire_out : out std_logic;
+    stop_user_clock : out std_logic;
+
+    validate_error    : in    std_logic_vector(data_width - 1 downto 0);
+    validate_correct    : in    std_logic_vector(data_width - 1 downto 0)
   );
 end entity registers;
 
@@ -96,6 +102,8 @@ signal scratch_3 : std_logic_vector(data_width - 1 downto 0);
 signal c2h_chan_0_packet_len_sig : std_logic_vector(data_width - 1 downto 0);
 signal c2h_chan_1_packet_len_sig : std_logic_vector(data_width - 1 downto 0);
 
+signal signals_reg : std_logic_vector(data_width - 1 downto 0);
+
 begin
 
   pcie_status_reg(7 downto 0) <= c2h_sts_0;
@@ -107,6 +115,9 @@ begin
 
   c2h_chan_0_packet_len <= c2h_chan_0_packet_len_sig;
   c2h_chan_1_packet_len <= c2h_chan_1_packet_len_sig;
+
+  wire_out <= signals_reg(0);
+  stop_user_clock <= signals_reg(1) or s_axil_aresetn;
 
   axil_bus_regs : axil_bus
   generic map (
@@ -129,8 +140,8 @@ begin
     reg_12_r => build_ver,
     reg_13_r => c2h_1_fifo_status_reg,
     reg_14_r => h2c_0_fifo_status_reg,
-    reg_15_r => x"00000000",
-    reg_16_r => x"00000000",
+    reg_15_r => validate_error,
+    reg_16_r => validate_correct,
     reg_17_r => x"00000000",
     reg_18_r => x"00000000",
     reg_19_r => x"00000000",
@@ -152,7 +163,7 @@ begin
     reg_35_r => scratch_3,
     reg_36_r => c2h_chan_0_packet_len_sig,
     reg_37_r => c2h_chan_1_packet_len_sig,
-    reg_38_r => x"00000000",
+    reg_38_r => signals_reg,
     reg_39_r => x"00000000",
     reg_40_r => x"00000000",
     reg_41_r => x"00000000",
@@ -218,7 +229,7 @@ begin
     reg_35_w => scratch_3,
     reg_36_w => c2h_chan_0_packet_len_sig,
     reg_37_w => c2h_chan_1_packet_len_sig,
-    reg_38_w => open,
+    reg_38_w => signals_reg,
     reg_39_w => open,
     reg_40_w => open,
     reg_41_w => open,

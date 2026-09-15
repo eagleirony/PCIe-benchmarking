@@ -51,7 +51,13 @@ package endpoint_param is
     user_counter    : in    std_logic_vector(data_width - 1 downto 0);
 
     build_ver : in std_logic_vector(data_width - 1 downto 0);
-    build_id : in std_logic_vector(data_width - 1 downto 0)
+    build_id : in std_logic_vector(data_width - 1 downto 0);
+
+    wire_out : out std_logic;
+    stop_user_clock : out std_logic;
+
+    validate_error    : in    std_logic_vector(data_width - 1 downto 0);
+    validate_correct    : in    std_logic_vector(data_width - 1 downto 0)
   );
   end component registers;
   
@@ -110,6 +116,16 @@ package endpoint_param is
     c2h_sts_1 : out STD_LOGIC_VECTOR ( 7 downto 0 )
   );
   end component xdma_0;
+
+  component msi_handler is
+    port (
+      clk     : in    std_logic;
+      rstn    : in    std_logic;
+      ack     : in    std_logic;
+      req_in  : in    std_logic;
+      req_out : out    std_logic
+    );
+  end component msi_handler;
 
 end package endpoint_param;
 

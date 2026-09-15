@@ -1,4 +1,3 @@
-
 library ieee;
   use ieee.std_logic_1164.all;
   use ieee.numeric_std.all;
@@ -16,22 +15,22 @@ library work;
 
 entity top is
   generic (
-    GLOBAL_DATE          : integer := 0;
-    GLOBAL_TIME          : integer := 0;
-    GLOBAL_VER           : std_logic_vector(31 downto 0) := (others => '0');
-    GLOBAL_SHA           : std_logic_vector(31 downto 0) := (others => '0');
-    TOP_SHA              : std_logic_vector(31 downto 0) := (others => '0');
-    TOP_VER              : std_logic_vector(31 downto 0) := (others => '0');
-    HOG_SHA              : std_logic_vector(31 downto 0) := (others => '0');
-    HOG_VER              : std_logic_vector(31 downto 0) := (others => '0');
-    CON_VER              : std_logic_vector(31 downto 0) := (others => '0');
-    CON_SHA              : std_logic_vector(31 downto 0) := (others => '0');
-    XIL_DEFAULTLIB_VER   : std_logic_vector(31 downto 0) := (others => '0');
-    XIL_DEFAULTLIB_SHA   : std_logic_vector(31 downto 0) := (others => '0');
-    IPS_VER              : std_logic_vector(31 downto 0) := (others => '0');
-    IPS_SHA              : std_logic_vector(31 downto 0) := (others => '0');
-    ENDPOINT_VER         : std_logic_vector(31 downto 0) := (others => '0');
-    ENDPOINT_SHA         : std_logic_vector(31 downto 0) := (others => '0');
+    GLOBAL_DATE        : integer                       := 0;
+    GLOBAL_TIME        : integer                       := 0;
+    GLOBAL_VER         : std_logic_vector(31 downto 0) := (others => '0');
+    GLOBAL_SHA         : std_logic_vector(31 downto 0) := (others => '0');
+    TOP_SHA            : std_logic_vector(31 downto 0) := (others => '0');
+    TOP_VER            : std_logic_vector(31 downto 0) := (others => '0');
+    HOG_SHA            : std_logic_vector(31 downto 0) := (others => '0');
+    HOG_VER            : std_logic_vector(31 downto 0) := (others => '0');
+    CON_VER            : std_logic_vector(31 downto 0) := (others => '0');
+    CON_SHA            : std_logic_vector(31 downto 0) := (others => '0');
+    XIL_DEFAULTLIB_VER : std_logic_vector(31 downto 0) := (others => '0');
+    XIL_DEFAULTLIB_SHA : std_logic_vector(31 downto 0) := (others => '0');
+    IPS_VER            : std_logic_vector(31 downto 0) := (others => '0');
+    IPS_SHA            : std_logic_vector(31 downto 0) := (others => '0');
+    ENDPOINT_VER       : std_logic_vector(31 downto 0) := (others => '0');
+    ENDPOINT_SHA       : std_logic_vector(31 downto 0) := (others => '0');
 
     axil_data_width : integer := 32;
     axil_addr_width : integer := 8;
@@ -99,6 +98,8 @@ architecture rtl of top is
   signal msi_req          : std_logic_vector(1 downto 0);
   signal msi_ack          : std_logic_vector(1 downto 0);
 
+  signal stop_user_clock : std_logic;
+
   -- AXI Lite register values
   signal uptime_counter : std_logic_vector((axil_data_width * 2) - 1 downto 0);
   signal user_counter   : std_logic_vector(axil_data_width - 1 downto 0);
@@ -117,14 +118,14 @@ architecture rtl of top is
   signal axis_c2h_0_tready : std_logic;
   signal axis_c2h_0_tkeep  : std_logic_vector((axis_data_width / 8) - 1 downto 0);
 
-  signal c2h_sts_0   : std_logic_vector(7 downto 0);
+  signal c2h_sts_0 : std_logic_vector(7 downto 0);
 
   signal pn23_c2h_0_value : std_logic_vector(axis_data_width - 1 downto 0);
   signal pn23_c2h_0_valid : std_logic;
   signal pn23_c2h_0_hold  : std_logic;
 
   signal c2h_chan_0_packet_len : std_logic_vector(axil_data_width - 1 downto 0);
-  signal c2h_0_fifo_status : std_logic_vector(axil_data_width - 1 downto 0);
+  signal c2h_0_fifo_status     : std_logic_vector(axil_data_width - 1 downto 0);
 
   -- C2H Channel 1
   signal axis_c2h_1_tdata  : std_logic_vector(axis_data_width - 1 downto 0);
@@ -134,14 +135,14 @@ architecture rtl of top is
   signal axis_c2h_1_tready : std_logic;
   signal axis_c2h_1_tkeep  : std_logic_vector((axis_data_width / 8) - 1 downto 0);
 
-  signal c2h_sts_1   : std_logic_vector(7 downto 0);
+  signal c2h_sts_1 : std_logic_vector(7 downto 0);
 
   signal pn23_c2h_1_value : std_logic_vector(axis_data_width - 1 downto 0);
   signal pn23_c2h_1_valid : std_logic;
   signal pn23_c2h_1_hold  : std_logic;
 
   signal c2h_chan_1_packet_len : std_logic_vector(axil_data_width - 1 downto 0);
-  signal c2h_1_fifo_status : std_logic_vector(axil_data_width - 1 downto 0);
+  signal c2h_1_fifo_status     : std_logic_vector(axil_data_width - 1 downto 0);
 
   -- H2C Channel 0
   signal axis_h2c_tdata  : std_logic_vector(axis_data_width - 1 downto 0);
@@ -151,11 +152,18 @@ architecture rtl of top is
   signal axis_h2c_tready : std_logic;
   signal axis_h2c_tkeep  : std_logic_vector((axis_data_width / 8) - 1 downto 0);
 
-  signal h2c_sts_0   : std_logic_vector(7 downto 0);
+  signal h2c_sts_0 : std_logic_vector(7 downto 0);
 
   signal h2c_data_out : std_logic_vector(axis_data_width - 1 downto 0);
   signal h2c_rd_ena   : std_logic;
   signal h2c_empty    : std_logic;
+
+  signal pn23_h2c_value : std_logic_vector(axis_data_width - 1 downto 0);
+  signal pn23_h2c_valid : std_logic;
+  signal pn23_h2c_hold  : std_logic;
+
+  signal validate_errors : std_logic_vector(axil_data_width - 1 downto 0);
+  signal validate_correct : std_logic_vector(axil_data_width - 1 downto 0);
 
   signal h2c_0_fifo_status : std_logic_vector(axil_data_width - 1 downto 0);
 
@@ -270,7 +278,16 @@ begin
   axis_c2h_1_tkeep <= (others => '1');
   axis_h2c_tstrb   <= (others => '1');
 
-  msi_req <= "00";
+  msi_req(1) <= '0';
+
+  msi_0_handler : component msi_handler
+    port map (
+      clk     => axi_aclk,
+      rstn    => axi_aresetn,
+      ack     => msi_ack(0),
+      req_in  => expand_port_in,
+      req_out => msi_req(0)
+    );
 
   -- C2H Channel 0
   pn23_gen_c2h_0_inst : component pn23
@@ -359,6 +376,30 @@ begin
       s_axis_tready  => axis_h2c_tready
     );
 
+  pn23_gen_h2c_inst : component pn23
+    port map (
+      clk   => axi_aclk,
+      rstn  => axi_aresetn,
+      hold  => pn23_h2c_hold,
+      valid => pn23_h2c_valid,
+      value => pn23_h2c_value
+    );
+
+  pn23_h2c_hold <= not h2c_rd_ena;
+
+  validate_h2c_inst : component validate
+    port map (
+      clk     => axi_aclk,
+      rstn    => axi_aresetn,
+      rd_fifo => h2c_rd_ena,
+      empty_a => h2c_empty,
+      empty_b => '0',
+      data_a  => h2c_data_out,
+      data_b  => pn23_h2c_value,
+      errors  => validate_errors,
+      correct => validate_correct
+    );
+
   -- AXI Lite Interface
   pcie_bar_registers_inst : component registers
     generic map (
@@ -398,15 +439,21 @@ begin
 
       msi_ena   => msi_ena,
       msi_count => msi_count,
-      c2h_sts_0   => c2h_sts_0,
-      c2h_sts_1   => c2h_sts_1,
-      h2c_sts_0   => h2c_sts_0,
+      c2h_sts_0 => c2h_sts_0,
+      c2h_sts_1 => c2h_sts_1,
+      h2c_sts_0 => h2c_sts_0,
 
       uptime_counter => uptime_counter,
       user_counter   => user_counter,
 
       build_ver => build_ver,
-      build_id  => build_id
+      build_id  => build_id,
+
+      wire_out        => expand_port_out,
+      stop_user_clock => stop_user_clock,
+
+      validate_error => validate_errors,
+      validate_correct => validate_correct
     );
 
   uptime_counter_inst : component counter
@@ -416,6 +463,7 @@ begin
     port map (
       clk   => axi_aclk,
       rstn  => sys_rst_n,
+      stop  => '0',
       value => uptime_counter
     );
 
@@ -425,7 +473,8 @@ begin
     )
     port map (
       clk   => axi_aclk,
-      rstn  => sys_rst_n,
+      rstn  => expand_port_in,
+      stop  => stop_user_clock,
       value => user_counter
     );
 

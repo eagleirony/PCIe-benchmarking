@@ -46,7 +46,7 @@ if { [string first $scripts_vivado_version $current_vivado_version] == -1 } {
 
 # The design that will be created by this Tcl script contains the following 
 # module references:
-# axis_master, axis_slave, registers, counter, counter, build_info, pn23, blink
+# registers, counter, counter, build_info, blink, pulse
 
 # Please add the sources of those modules before sourcing this Tcl script.
 
@@ -137,13 +137,10 @@ set bCheckIPs 1
 if { $bCheckIPs == 1 } {
    set list_check_ips "\ 
 xilinx.com:ip:zynq_ultra_ps_e:3.5\
-xilinx.com:ip:axi_dma:7.1\
 xilinx.com:ip:smartconnect:1.0\
 xilinx.com:ip:proc_sys_reset:5.0\
-xilinx.com:ip:xlconstant:1.1\
-xilinx.com:inline_hdl:ilconstant:1.0\
 xilinx.com:inline_hdl:ilconcat:1.0\
-xilinx.com:ip:util_vector_logic:2.0\
+xilinx.com:inline_hdl:ilconstant:1.0\
 "
 
    set list_ips_missing ""
@@ -169,14 +166,12 @@ xilinx.com:ip:util_vector_logic:2.0\
 set bCheckModules 1
 if { $bCheckModules == 1 } {
    set list_check_mods "\ 
-axis_master\
-axis_slave\
 registers\
 counter\
 counter\
 build_info\
-pn23\
 blink\
+pulse\
 "
 
    set list_mods_missing ""
@@ -538,30 +533,6 @@ Port;FD4A0000;FD4AFFFF;1|FPD;DPDMA;FD4C0000;FD4CFFFF;1|FPD;DDR_XMPU5_CFG;FD05000
   ] $zynq_ultra_ps_e_0
 
 
-  # Create instance: axis_master_0, and set properties
-  set block_name axis_master
-  set block_cell_name axis_master_0
-  if { [catch {set axis_master_0 [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   } elseif { $axis_master_0 eq "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   }
-  
-  # Create instance: axis_slave_0, and set properties
-  set block_name axis_slave
-  set block_cell_name axis_slave_0
-  if { [catch {set axis_slave_0 [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   } elseif { $axis_slave_0 eq "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   }
-    set_property CONFIG.C_S_AXIS_TDATA_WIDTH {64} $axis_slave_0
-
-
   # Create instance: registers_0, and set properties
   set block_name registers
   set block_cell_name registers_0
@@ -573,16 +544,6 @@ Port;FD4A0000;FD4AFFFF;1|FPD;DPDMA;FD4C0000;FD4CFFFF;1|FPD;DDR_XMPU5_CFG;FD05000
      return 1
    }
   
-  # Create instance: axi_dma_0, and set properties
-  set axi_dma_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_dma:7.1 axi_dma_0 ]
-  set_property -dict [list \
-    CONFIG.c_enable_multi_channel {0} \
-    CONFIG.c_m_axi_mm2s_data_width {64} \
-    CONFIG.c_m_axis_mm2s_tdata_width {64} \
-    CONFIG.c_sg_include_stscntrl_strm {0} \
-  ] $axi_dma_0
-
-
   # Create instance: axi_smc, and set properties
   set axi_smc [ create_bd_cell -type ip -vlnv xilinx.com:ip:smartconnect:1.0 axi_smc ]
   set_property -dict [list \
@@ -593,11 +554,6 @@ Port;FD4A0000;FD4AFFFF;1|FPD;DPDMA;FD4C0000;FD4CFFFF;1|FPD;DDR_XMPU5_CFG;FD05000
 
   # Create instance: rst_ps8_0_99M, and set properties
   set rst_ps8_0_99M [ create_bd_cell -type ip -vlnv xilinx.com:ip:proc_sys_reset:5.0 rst_ps8_0_99M ]
-
-  # Create instance: axi_smc_1, and set properties
-  set axi_smc_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:smartconnect:1.0 axi_smc_1 ]
-  set_property CONFIG.NUM_SI {3} $axi_smc_1
-
 
   # Create instance: counter_0, and set properties
   set block_name counter
@@ -634,33 +590,6 @@ Port;FD4A0000;FD4AFFFF;1|FPD;DPDMA;FD4C0000;FD4CFFFF;1|FPD;DDR_XMPU5_CFG;FD05000
      return 1
    }
   
-  # Create instance: pn23_0, and set properties
-  set block_name pn23
-  set block_cell_name pn23_0
-  if { [catch {set pn23_0 [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   } elseif { $pn23_0 eq "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   }
-  
-  # Create instance: xlconstant_0, and set properties
-  set xlconstant_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 xlconstant_0 ]
-  set_property -dict [list \
-    CONFIG.CONST_VAL {4096} \
-    CONFIG.CONST_WIDTH {32} \
-  ] $xlconstant_0
-
-
-  # Create instance: xlconstant_1, and set properties
-  set xlconstant_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 xlconstant_1 ]
-  set_property CONFIG.CONST_VAL {1} $xlconstant_1
-
-
-  # Create instance: ilconstant_0, and set properties
-  set ilconstant_0 [ create_bd_cell -type inline_hdl -vlnv xilinx.com:inline_hdl:ilconstant:1.0 ilconstant_0 ]
-
   # Create instance: ilconcat_0, and set properties
   set ilconcat_0 [ create_bd_cell -type inline_hdl -vlnv xilinx.com:inline_hdl:ilconcat:1.0 ilconcat_0 ]
   set_property CONFIG.NUM_PORTS {4} $ilconcat_0
@@ -684,42 +613,27 @@ Port;FD4A0000;FD4AFFFF;1|FPD;DPDMA;FD4C0000;FD4CFFFF;1|FPD;DDR_XMPU5_CFG;FD05000
   set_property CONFIG.CONST_VAL {0} $ilconstant_1
 
 
-  # Create instance: ilconcat_1, and set properties
-  set ilconcat_1 [ create_bd_cell -type inline_hdl -vlnv xilinx.com:inline_hdl:ilconcat:1.0 ilconcat_1 ]
-  set_property CONFIG.NUM_PORTS {8} $ilconcat_1
-
-
-  # Create instance: ilconstant_2, and set properties
-  set ilconstant_2 [ create_bd_cell -type inline_hdl -vlnv xilinx.com:inline_hdl:ilconstant:1.0 ilconstant_2 ]
-  set_property CONFIG.CONST_VAL {0} $ilconstant_2
-
-
-  # Create instance: util_vector_logic_0, and set properties
-  set util_vector_logic_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:util_vector_logic:2.0 util_vector_logic_0 ]
-  set_property -dict [list \
-    CONFIG.C_OPERATION {not} \
-    CONFIG.C_SIZE {1} \
-  ] $util_vector_logic_0
+  # Create instance: pulse_0, and set properties
+  set block_name pulse
+  set block_cell_name pulse_0
+  if { [catch {set pulse_0 [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
+     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
+     return 1
+   } elseif { $pulse_0 eq "" } {
+     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
+     return 1
+   }
+  
+  # Create instance: ilconstant_0, and set properties
+  set ilconstant_0 [ create_bd_cell -type inline_hdl -vlnv xilinx.com:inline_hdl:ilconstant:1.0 ilconstant_0 ]
+  set_property CONFIG.CONST_VAL {0} $ilconstant_0
 
 
   # Create interface connections
-  connect_bd_intf_net -intf_net axi_dma_0_M_AXIS_MM2S [get_bd_intf_pins axis_slave_0/S_AXIS] [get_bd_intf_pins axi_dma_0/M_AXIS_MM2S]
-  connect_bd_intf_net -intf_net axi_dma_0_M_AXI_MM2S [get_bd_intf_pins axi_dma_0/M_AXI_MM2S] [get_bd_intf_pins axi_smc_1/S00_AXI]
-  connect_bd_intf_net -intf_net axi_dma_0_M_AXI_S2MM [get_bd_intf_pins axi_dma_0/M_AXI_S2MM] [get_bd_intf_pins axi_smc_1/S01_AXI]
-  connect_bd_intf_net -intf_net axi_dma_0_M_AXI_SG [get_bd_intf_pins axi_dma_0/M_AXI_SG] [get_bd_intf_pins axi_smc_1/S02_AXI]
-  connect_bd_intf_net -intf_net axi_smc_1_M00_AXI [get_bd_intf_pins axi_smc_1/M00_AXI] [get_bd_intf_pins zynq_ultra_ps_e_0/S_AXI_HP0_FPD]
-  connect_bd_intf_net -intf_net axi_smc_M00_AXI [get_bd_intf_pins axi_smc/M00_AXI] [get_bd_intf_pins axi_dma_0/S_AXI_LITE]
   connect_bd_intf_net -intf_net axi_smc_M01_AXI [get_bd_intf_pins axi_smc/M01_AXI] [get_bd_intf_pins registers_0/s_axil]
-  connect_bd_intf_net -intf_net axis_master_0_m_axis [get_bd_intf_pins axis_master_0/m_axis] [get_bd_intf_pins axi_dma_0/S_AXIS_S2MM]
   connect_bd_intf_net -intf_net zynq_ultra_ps_e_0_M_AXI_HPM0_LPD [get_bd_intf_pins zynq_ultra_ps_e_0/M_AXI_HPM0_LPD] [get_bd_intf_pins axi_smc/S00_AXI]
 
   # Create port connections
-  connect_bd_net -net axi_dma_0_mm2s_introut  [get_bd_pins axi_dma_0/mm2s_introut] \
-  [get_bd_pins ilconcat_1/In0]
-  connect_bd_net -net axi_dma_0_s2mm_introut  [get_bd_pins axi_dma_0/s2mm_introut] \
-  [get_bd_pins ilconcat_1/In1]
-  connect_bd_net -net axis_master_0_fifo_full  [get_bd_pins axis_master_0/fifo_full] \
-  [get_bd_pins pn23_0/hold]
   connect_bd_net -net blink_0_led  [get_bd_pins blink_0/led] \
   [get_bd_pins ilconcat_0/In0]
   connect_bd_net -net build_info_0_build_id  [get_bd_pins build_info_0/build_id] \
@@ -731,87 +645,43 @@ Port;FD4A0000;FD4AFFFF;1|FPD;DPDMA;FD4C0000;FD4CFFFF;1|FPD;DDR_XMPU5_CFG;FD05000
   connect_bd_net -net counter_1_value  [get_bd_pins counter_1/value] \
   [get_bd_pins registers_0/uptime_counter]
   connect_bd_net -net expansion_in_1  [get_bd_ports expansion_in] \
-  [get_bd_pins util_vector_logic_0/Op1]
+  [get_bd_pins pulse_0/async_in]
   connect_bd_net -net ilconcat_0_dout  [get_bd_pins ilconcat_0/dout] \
   [get_bd_ports leds]
-  connect_bd_net -net ilconcat_1_dout  [get_bd_pins ilconcat_1/dout] \
-  [get_bd_pins zynq_ultra_ps_e_0/pl_ps_irq0]
   connect_bd_net -net ilconstant_0_dout  [get_bd_pins ilconstant_0/dout] \
-  [get_bd_ports expansion_out]
+  [get_bd_pins counter_1/stop]
   connect_bd_net -net ilconstant_1_dout  [get_bd_pins ilconstant_1/dout] \
   [get_bd_pins ilconcat_0/In3] \
-  [get_bd_pins ilconcat_0/In2]
-  connect_bd_net -net ilconstant_2_dout  [get_bd_pins ilconstant_2/dout] \
-  [get_bd_pins ilconcat_1/In2] \
-  [get_bd_pins ilconcat_1/In3] \
-  [get_bd_pins ilconcat_1/In4] \
-  [get_bd_pins ilconcat_1/In5] \
-  [get_bd_pins ilconcat_1/In6] \
-  [get_bd_pins ilconcat_1/In7]
-  connect_bd_net -net pn23_0_valid  [get_bd_pins pn23_0/valid] \
-  [get_bd_pins axis_master_0/fifo_wr_ena]
-  connect_bd_net -net pn23_0_value  [get_bd_pins pn23_0/value] \
-  [get_bd_pins axis_master_0/fifo_data_in]
-  connect_bd_net -net rst_ps8_0_99M_peripheral_aresetn  [get_bd_pins rst_ps8_0_99M/peripheral_aresetn] \
-  [get_bd_pins axi_dma_0/axi_resetn] \
-  [get_bd_pins axi_smc/aresetn] \
-  [get_bd_pins registers_0/s_axil_aresetn] \
-  [get_bd_pins axis_master_0/m_axis_aresetn] \
-  [get_bd_pins axis_slave_0/S_AXIS_ARESETN] \
-  [get_bd_pins axi_smc_1/aresetn] \
-  [get_bd_pins counter_0/rstn] \
-  [get_bd_pins counter_1/rstn] \
-  [get_bd_pins pn23_0/rstn] \
-  [get_bd_pins blink_0/rstn]
-  connect_bd_net -net util_vector_logic_0_Res  [get_bd_pins util_vector_logic_0/Res] \
+  [get_bd_pins ilconcat_0/In2] \
   [get_bd_pins ilconcat_0/In1]
-  connect_bd_net -net xlconstant_0_dout  [get_bd_pins xlconstant_0/dout] \
-  [get_bd_pins axis_master_0/packet_length]
-  connect_bd_net -net xlconstant_1_dout  [get_bd_pins xlconstant_1/dout] \
-  [get_bd_pins axis_slave_0/fifo_rd_ena]
+  connect_bd_net -net pulse_0_sync_out  [get_bd_pins pulse_0/sync_out] \
+  [get_bd_pins counter_0/stop]
+  connect_bd_net -net registers_0_expansion_out  [get_bd_pins registers_0/expansion_out] \
+  [get_bd_ports expansion_out]
+  connect_bd_net -net registers_0_irq_out  [get_bd_pins registers_0/irq_out] \
+  [get_bd_pins zynq_ultra_ps_e_0/pl_ps_irq0]
+  connect_bd_net -net registers_0_rstn_user_counter  [get_bd_pins registers_0/rstn_user_counter] \
+  [get_bd_pins counter_0/rstn]
+  connect_bd_net -net rst_ps8_0_99M_peripheral_aresetn  [get_bd_pins rst_ps8_0_99M/peripheral_aresetn] \
+  [get_bd_pins axi_smc/aresetn] \
+  [get_bd_pins counter_1/rstn] \
+  [get_bd_pins blink_0/rstn] \
+  [get_bd_pins registers_0/s_axil_aresetn]
   connect_bd_net -net zynq_ultra_ps_e_0_pl_clk0  [get_bd_pins zynq_ultra_ps_e_0/pl_clk1] \
   [get_bd_pins zynq_ultra_ps_e_0/maxihpm0_lpd_aclk] \
   [get_bd_pins axi_smc/aclk] \
-  [get_bd_pins axi_dma_0/s_axi_lite_aclk] \
   [get_bd_pins rst_ps8_0_99M/slowest_sync_clk] \
-  [get_bd_pins registers_0/s_axil_aclk] \
-  [get_bd_pins axis_master_0/m_axis_aclk] \
-  [get_bd_pins axi_dma_0/m_axi_s2mm_aclk] \
-  [get_bd_pins axis_slave_0/S_AXIS_ACLK] \
-  [get_bd_pins axi_dma_0/m_axi_mm2s_aclk] \
-  [get_bd_pins axi_smc_1/aclk] \
   [get_bd_pins zynq_ultra_ps_e_0/saxihp0_fpd_aclk] \
-  [get_bd_pins axi_dma_0/m_axi_sg_aclk] \
   [get_bd_pins counter_0/clk] \
   [get_bd_pins counter_1/clk] \
-  [get_bd_pins pn23_0/clk] \
-  [get_bd_pins blink_0/clk]
+  [get_bd_pins blink_0/clk] \
+  [get_bd_pins pulse_0/clk] \
+  [get_bd_pins registers_0/s_axil_aclk]
   connect_bd_net -net zynq_ultra_ps_e_0_pl_resetn0  [get_bd_pins zynq_ultra_ps_e_0/pl_resetn0] \
   [get_bd_pins rst_ps8_0_99M/ext_reset_in]
 
   # Create address segments
-  assign_bd_address -offset 0x80000000 -range 0x00010000 -target_address_space [get_bd_addr_spaces zynq_ultra_ps_e_0/Data] [get_bd_addr_segs axi_dma_0/S_AXI_LITE/Reg] -force
   assign_bd_address -offset 0x80010000 -range 0x00001000 -target_address_space [get_bd_addr_spaces zynq_ultra_ps_e_0/Data] [get_bd_addr_segs registers_0/s_axil/reg0] -force
-  assign_bd_address -offset 0x00000000 -range 0x80000000 -target_address_space [get_bd_addr_spaces axi_dma_0/Data_MM2S] [get_bd_addr_segs zynq_ultra_ps_e_0/SAXIGP2/HP0_DDR_LOW] -force
-  assign_bd_address -offset 0xE0000000 -range 0x10000000 -target_address_space [get_bd_addr_spaces axi_dma_0/Data_MM2S] [get_bd_addr_segs zynq_ultra_ps_e_0/SAXIGP2/HP0_PCIE_LOW] -force
-  assign_bd_address -offset 0xC0000000 -range 0x20000000 -target_address_space [get_bd_addr_spaces axi_dma_0/Data_MM2S] [get_bd_addr_segs zynq_ultra_ps_e_0/SAXIGP2/HP0_QSPI] -force
-  assign_bd_address -offset 0x00000000 -range 0x80000000 -target_address_space [get_bd_addr_spaces axi_dma_0/Data_S2MM] [get_bd_addr_segs zynq_ultra_ps_e_0/SAXIGP2/HP0_DDR_LOW] -force
-  assign_bd_address -offset 0xE0000000 -range 0x10000000 -target_address_space [get_bd_addr_spaces axi_dma_0/Data_S2MM] [get_bd_addr_segs zynq_ultra_ps_e_0/SAXIGP2/HP0_PCIE_LOW] -force
-  assign_bd_address -offset 0xC0000000 -range 0x20000000 -target_address_space [get_bd_addr_spaces axi_dma_0/Data_S2MM] [get_bd_addr_segs zynq_ultra_ps_e_0/SAXIGP2/HP0_QSPI] -force
-  assign_bd_address -offset 0x00000000 -range 0x80000000 -target_address_space [get_bd_addr_spaces axi_dma_0/Data_SG] [get_bd_addr_segs zynq_ultra_ps_e_0/SAXIGP2/HP0_DDR_LOW] -force
-  assign_bd_address -offset 0xE0000000 -range 0x10000000 -target_address_space [get_bd_addr_spaces axi_dma_0/Data_SG] [get_bd_addr_segs zynq_ultra_ps_e_0/SAXIGP2/HP0_PCIE_LOW] -force
-  assign_bd_address -offset 0xC0000000 -range 0x20000000 -target_address_space [get_bd_addr_spaces axi_dma_0/Data_SG] [get_bd_addr_segs zynq_ultra_ps_e_0/SAXIGP2/HP0_QSPI] -force
-
-  # Exclude Address Segments
-  exclude_bd_addr_seg -offset 0xFF000000 -range 0x01000000 -target_address_space [get_bd_addr_spaces axi_dma_0/Data_MM2S] [get_bd_addr_segs zynq_ultra_ps_e_0/SAXIGP2/HP0_LPS_OCM]
-  exclude_bd_addr_seg -target_address_space [get_bd_addr_spaces axi_dma_0/Data_MM2S] [get_bd_addr_segs zynq_ultra_ps_e_0/SAXIGP2/HP0_PCIE_HIGH1]
-  exclude_bd_addr_seg -target_address_space [get_bd_addr_spaces axi_dma_0/Data_MM2S] [get_bd_addr_segs zynq_ultra_ps_e_0/SAXIGP2/HP0_PCIE_HIGH2]
-  exclude_bd_addr_seg -offset 0xFF000000 -range 0x01000000 -target_address_space [get_bd_addr_spaces axi_dma_0/Data_S2MM] [get_bd_addr_segs zynq_ultra_ps_e_0/SAXIGP2/HP0_LPS_OCM]
-  exclude_bd_addr_seg -target_address_space [get_bd_addr_spaces axi_dma_0/Data_S2MM] [get_bd_addr_segs zynq_ultra_ps_e_0/SAXIGP2/HP0_PCIE_HIGH1]
-  exclude_bd_addr_seg -target_address_space [get_bd_addr_spaces axi_dma_0/Data_S2MM] [get_bd_addr_segs zynq_ultra_ps_e_0/SAXIGP2/HP0_PCIE_HIGH2]
-  exclude_bd_addr_seg -offset 0xFF000000 -range 0x01000000 -target_address_space [get_bd_addr_spaces axi_dma_0/Data_SG] [get_bd_addr_segs zynq_ultra_ps_e_0/SAXIGP2/HP0_LPS_OCM]
-  exclude_bd_addr_seg -target_address_space [get_bd_addr_spaces axi_dma_0/Data_SG] [get_bd_addr_segs zynq_ultra_ps_e_0/SAXIGP2/HP0_PCIE_HIGH1]
-  exclude_bd_addr_seg -target_address_space [get_bd_addr_spaces axi_dma_0/Data_SG] [get_bd_addr_segs zynq_ultra_ps_e_0/SAXIGP2/HP0_PCIE_HIGH2]
 
 
   # Restore current instance

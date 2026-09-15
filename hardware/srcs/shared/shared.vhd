@@ -87,6 +87,7 @@ package shared_param is
     port (
       clk   : in    std_logic;
       rstn  : in    std_logic;
+      stop  : in    std_logic;
       value : out   std_logic_vector(data_width - 1 downto 0)
     );
   end component counter;
@@ -293,6 +294,32 @@ package shared_param is
       total    : out   std_logic_vector(register_width - 1 downto 0)
     );
   end component dual_fifo;
+
+  component pulse is
+    port (
+      clk      : in    std_logic;
+      async_in : in    std_logic;
+      sync_out : out   std_logic
+    );
+  end component pulse;
+
+  component validate is
+    generic (
+      DATA_WIDTH : positive := 64;
+      REGISTER_WIDTH : positive := 32
+    );
+    port (
+      clk   : in    std_logic;
+      rstn  : in    std_logic;
+      rd_fifo   : out   std_logic;
+      empty_a   : in    std_logic;
+      empty_b   : in    std_logic;
+      data_a    : in    std_logic_vector(DATA_WIDTH - 1 downto 0);
+      data_b    : in    std_logic_vector(DATA_WIDTH - 1 downto 0);
+      errors    : out   std_logic_vector(REGISTER_WIDTH - 1 downto 0);
+      correct   : out   std_logic_vector(REGISTER_WIDTH - 1 downto 0)
+    );
+  end component validate;
 
 end package shared_param;
 

@@ -67,7 +67,11 @@ entity registers is
     user_counter    : in    std_logic_vector(data_width - 1 downto 0);
 
     build_ver : in std_logic_vector(data_width - 1 downto 0);
-    build_id : in std_logic_vector(data_width - 1 downto 0)
+    build_id : in std_logic_vector(data_width - 1 downto 0);
+
+    rstn_user_counter : out std_logic;
+    expansion_out : out std_logic;
+    irq_out : out std_logic
   );
 end entity registers;
 
@@ -78,7 +82,13 @@ signal scratch_1 : std_logic_vector(data_width - 1 downto 0);
 signal scratch_2 : std_logic_vector(data_width - 1 downto 0);
 signal scratch_3 : std_logic_vector(data_width - 1 downto 0);
 
+signal signals_reg : std_logic_vector(data_width - 1 downto 0);
+
 begin
+
+  rstn_user_counter <= signals_reg(0);
+  expansion_out <= signals_reg(1);
+  irq_out <= signals_reg(2);
 
   axil_bus_regs : axil_bus
   generic map (
@@ -122,7 +132,7 @@ begin
     reg_33_r => scratch_1,
     reg_34_r => scratch_2,
     reg_35_r => scratch_3,
-    reg_36_r => x"00000000",
+    reg_36_r => signals_reg,
     reg_37_r => x"00000000",
     reg_38_r => x"00000000",
     reg_39_r => x"00000000",
@@ -188,7 +198,7 @@ begin
     reg_33_w => scratch_1,
     reg_34_w => scratch_2,
     reg_35_w => scratch_3,
-    reg_36_w => open,
+    reg_36_w => signals_reg,
     reg_37_w => open,
     reg_38_w => open,
     reg_39_w => open,

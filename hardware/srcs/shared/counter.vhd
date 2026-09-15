@@ -9,6 +9,7 @@ entity counter is
   port (
     clk   : in    std_logic;
     rstn  : in    std_logic;
+    stop  : in    std_logic;
     value : out   std_logic_vector(data_width - 1 downto 0)
   );
 end entity counter;
@@ -16,17 +17,24 @@ end entity counter;
 architecture behavioral of counter is
 
   signal counter : unsigned(data_width - 1 downto 0);
+  signal stopped : std_logic;
 
 begin
 
-  count_and_reset : process (clk, rstn) is
+  count_and_reset : process (clk) is
   begin
 
-    if (rstn = '0') then
-      counter <= (others => '0');
-    else
-      if (rising_edge(clk)) then
-        counter <= counter + 1;
+    if (rising_edge(clk)) then
+      if (rstn = '0') then
+        counter <= (others => '0');
+        stopped <= '0';
+      else
+        if (stop = '1' or stopped = '1') then
+          stopped <= '1';
+          counter <= counter;
+        else
+          counter <= counter + 1;
+        end if;
       end if;
     end if;
 
