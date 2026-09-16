@@ -117,7 +117,7 @@ begin
   c2h_chan_1_packet_len <= c2h_chan_1_packet_len_sig;
 
   wire_out <= signals_reg(0);
-  stop_user_clock <= signals_reg(1) or s_axil_aresetn;
+  stop_user_clock <= signals_reg(1);
 
   axil_bus_regs : axil_bus
   generic map (

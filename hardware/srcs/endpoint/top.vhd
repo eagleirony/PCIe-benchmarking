@@ -497,6 +497,5 @@ begin
     );
 
   led2            <= expand_port_in;
-  expand_port_out <= '1';
 
 end architecture rtl;

@@ -46,7 +46,7 @@ if { [string first $scripts_vivado_version $current_vivado_version] == -1 } {
 
 # The design that will be created by this Tcl script contains the following 
 # module references:
-# registers, counter, counter, build_info, blink, pulse
+# registers, counter, counter, build_info, blink, pulse, pulse
 
 # Please add the sources of those modules before sourcing this Tcl script.
 
@@ -171,6 +171,7 @@ counter\
 counter\
 build_info\
 blink\
+pulse\
 pulse\
 "
 
@@ -547,7 +548,7 @@ Port;FD4A0000;FD4AFFFF;1|FPD;DPDMA;FD4C0000;FD4CFFFF;1|FPD;DDR_XMPU5_CFG;FD05000
   # Create instance: axi_smc, and set properties
   set axi_smc [ create_bd_cell -type ip -vlnv xilinx.com:ip:smartconnect:1.0 axi_smc ]
   set_property -dict [list \
-    CONFIG.NUM_MI {2} \
+    CONFIG.NUM_MI {1} \
     CONFIG.NUM_SI {1} \
   ] $axi_smc
 
@@ -629,8 +630,19 @@ Port;FD4A0000;FD4AFFFF;1|FPD;DPDMA;FD4C0000;FD4CFFFF;1|FPD;DDR_XMPU5_CFG;FD05000
   set_property CONFIG.CONST_VAL {0} $ilconstant_0
 
 
+  # Create instance: pulse_1, and set properties
+  set block_name pulse
+  set block_cell_name pulse_1
+  if { [catch {set pulse_1 [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
+     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
+     return 1
+   } elseif { $pulse_1 eq "" } {
+     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
+     return 1
+   }
+  
   # Create interface connections
-  connect_bd_intf_net -intf_net axi_smc_M01_AXI [get_bd_intf_pins axi_smc/M01_AXI] [get_bd_intf_pins registers_0/s_axil]
+  connect_bd_intf_net -intf_net axi_smc_M00_AXI [get_bd_intf_pins registers_0/s_axil] [get_bd_intf_pins axi_smc/M00_AXI]
   connect_bd_intf_net -intf_net zynq_ultra_ps_e_0_M_AXI_HPM0_LPD [get_bd_intf_pins zynq_ultra_ps_e_0/M_AXI_HPM0_LPD] [get_bd_intf_pins axi_smc/S00_AXI]
 
   # Create port connections
@@ -656,10 +668,12 @@ Port;FD4A0000;FD4AFFFF;1|FPD;DPDMA;FD4C0000;FD4CFFFF;1|FPD;DDR_XMPU5_CFG;FD05000
   [get_bd_pins ilconcat_0/In1]
   connect_bd_net -net pulse_0_sync_out  [get_bd_pins pulse_0/sync_out] \
   [get_bd_pins counter_0/stop]
+  connect_bd_net -net pulse_1_sync_out  [get_bd_pins pulse_1/sync_out] \
+  [get_bd_pins zynq_ultra_ps_e_0/pl_ps_irq0]
   connect_bd_net -net registers_0_expansion_out  [get_bd_pins registers_0/expansion_out] \
   [get_bd_ports expansion_out]
   connect_bd_net -net registers_0_irq_out  [get_bd_pins registers_0/irq_out] \
-  [get_bd_pins zynq_ultra_ps_e_0/pl_ps_irq0]
+  [get_bd_pins pulse_1/async_in]
   connect_bd_net -net registers_0_rstn_user_counter  [get_bd_pins registers_0/rstn_user_counter] \
   [get_bd_pins counter_0/rstn]
   connect_bd_net -net rst_ps8_0_99M_peripheral_aresetn  [get_bd_pins rst_ps8_0_99M/peripheral_aresetn] \
@@ -671,23 +685,23 @@ Port;FD4A0000;FD4AFFFF;1|FPD;DPDMA;FD4C0000;FD4CFFFF;1|FPD;DDR_XMPU5_CFG;FD05000
   [get_bd_pins zynq_ultra_ps_e_0/maxihpm0_lpd_aclk] \
   [get_bd_pins axi_smc/aclk] \
   [get_bd_pins rst_ps8_0_99M/slowest_sync_clk] \
-  [get_bd_pins zynq_ultra_ps_e_0/saxihp0_fpd_aclk] \
   [get_bd_pins counter_0/clk] \
   [get_bd_pins counter_1/clk] \
   [get_bd_pins blink_0/clk] \
   [get_bd_pins pulse_0/clk] \
-  [get_bd_pins registers_0/s_axil_aclk]
+  [get_bd_pins registers_0/s_axil_aclk] \
+  [get_bd_pins zynq_ultra_ps_e_0/saxihp0_fpd_aclk] \
+  [get_bd_pins pulse_1/clk]
   connect_bd_net -net zynq_ultra_ps_e_0_pl_resetn0  [get_bd_pins zynq_ultra_ps_e_0/pl_resetn0] \
   [get_bd_pins rst_ps8_0_99M/ext_reset_in]
 
   # Create address segments
-  assign_bd_address -offset 0x80010000 -range 0x00001000 -target_address_space [get_bd_addr_spaces zynq_ultra_ps_e_0/Data] [get_bd_addr_segs registers_0/s_axil/reg0] -force
+  assign_bd_address -offset 0x80000000 -range 0x00001000 -target_address_space [get_bd_addr_spaces zynq_ultra_ps_e_0/Data] [get_bd_addr_segs registers_0/s_axil/reg0] -force
 
 
   # Restore current instance
   current_bd_instance $oldCurInst
 
-  validate_bd_design
   save_bd_design
 }
 # End of create_root_design()
@@ -699,4 +713,6 @@ Port;FD4A0000;FD4AFFFF;1|FPD;DPDMA;FD4C0000;FD4CFFFF;1|FPD;DDR_XMPU5_CFG;FD05000
 
 create_root_design ""
 
+
+common::send_gid_msg -ssname BD::TCL -id 2053 -severity "WARNING" "This Tcl script was generated from a block design that has not been validated. It is possible that design <$design_name> may result in errors during validation."
 
