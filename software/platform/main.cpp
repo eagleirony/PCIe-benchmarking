@@ -51,7 +51,7 @@ int main(int argc, char** argv) {
     std::string nfs_mnt_path_str = nfs_mnt_path;
     app::platform::nfs::mount(nfs_mnt_path_str);
 
-    std::string pl_bitfile_path_str = "/emmc/pl_4.bit";
+    std::string pl_bitfile_path_str = "/emmc/pl_5.bit";
     app::platform::pl::load(pl_bitfile_path_str);
 
     std::cout << std::endl << "PCITB version: " << app_build_id() << std::endl;

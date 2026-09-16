@@ -26,6 +26,8 @@
 #include <sys/ioctl.h>
 #include <sys/mman.h>
 
+#include <rtems/bspIo.h>
+
 #include <dev/io/iodev.h>
 #include <rtems/bsd/pci-iodev.h>
 
@@ -35,13 +37,6 @@ namespace app {
 namespace framework {
 namespace api {
 namespace io {
-
-constexpr int pcie_device_count = 4;
-
-constexpr uint32_t dma_devid = 0x902410ee;
-constexpr uint16_t dma_vendor = 0x10ee;
-constexpr uint16_t dma_subvendor = 0x10ee;
-constexpr uint16_t dma_subdevice = 0x0007;
 
 uint32_t* registers::address(uint32_t offset) {
     uint64_t address = reinterpret_cast<uint64_t>(base);
@@ -92,13 +87,27 @@ static bool probe_dma(std::string path) {
     return true;
 }
 
+rtems_interrupt_entry rie;
+struct timespec start;
+
+static void pl_intr(void* arg) {
+    struct timespec end;
+    struct timespec result;
+    clock_gettime(CLOCK_MONOTONIC, &end);
+    uint32_t* status = (uint32_t*)0x80000090;
+    *status = *status & ~PL_REG_SIGNALS_IRQ_OUT;
+    result.tv_sec = end.tv_sec - start.tv_sec;
+    result.tv_nsec = end.tv_nsec - start.tv_nsec;
+    printk("IRQ latency: %dns\n", result.tv_nsec);
+}
 
 void init() {
+    registers endpoint;
+    registers pl;
     int fd;
     int status;
     size_t region_count;
     struct rtems_iodev_region region;
-    registers axis;
     std::string path;
 
     for (int i = 0; i < pcie_device_count; i++) {
@@ -130,7 +139,7 @@ void init() {
         throw std::runtime_error("dma: error: IOCTL get region failed");
     }
 
-    axis.base = mmap(
+    endpoint.base = mmap(
         NULL,
         region.size,
         ( PROT_READ | PROT_WRITE ),
@@ -138,35 +147,74 @@ void init() {
         fd,
         region.index
     );
-    if (axis.base == MAP_FAILED ) {
+    if (endpoint.base == MAP_FAILED ) {
         close(fd);
         fd = 0;
         throw std::runtime_error("dma: error: mmap failed");
     }
 
-    std::cout << std::endl <<  "Git Hash: ";
-    uint32_t git = axis.read(0x30) & 0x0FFFFFFF;
-    bool modified = ((axis.read(0x30) & 0x80000000) != 0);
+    pl.base = reinterpret_cast<void*>(PL_REG_BASE);
+
+    std::cout << "Endpoint:" << std::endl;
+    std::cout << "Git Hash: ";
+    uint32_t git = endpoint.read(0x30) & 0x0FFFFFFF;
+    bool modified = ((endpoint.read(0x30) & 0x80000000) != 0);
     std::cout << std::hex << "0x" << git << " modified: " << modified << std::endl;
     std::cout << "Build ID: ";
-    std::cout << std::hex << "0x" << axis.read(0x2C) << std::endl;
+    std::cout << std::hex << "0x" << endpoint.read(0x2C) << std::endl;
     std::cout << "Register Test Patterns: " << std::endl;
-    std::cout << std::hex << "0x" << axis.read(0x0) << std::endl;
-    std::cout << std::hex << "0x" << axis.read(0x4) << std::endl;
-    std::cout << std::hex << "0x" << axis.read(0x8) << std::endl;
-    std::cout << std::hex << "0x" << axis.read(0xC) << std::endl;
-    std::cout << std::hex << "0x" << axis.read(0x10) << std::endl;
-    std::cout << std::hex << "0x" << axis.read(0x14) << std::endl;
+    std::cout << std::hex << "0x" << endpoint.read(0x0) << std::endl;
+    std::cout << std::hex << "0x" << endpoint.read(0x4) << std::endl;
+    std::cout << std::hex << "0x" << endpoint.read(0x8) << std::endl;
+    std::cout << std::hex << "0x" << endpoint.read(0xC) << std::endl;
+    std::cout << std::hex << "0x" << endpoint.read(0x10) << std::endl;
+    std::cout << std::hex << "0x" << endpoint.read(0x14) << std::endl;
     std::cout << "PCIe Status Register: ";
-    std::cout << std::hex << "0x" << axis.read(0x18) << std::endl;
+    std::cout << std::hex << "0x" << endpoint.read(0x18) << std::endl;
     std::cout << "FIFO Status Register: ";
-    std::cout << std::hex << "0x" << axis.read(0x1C) << std::endl;
-    uint64_t uptime = (((uint64_t)axis.read(0x20)) << 32)
-        | (axis.read(0x24));
-    std::cout << "Uptime Register: ";
+    std::cout << std::hex << "0x" << endpoint.read(0x1C) << std::endl;
+    uint64_t uptime = (((uint64_t)endpoint.read(0x20)) << 32)
+        | (endpoint.read(0x24));
+    std::cout << "uptime register: ";
     std::cout << std::hex << "0x" << uptime << " (" << uptime * 4e-9 << "s)" << std::endl;
-    std::cout << "Counter Register: ";
-    std::cout << std::hex << "0x" << axis.read(0x28) << std::endl;
+    std::cout << "counter register: ";
+    std::cout << std::hex << "0x" << endpoint.read(0x28) << std::endl;
+
+    std::cout << "PL:" << std::endl;
+    std::cout <<  "Git Hash: ";
+    git = pl.read(0x30) & 0x0FFFFFFF;
+    modified = ((pl.read(0x30) & 0x80000000) != 0);
+    std::cout << std::hex << "0x" << git << " modified: " << modified << std::endl;
+    std::cout << "Build ID: ";
+    std::cout << std::hex << "0x" << pl.read(0x2C) << std::endl;
+    uptime = (((uint64_t)pl.read(0x20)) << 32)
+        | (pl.read(0x24));
+    std::cout << "uptime register: ";
+    std::cout << std::hex << "0x" << uptime << std::dec << " ("
+        << uptime * 4e-9 << "s)" << std::endl;
+    std::cout << "counter register: ";
+    std::cout << std::hex << "0x" << pl.read(0x28) << std::endl;
+
+    pl.write(0x90, 0x0);
+    pl.write(0x90, 0x2);
+    uint32_t latency = endpoint.read(0x28);
+    std::cout << "Read Latency: ";
+    std::cout << std::hex << "0x" << latency << std::dec
+        << " (" << latency * 4 << "ns)" << std::endl;
+
+    pl.write(0x90, 0x0);
+    pl.write(0x90, 0x1);
+    endpoint.write(0x98, 0x1);
+    latency = pl.read(0x28);
+    std::cout << "Write Latency: ";
+    std::cout << std::hex << "0x" << latency << std::dec
+        << " (" << latency * 4 << "ns)" << std::endl;
+
+    const char pl_intr_name[] = "PL_INTR";
+    rtems_interrupt_entry_initialize(&rie, pl_intr, NULL, pl_intr_name);
+    rtems_interrupt_entry_install(121, RTEMS_INTERRUPT_SHARED, &rie);
+    clock_gettime(CLOCK_MONOTONIC, &start);
+    pl.write(PL_REG_SIGNALS_OFF, PL_REG_SIGNALS_IRQ_OUT);
 }
 
 } // namespace io

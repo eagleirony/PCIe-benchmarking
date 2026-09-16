@@ -98,8 +98,9 @@ void registers::write(uint32_t target, uint32_t offset, uint32_t value) {
     *reg = value;
 }
 
-channel::channel(registers& reg_, uint32_t dir_, size_t id_,
-    size_t desc_count_) : regs(reg_), dir(dir_), id(id_), running(false) {
+channel::channel(registers& reg_, uint32_t dir_, size_t id_, size_t cid_,
+    size_t desc_count_) : regs(reg_), dir(dir_), id(id_), cid(cid_),
+    running(false) {
     bufs.create(2 * XLNX_PCIE_DMA_CHAN_DESC_COUNT);
 
     descs[0].desc = rtems_cache_coherent_allocate(
@@ -143,7 +144,7 @@ channel::channel(registers& reg_, uint32_t dir_, size_t id_,
     uint32_t irq_reg = regs.read(XLNX_PCIE_DMA_TARGET_IRQ_BLOCK,
         XLNX_PCIE_DMA_IRQ_CHAN_EN);
     regs.write(XLNX_PCIE_DMA_TARGET_IRQ_BLOCK, XLNX_PCIE_DMA_IRQ_CHAN_EN,
-        irq_reg | 0x7);
+        irq_reg | (1 << cid));
 
     write_chan(XLNX_PCIE_DMA_CHAN_INTR, XLNX_PCIE_DMA_CHAN_INTR_ENA);
 }
@@ -401,6 +402,7 @@ void channel::report() {
 controller::controller(std::string& path) {
     int status;
     size_t region_count;
+    size_t msi_count;
     struct rtems_iodev_region region;
 
     h2c_count = 0;
@@ -468,23 +470,33 @@ controller::controller(std::string& path) {
         if (regs.read(XLNX_PCIE_DMA_TARGET_H2C_CHANS, i, XLNX_PCIE_DMA_CHAN_ID)
             != 0) {
             auto chan = std::make_shared<channel>(regs,
-                XLNX_PCIE_DMA_TARGET_H2C_CHANS, i, XLNX_PCIE_DMA_CHAN_DESC_COUNT);
+                XLNX_PCIE_DMA_TARGET_H2C_CHANS, i, i,
+                XLNX_PCIE_DMA_CHAN_DESC_COUNT);
             h2c_chans.push_back(chan);
         }
     }
+    h2c_count = h2c_chans.size();
+
     for (auto i = 0; i < XLNX_PCIE_DMA_MAX_CHANS; i++) {
         if (regs.read(XLNX_PCIE_DMA_TARGET_C2H_CHANS, i, XLNX_PCIE_DMA_CHAN_ID)
             != 0) {
             auto chan = std::make_shared<channel>(regs,
-                XLNX_PCIE_DMA_TARGET_C2H_CHANS, i, XLNX_PCIE_DMA_CHAN_DESC_COUNT);
+                XLNX_PCIE_DMA_TARGET_C2H_CHANS, i, h2c_count + i,
+                XLNX_PCIE_DMA_CHAN_DESC_COUNT);
             c2h_chans.push_back(chan);
         }
     }
-
-    h2c_count = h2c_chans.size();
     c2h_count = c2h_chans.size();
 
-    start_msi_thread();
+    status = ::ioctl(fd, RTEMS_IODEV_IOCTL_EVENT_COUNT, &msi_count);
+    if (status == -1) {
+        close(fd);
+        fd = 0;
+        throw std::runtime_error("dma: error: IOCTL get region failed");
+    }
+    for (int i = 0; i < msi_count; i++) {
+        start_msi_thread(i);
+    }
 }
 
 void controller::report() {
@@ -500,21 +512,25 @@ void controller::report() {
     }
 }
 
-void controller::start_msi_thread() {
+void controller::start_msi_thread(int msi) {
     lock_guard guard(lock);
     rtems::thread::attributes attr;
-    attr.set_name("CTLR_MSI_IRQ");
+    std::ostringstream oss;
+
+    oss << "CTLR_MSI_" << msi;
+
+    attr.set_name(oss.str().c_str());
     attr.set_rtems_priority(97);
     attr.set_stack_size(RTEMS_MINIMUM_STACK_SIZE);
-    msi_thread = std::make_shared<rtems::thread::thread>(attr, &controller::msi_worker, this);
+
+    msi_threads.push_back(std::make_shared<rtems::thread::thread>(
+          attr, &controller::msi_worker, this, msi));
 }
 
-void controller::msi_worker() {
+void controller::msi_worker(int msi) {
     int status;
     size_t count;
     rtems_iodev_event_args event_args;
-
-    std::cout << "MSI thread started" << std::endl;
 
     status = ioctl(fd, RTEMS_IODEV_IOCTL_EVENT_COUNT, &count);
     if (status != 0) {
@@ -528,7 +544,7 @@ void controller::msi_worker() {
     }
 
     while (true) {
-        event_args.index = 0;
+        event_args.index = msi;
         event_args.timeout.tv_sec = 0;
         event_args.timeout.tv_nsec = 0;
         event_args.args = NULL;

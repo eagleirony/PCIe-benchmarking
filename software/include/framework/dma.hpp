@@ -198,6 +198,7 @@ struct channel {
     lock_type lock;
     registers regs;
     size_t id;
+    size_t cid;
     uint32_t dir;
     bool running;
     bool pipelined;
@@ -208,7 +209,8 @@ struct channel {
     std::array<mem::writeback, XLNX_PCIE_DMA_CHAN_DESC_COUNT> wbs;
     cs::pool::pool<mem::dma_buffer> bufs;
 
-    channel(registers& regs, uint32_t dir, size_t id, size_t desc_count);
+    channel(registers& regs, uint32_t dir, size_t id, size_t cid,
+        size_t desc_count);
     channel(const channel&) = delete;
     channel& operator=(const channel&) = delete;
     channel(channel&&) = delete;
@@ -240,12 +242,13 @@ using channel_ptr = std::shared_ptr<channel>;
 struct controller {
     using lock_type = std::recursive_mutex;
     using lock_guard = std::lock_guard<lock_type>;
+    using msi_thread = std::shared_ptr<rtems::thread::thread>;
 
     lock_type lock;
     registers regs;
     api::io::registers axis;
     int fd;
-    std::shared_ptr<rtems::thread::thread> msi_thread;
+    std::vector<msi_thread> msi_threads;
 
     std::vector<channel_ptr> c2h_chans;
     std::vector<channel_ptr> h2c_chans;
@@ -261,9 +264,9 @@ struct controller {
     void report();
 
 protected:
-    void start_msi_thread();
-    void msi_worker();
-    void join_msi_thread();
+    void start_msi_thread(int msi);
+    void msi_worker(int msi);
+    void join_msi_thread(int msi);
 };
 
 void init();
