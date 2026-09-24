@@ -18,8 +18,11 @@ end entity pn23;
 architecture behavioral of pn23 is
 
   signal sreg  : std_logic_vector(23 downto 1);
+  signal valid_out : std_logic;
 
 begin
+
+  valid <= valid_out;
 
   process (clk, rstn) is
     variable pn23_var : std_logic_vector(23 downto 1);
@@ -29,7 +32,7 @@ begin
     if (rstn = '0') then
       sreg(23 downto 1) <= "11111111010111000000000"; -- 0x7FAE00
       value                         <= (others => '0');
-      valid <= '0';
+      valid_out <= '0';
     else
       if (rising_edge(clk)) then
 
@@ -46,9 +49,9 @@ begin
 
           sreg <= pn23_var;
 
-          valid <= '1';
+          valid_out <= '1';
         else
-          valid <= '0';
+          valid_out <= valid_out;
         end if;
       end if;
     end if;

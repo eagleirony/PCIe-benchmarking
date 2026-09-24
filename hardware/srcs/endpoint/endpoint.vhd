@@ -55,6 +55,7 @@ package endpoint_param is
 
     wire_out : out std_logic;
     stop_user_clock : out std_logic;
+    irq_ack : out std_logic;
 
     validate_error    : in    std_logic_vector(data_width - 1 downto 0);
     validate_correct    : in    std_logic_vector(data_width - 1 downto 0)

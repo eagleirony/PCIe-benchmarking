@@ -26,29 +26,34 @@ architecture behavioral of validate is
   signal corr : unsigned(REGISTER_WIDTH - 1 downto 0);
   signal validate : std_logic;
   signal rd : std_logic;
+  signal rd_prev : std_logic;
 
 begin
     
   rd_fifo <= rd;
   errors <= std_logic_vector(errs);
   correct <= std_logic_vector(corr);
-
   rd <= (not empty_a) and (not empty_b);
 
-  process (clk, rstn) is
+
+  process (clk) is
   begin
-    if (rstn = '0') then
-      errs <= (others => '0');
-      corr <= (others => '0');
-    else
-      if (rising_edge(clk)) then
-        if rd = '1' then
+    if (rising_edge(clk)) then
+
+      if (rstn = '0') then
+        errs <= (others => '0');
+        corr <= (others => '0');
+        rd_prev <= '0';
+      else
+        rd_prev <= rd;
+        if rd_prev = '1' then
           if data_a = data_b then
             corr <= corr + 1;
           else
             errs <= errs + 1;
           end if;
         end if;
+
       end if;
     end if;
   end process;

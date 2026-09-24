@@ -72,7 +72,7 @@ begin
       hold <= '1';
       wait for 40 ns;
       hold <= '0';
-      wait for 10us;
+      wait for 400us;
     end process;
 
     test: pn23 port map (

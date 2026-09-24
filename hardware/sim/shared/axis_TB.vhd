@@ -68,7 +68,7 @@ architecture behavioral of axis_tb is
     );
   end component axis_slave;
 
-  signal clk   : std_logic;
+  signal clk   : std_logic := '0';
   signal rstn  : std_logic;
   signal value : std_logic_vector(data_width - 1 downto 0);
   signal ready : std_logic;

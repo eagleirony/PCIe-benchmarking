@@ -97,6 +97,7 @@ architecture rtl of top is
   signal pcie_link_status : std_logic;
   signal msi_req          : std_logic_vector(1 downto 0);
   signal msi_ack          : std_logic_vector(1 downto 0);
+  signal irq_ack          : std_logic;
 
   signal stop_user_clock : std_logic;
 
@@ -284,7 +285,7 @@ begin
     port map (
       clk     => axi_aclk,
       rstn    => axi_aresetn,
-      ack     => msi_ack(0),
+      ack     => irq_ack,
       req_in  => expand_port_in,
       req_out => msi_req(0)
     );
@@ -354,8 +355,6 @@ begin
     );
 
   -- H2C Channel 0
-  h2c_rd_ena <= '0';
-
   axis_h2c_inst : component axis_slave
     generic map (
       c_s_axis_tdata_width => axis_data_width,
@@ -451,6 +450,7 @@ begin
 
       wire_out        => expand_port_out,
       stop_user_clock => stop_user_clock,
+      irq_ack         => irq_ack,
 
       validate_error => validate_errors,
       validate_correct => validate_correct

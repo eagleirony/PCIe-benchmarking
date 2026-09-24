@@ -84,6 +84,7 @@ entity registers is
 
     wire_out : out std_logic;
     stop_user_clock : out std_logic;
+    irq_ack : out std_logic;
 
     validate_error    : in    std_logic_vector(data_width - 1 downto 0);
     validate_correct    : in    std_logic_vector(data_width - 1 downto 0)
@@ -118,6 +119,7 @@ begin
 
   wire_out <= signals_reg(0);
   stop_user_clock <= signals_reg(1);
+  irq_ack <= signals_reg(2);
 
   axil_bus_regs : axil_bus
   generic map (
