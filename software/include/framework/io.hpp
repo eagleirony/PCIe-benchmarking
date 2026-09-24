@@ -102,6 +102,7 @@ constexpr uint32_t EP_REG_C2H_1_PACK_LEN_OFF = 0x94;
 constexpr uint32_t EP_REG_SIGNALS_OFF = 0x98;
   constexpr uint32_t EP_REG_SIGNALS_EXPANSION_OUT   = (1U << 0);
   constexpr uint32_t EP_REG_SIGNALS_STOP_USER_CLK   = (1U << 1);
+  constexpr uint32_t EP_REG_SIGNALS_ACK_USER_IRQ    = (1U << 2);
 
 struct registers {
     void* base;

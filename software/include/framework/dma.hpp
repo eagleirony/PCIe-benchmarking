@@ -33,6 +33,9 @@
 constexpr uint32_t XLNX_PCIE_DMA_MAX_CHANS = 4;
 constexpr size_t XLNX_PCIE_DMA_CHAN_DESC_COUNT = 16;
 
+constexpr uint32_t XLNX_PCIE_DMA_MSI = 0;
+constexpr uint32_t XLNX_PCIE_USR_MSI = 1;
+
 /* AXI Lite registers */
 
 static constexpr uint32_t C2H_CHAN_0_PACKET_LEN_OFF = 0x90;
@@ -128,10 +131,18 @@ static constexpr uint32_t XLNX_PCIE_DMA_IRQ_USR_INT     = 0x40;
 static constexpr uint32_t XLNX_PCIE_DMA_IRQ_CHAN_INT    = 0x44;
 static constexpr uint32_t XLNX_PCIE_DMA_IRQ_USR_PEND    = 0x48;
 static constexpr uint32_t XLNX_PCIE_DMA_IRQ_CHAN_PEND   = 0x4C;
-static constexpr uint32_t XLNX_PCIE_DMA_IRQ_USR_VEC_LO  = 0x80;
-static constexpr uint32_t XLNX_PCIE_DMA_IRQ_USR_VEC_HI  = 0x84;
+static constexpr uint32_t XLNX_PCIE_DMA_IRQ_USR_VEC_0   = 0x80;
+static constexpr uint32_t XLNX_PCIE_DMA_IRQ_USR_VEC_1   = 0x84;
+static constexpr uint32_t XLNX_PCIE_DMA_IRQ_USR_VEC_2   = 0x88;
+static constexpr uint32_t XLNX_PCIE_DMA_IRQ_USR_VEC_3   = 0x8C;
+  static constexpr uint32_t XLNX_PCIE_DMA_IRQ_USR_VEC_MASK    = 0x0000001F;
+  static constexpr uint32_t XLNX_PCIE_DMA_IRQ_USR_VEC_SHIFT   = 8;
+  static constexpr uint32_t XLNX_PCIE_DMA_IRQ_USR_VEC_PER_REG = 4;
 static constexpr uint32_t XLNX_PCIE_DMA_IRQ_CHAN_VEC_LO = 0xA0;
 static constexpr uint32_t XLNX_PCIE_DMA_IRQ_CHAN_VEC_HI = 0xA4;
+  static constexpr uint32_t XLNX_PCIE_DMA_IRQ_CHAN_VEC_MASK    = 0x0000001F;
+  static constexpr uint32_t XLNX_PCIE_DMA_IRQ_CHAN_VEC_SHIFT   = 8;
+  static constexpr uint32_t XLNX_PCIE_DMA_IRQ_CHAN_VEC_PER_REG = 4;
 
 /* Config Block */
 static constexpr uint32_t XLNX_PCIE_DMA_CFG_ID               = 0x00;
@@ -216,8 +227,7 @@ struct channel {
     channel(channel&&) = delete;
     channel& operator=(const channel&&) = delete;
 
-    void run();
-    void run(size_t length);
+    virtual void run();
     void stop();
 
     void set_callback(callback& cb);
@@ -237,21 +247,50 @@ protected:
     void write_sgdma(uint32_t offset, uint32_t value);
 };
 
-using channel_ptr = std::shared_ptr<channel>;
+class c2h_channel: public channel {
+public:
+    c2h_channel(registers& regs, size_t id, size_t cid,
+        size_t desc_count) : channel(regs, XLNX_PCIE_DMA_TARGET_C2H_CHANS,
+        id, cid, desc_count) {};
+
+    void run();
+    void run(size_t length);
+
+};
+
+using c2h_channel_ptr = std::shared_ptr<c2h_channel>;
+
+class h2c_channel: public channel {
+public:
+    size_t queued;
+
+    h2c_channel(registers& regs, size_t id, size_t cid,
+        size_t desc_count) : channel(regs, XLNX_PCIE_DMA_TARGET_H2C_CHANS,
+        id, cid, desc_count), queued(0) {};
+
+    void run();
+
+    void add_tx_buffer(mem::dma_buffer_ptr buf);
+};
+
+using h2c_channel_ptr = std::shared_ptr<h2c_channel>;
 
 struct controller {
     using lock_type = std::recursive_mutex;
     using lock_guard = std::lock_guard<lock_type>;
     using msi_thread = std::shared_ptr<rtems::thread::thread>;
+    using callback = std::function<void(int)>;
 
     lock_type lock;
     registers regs;
     api::io::registers axis;
     int fd;
-    std::vector<msi_thread> msi_threads;
+    msi_thread dma_msi_thread;
+    msi_thread irq_msi_thread;
+    callback user_irq_callback;
 
-    std::vector<channel_ptr> c2h_chans;
-    std::vector<channel_ptr> h2c_chans;
+    std::vector<c2h_channel_ptr> c2h_chans;
+    std::vector<h2c_channel_ptr> h2c_chans;
     size_t c2h_count;
     size_t h2c_count;
 
@@ -261,12 +300,16 @@ struct controller {
     controller(controller&&) = delete;
     controller& operator=(const controller&&) = delete;
 
+    void set_user_irq_callback(callback& cb);
+    void enable_user_irq(int irq);
+    void disable_user_irq(int irq);
     void report();
 
 protected:
-    void start_msi_thread(int msi);
-    void msi_worker(int msi);
-    void join_msi_thread(int msi);
+    void start_dma_msi_thread();
+    void start_usr_msi_thread();
+    void dma_msi_worker();
+    void usr_msi_worker();
 };
 
 void init();

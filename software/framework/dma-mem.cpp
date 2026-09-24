@@ -162,7 +162,7 @@ void descriptor::set_next(descriptor& next_) {
     write(XLNX_PCIE_DMA_DESC_NXT_ADDR_UPPER_OFF, nxt_hi);
 }
 
-void descriptor::set_buffer(dma_buffer_ptr buf_) {
+void descriptor::set_dst_buffer(dma_buffer_ptr buf_) {
     uint64_t buf_addr;
     uint32_t buf_hi;
     uint32_t buf_lo;
@@ -179,6 +179,25 @@ void descriptor::set_buffer(dma_buffer_ptr buf_) {
 
     write(XLNX_PCIE_DMA_DESC_DST_ADDR_LOWER_OFF, buf_lo);
     write(XLNX_PCIE_DMA_DESC_DST_ADDR_UPPER_OFF, buf_hi);
+}
+
+void descriptor::set_src_buffer(dma_buffer_ptr buf_) {
+    uint64_t buf_addr;
+    uint32_t buf_hi;
+    uint32_t buf_lo;
+
+    if (desc == nullptr) {
+        return;
+    }
+
+    buf = buf_;
+    buf_addr = reinterpret_cast<uint64_t>(buf->buf);
+
+    buf_lo = static_cast<uint32_t>(buf_addr & 0xFFFFFFFF);
+    buf_hi = static_cast<uint32_t>(buf_addr >> 32);
+
+    write(XLNX_PCIE_DMA_DESC_SRC_ADDR_LOWER_OFF, buf_lo);
+    write(XLNX_PCIE_DMA_DESC_SRC_ADDR_UPPER_OFF, buf_hi);
 }
 
 } // namespace mem

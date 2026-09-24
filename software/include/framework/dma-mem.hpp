@@ -27,7 +27,7 @@
 
 #include <rtems/rtems/cache.h>
 
-static constexpr size_t DMA_BUFF_SIZE = 0x100000;
+static constexpr size_t DMA_BUFF_SIZE = 0x10000;
 static constexpr size_t DMA_BUFF_ALIGN = 0x100;
 static constexpr size_t DMA_BUFF_BOUNDARY = 0;
 
@@ -123,7 +123,8 @@ struct descriptor {
     void set_wb(writeback& wb);
     void set_next(descriptor& next);
 
-    void set_buffer(dma_buffer_ptr buf);
+    void set_dst_buffer(dma_buffer_ptr buf);
+    void set_src_buffer(dma_buffer_ptr buf);
 
 protected:
     uint32_t read(uint32_t offset);

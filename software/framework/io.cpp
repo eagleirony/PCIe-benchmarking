@@ -215,6 +215,10 @@ void init() {
     rtems_interrupt_entry_install(121, RTEMS_INTERRUPT_SHARED, &rie);
     clock_gettime(CLOCK_MONOTONIC, &start);
     pl.write(PL_REG_SIGNALS_OFF, PL_REG_SIGNALS_IRQ_OUT);
+
+    uint32_t reg = endpoint.read(EP_REG_SIGNALS_OFF);
+    endpoint.write(EP_REG_SIGNALS_OFF, reg | EP_REG_SIGNALS_ACK_USER_IRQ);
+    endpoint.write(EP_REG_SIGNALS_OFF, reg & ~EP_REG_SIGNALS_ACK_USER_IRQ);
 }
 
 } // namespace io
