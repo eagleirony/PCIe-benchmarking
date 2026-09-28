@@ -27,7 +27,7 @@ namespace mem {
 uint32_t writeback::read(uint32_t offset) {
     uint64_t address = reinterpret_cast<uint64_t>(wb);
     address += offset;
-    uint32_t* reg = reinterpret_cast<uint32_t*>(address);
+    volatile uint32_t* reg = reinterpret_cast<uint32_t*>(address);
     return *reg;
 }
 
@@ -65,7 +65,7 @@ uint32_t writeback::length() {
 uint32_t descriptor::read(uint32_t offset) {
     uint64_t address = reinterpret_cast<uint64_t>(desc);
     address += offset;
-    uint32_t* reg = reinterpret_cast<uint32_t*>(address);
+    volatile uint32_t* reg = reinterpret_cast<uint32_t*>(address);
     return *reg;
 }
 
@@ -160,6 +160,13 @@ void descriptor::set_next(descriptor& next_) {
 
     write(XLNX_PCIE_DMA_DESC_NXT_ADDR_LOWER_OFF, nxt_lo);
     write(XLNX_PCIE_DMA_DESC_NXT_ADDR_UPPER_OFF, nxt_hi);
+}
+
+void descriptor::clear_next() {
+    next = nullptr;
+
+    write(XLNX_PCIE_DMA_DESC_NXT_ADDR_LOWER_OFF, 0x0);
+    write(XLNX_PCIE_DMA_DESC_NXT_ADDR_UPPER_OFF, 0x0);
 }
 
 void descriptor::set_dst_buffer(dma_buffer_ptr buf_) {

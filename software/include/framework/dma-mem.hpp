@@ -122,6 +122,7 @@ struct descriptor {
     void set_length(size_t len);
     void set_wb(writeback& wb);
     void set_next(descriptor& next);
+    void clear_next();
 
     void set_dst_buffer(dma_buffer_ptr buf);
     void set_src_buffer(dma_buffer_ptr buf);

@@ -32,6 +32,7 @@
 
 #include <framework/dma.hpp>
 #include <framework/io.hpp>
+#include <framework/logbook.hpp>
 
 static constexpr char emmc_mnt_path[] = "/emmc";
 static constexpr char nfs_mnt_path[] = "/net";

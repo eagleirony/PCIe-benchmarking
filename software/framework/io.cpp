@@ -47,7 +47,7 @@ uint32_t* registers::address(uint32_t offset) {
 }
 
 uint32_t registers::read(uint32_t offset) {
-    uint32_t* reg = address(offset);
+    volatile uint32_t* reg = address(offset);
 
     return *reg;
 }

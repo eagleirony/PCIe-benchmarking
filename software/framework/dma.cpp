@@ -31,6 +31,7 @@
 #include <rtems/bsd/pci-iodev.h>
 
 #include <framework/dma.hpp>
+#include <framework/logbook.hpp>
 
 namespace app {
 namespace framework {
@@ -264,6 +265,8 @@ void channel::run() {
     running = true;
     auto reg = read_chan(XLNX_PCIE_DMA_CHAN_CTRL);
     reg |= XLNX_PCIE_DMA_CHAN_CTRL_RUN;
+
+    auto id = benchmark::log::log_and_timestamp(benchmark::log::record_type::EP_DMA_PIPELINE_START);
     write_chan(XLNX_PCIE_DMA_CHAN_CTRL, reg);
 }
 
@@ -272,9 +275,17 @@ void channel::stop() {
         return;
     }
     lock_guard guard(lock);
-    auto reg = read_chan(XLNX_PCIE_DMA_CHAN_CTRL);
-    reg &= ~XLNX_PCIE_DMA_CHAN_CTRL_RUN;
-    write_chan(XLNX_PCIE_DMA_CHAN_CTRL, reg);
+
+    descs[0].zero();
+    descs[0].header(false, true);
+    descs[0].set_length(DMA_BUFF_SIZE);
+    descs[0].set_wb(wbs[0]);
+    auto buf = bufs.request();
+    buf->zero();
+    descs[0].set_dst_buffer(buf);
+    descs[0].clear_next();
+
+    benchmark::log::timestamp_and_log(benchmark::log::record_type::EP_DMA_PIPELINE_END);
     running = false;
 }
 
@@ -297,6 +308,7 @@ void channel::handle_intr() {
             d.buf = bufs.request();
 
             if (!d.wb->valid()) {
+                sleep(1);
                 std::ostringstream oss;
                 oss << "Channel " << id << ": Invalid DMA transfer";
                 throw std::runtime_error(oss.str());
@@ -777,18 +789,18 @@ void init() {
     eps->at(0)->h2c_chans[0]->set_callback(tx_cb);
 
     channel::callback cb = [](mem::dma_buffer_ptr buf){
-        eps->at(0)->h2c_chans[0]->add_tx_buffer(buf);
-        if (eps->at(0)->h2c_chans[0]->queued == 2) {
-            std::cout << "Running H2C" << std::endl;
-            eps->at(0)->h2c_chans[0]->run();
-            eps->at(0)->h2c_chans[0]->report();
-        }
+        auto id = benchmark::log::timestamp_and_log(benchmark::log::record_type::EP_DMA_PIPELINE_RECV);
+        benchmark::log::set_transfer_size(id, buf->stats.length);
         return;
     };
 
     eps->at(0)->c2h_chans[0]->set_callback(cb);
-    eps->at(0)->c2h_chans[0]->run(2 * DMA_BUFF_SIZE);
+    eps->at(0)->c2h_chans[0]->run();
+    sleep(1);
+    eps->at(0)->c2h_chans[0]->stop();
+    benchmark::log::output_and_reset("/net/aaron/unsw/logging/test4.log");
 
+    /*
     controller::callback ccb = [](int irq) {
         struct timespec end;
         struct timespec result;
@@ -819,6 +831,7 @@ void init() {
     uint32_t* status = (uint32_t*)0x80000090;
     clock_gettime(CLOCK_MONOTONIC, &start);
     *status = 0x2;
+    */
 
 }
 

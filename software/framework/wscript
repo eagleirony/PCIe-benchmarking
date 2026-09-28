@@ -12,6 +12,7 @@ sources = [
     'dma.cpp',
     'dma-mem.cpp',
     'io.cpp',
+    'logbook.cpp',
 ]
 
 includes = ['../include/']
