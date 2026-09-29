@@ -23,6 +23,8 @@ includes = ['.']
 
 cflags = []
 
+cxxflags = []
+
 try:
     import rtems_waf.rtems
     import rtems_waf.rtems_bsd
@@ -62,6 +64,7 @@ def build(bld):
     bld.objects(features='cxx cxxprogram',
                 target='app',
                 cflags=builditems.get_cflags(bld, cflags),
+                cxxflags=builditems.get_cxxflags(bld, cxxflags),
                 include=builditems.get_includes(bld, includes),
                 defines=builditems.get_defines(bld, defines),
                 use=['app_firmware', 'app_platform', 'app_framework', 'app_externals'],

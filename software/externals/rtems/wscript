@@ -17,6 +17,8 @@ defines = []
 
 cflags = []
 
+cxxflags = []
+
 
 def init(ctx):
     pass
@@ -36,4 +38,5 @@ def build(bld):
                 source=sources,
                 includes=builditems.get_includes(bld, includes),
                 cflags=builditems.get_cflags(bld, cflags),
+                cxxflags=builditems.get_cxxflags(bld, cxxflags),
                 defines=builditems.get_defines(bld, defines))

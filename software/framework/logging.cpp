@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include <framework/logbook.hpp>
+#include <framework/logging.hpp>
 
 namespace app {
 namespace framework {
@@ -27,9 +27,26 @@ logbook_ptr lb;
 
 logbook_ptr make_logbook() {
     if (!lb) {
-        lb = std::make_shared<logbook>();
+        lb = std::make_shared<logbook_type>();
     }
     return lb;
+}
+
+void record::serialise(json& rj) {
+    rj["id"] = id_;
+    rj["type"] = type_to_str(type_);
+    rj["timestamp"]["seconds"] = timestamp.tv_sec;
+    rj["timestamp"]["nanoseconds"] = timestamp.tv_nsec;
+
+    switch (type_) {
+        case EP_DMA_PIPELINE_RECV:
+        case EP_DMA_BLOCK_RX_END:
+        case EP_DMA_BLOCK_TX_END:
+            rj["transfer_size"] = transfer_size;
+            break;
+        default:
+            break;
+    }
 }
 
 } // namespace log

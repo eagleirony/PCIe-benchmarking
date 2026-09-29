@@ -12,7 +12,7 @@ sources = [
     'dma.cpp',
     'dma-mem.cpp',
     'io.cpp',
-    'logbook.cpp',
+    'logging.cpp',
 ]
 
 includes = ['../include/']
@@ -20,6 +20,8 @@ includes = ['../include/']
 defines = []
 
 cflags = []
+
+cxxflags = []
 
 
 def init(ctx):
@@ -40,4 +42,5 @@ def build(bld):
                 source=sources,
                 includes=builditems.get_includes(bld, includes),
                 cflags=builditems.get_cflags(bld, cflags),
+                cxxflags=builditems.get_cxxflags(bld, cxxflags),
                 defines=builditems.get_defines(bld, defines))

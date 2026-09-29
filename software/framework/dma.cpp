@@ -31,7 +31,7 @@
 #include <rtems/bsd/pci-iodev.h>
 
 #include <framework/dma.hpp>
-#include <framework/logbook.hpp>
+#include <framework/logging.hpp>
 
 namespace app {
 namespace framework {
@@ -266,7 +266,7 @@ void channel::run() {
     auto reg = read_chan(XLNX_PCIE_DMA_CHAN_CTRL);
     reg |= XLNX_PCIE_DMA_CHAN_CTRL_RUN;
 
-    auto id = benchmark::log::log_and_timestamp(benchmark::log::record_type::EP_DMA_PIPELINE_START);
+    auto id = benchmark::log::log_and_timestamp(benchmark::log::record::EP_DMA_PIPELINE_START);
     write_chan(XLNX_PCIE_DMA_CHAN_CTRL, reg);
 }
 
@@ -285,7 +285,7 @@ void channel::stop() {
     descs[0].set_dst_buffer(buf);
     descs[0].clear_next();
 
-    benchmark::log::timestamp_and_log(benchmark::log::record_type::EP_DMA_PIPELINE_END);
+    benchmark::log::timestamp_and_log(benchmark::log::record::EP_DMA_PIPELINE_END);
     running = false;
 }
 
@@ -789,7 +789,7 @@ void init() {
     eps->at(0)->h2c_chans[0]->set_callback(tx_cb);
 
     channel::callback cb = [](mem::dma_buffer_ptr buf){
-        auto id = benchmark::log::timestamp_and_log(benchmark::log::record_type::EP_DMA_PIPELINE_RECV);
+        auto id = benchmark::log::timestamp_and_log(benchmark::log::record::EP_DMA_PIPELINE_RECV);
         benchmark::log::set_transfer_size(id, buf->stats.length);
         return;
     };

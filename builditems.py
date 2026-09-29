@@ -19,6 +19,10 @@ cflags = [
     '-DFDT=1',
 ]
 
+cxxflags = [
+    '-std=c++20',
+    '-fconcepts-diagnostics-depth=2'
+]
 
 def get_defines(bld, items):
     vals = []
@@ -38,4 +42,10 @@ def get_cflags(bld, items):
     vals = []
     vals += items
     vals += cflags
+    return vals
+
+def get_cxxflags(bld, items):
+    vals = []
+    vals += items
+    vals += cxxflags
     return vals
