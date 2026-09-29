@@ -74,7 +74,7 @@ template<size_t Size, RecordStruct Record> struct logbook {
 
         records_len = tail.load();
 
-        for (auto i = 0; i < records_len; i++) {
+        for (size_t i = 0; i < records_len; i++) {
             json rj;
             records[i].serialise(rj);
 

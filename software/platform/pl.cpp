@@ -50,7 +50,7 @@ void init() {
 }
 
 void load(std::string& path) {
-    int r;
+    size_t r;
     uint32_t flags = 0;
     uint32_t fpga_status;
     image_loader image;

@@ -98,7 +98,7 @@ static void pl_intr(void* arg) {
     *status = *status & ~PL_REG_SIGNALS_IRQ_OUT;
     result.tv_sec = end.tv_sec - start.tv_sec;
     result.tv_nsec = end.tv_nsec - start.tv_nsec;
-    printk("IRQ latency: %dns\n", result.tv_nsec);
+    printk("IRQ latency: %ldns\n", result.tv_nsec);
 }
 
 void init() {
@@ -106,7 +106,6 @@ void init() {
     registers pl;
     int fd;
     int status;
-    size_t region_count;
     struct rtems_iodev_region region;
     std::string path;
 

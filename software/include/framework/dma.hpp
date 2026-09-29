@@ -208,9 +208,9 @@ struct channel {
 
     lock_type lock;
     registers regs;
+    uint32_t dir;
     size_t id;
     size_t cid;
-    uint32_t dir;
     bool running;
     bool pipelined;
     size_t head;
@@ -227,7 +227,7 @@ struct channel {
     channel(channel&&) = delete;
     channel& operator=(const channel&&) = delete;
 
-    virtual void run();
+    void start();
     void stop();
 
     void set_callback(callback& cb);

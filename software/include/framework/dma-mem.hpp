@@ -56,13 +56,6 @@ template<size_t Size, size_t Alignment, size_t Boundary> struct buffer {
         return Boundary;
     }
 
-    void zero() {
-        uint64_t* buf_ = static_cast<uint64_t*>(buf);
-        for (size_t i = 0; i < Size/sizeof(uint64_t); i++) {
-            buf_[i] = 0x0;
-        }
-    }
-
     buffer() {
         buf = rtems_cache_coherent_allocate(
             Size,

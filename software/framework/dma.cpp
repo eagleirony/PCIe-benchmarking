@@ -54,7 +54,7 @@ controllers_ptr make_controllers() {
     return eps;
 }
 
-uint32_t* registers::address(uint32_t target,
+inline uint32_t* registers::address(uint32_t target,
     uint32_t channel, uint32_t offset) {
     uint64_t address = reinterpret_cast<uint64_t>(base);
 
@@ -74,27 +74,27 @@ uint32_t* registers::address(uint32_t target,
     return reinterpret_cast<uint32_t*>(address);
 }
 
-uint32_t registers::read(uint32_t target, uint32_t channel, uint32_t offset) {
-    uint32_t* reg = address(target, channel, offset);
+inline uint32_t registers::read(uint32_t target, uint32_t channel, uint32_t offset) {
+    volatile uint32_t* reg = address(target, channel, offset);
 
     return *reg;
 }
 
-uint32_t registers::read(uint32_t target, uint32_t offset) {
-    uint32_t* reg = address(target, 0, offset);
+inline uint32_t registers::read(uint32_t target, uint32_t offset) {
+    volatile uint32_t* reg = address(target, 0, offset);
 
     return *reg;
 }
 
-void registers::write(uint32_t target, uint32_t channel, uint32_t offset,
+inline void registers::write(uint32_t target, uint32_t channel, uint32_t offset,
     uint32_t value) {
-    uint32_t* reg = address(target, channel, offset);
+    volatile uint32_t* reg = address(target, channel, offset);
 
     *reg = value;
 }
 
-void registers::write(uint32_t target, uint32_t offset, uint32_t value) {
-    uint32_t* reg = address(target, 0, offset);
+inline void registers::write(uint32_t target, uint32_t offset, uint32_t value) {
+    volatile uint32_t* reg = address(target, 0, offset);
 
     *reg = value;
 }
@@ -126,7 +126,7 @@ channel::channel(registers& reg_, uint32_t dir_, size_t id_, size_t cid_,
     nxt_desc += XLNX_PCIE_DMA_DESC_SIZE;
     nxt_wb += XLNX_PCIE_DMA_WB_SIZE;
 
-    for (int i = 1; i < XLNX_PCIE_DMA_CHAN_DESC_COUNT; i++) {
+    for (size_t i = 1; i < XLNX_PCIE_DMA_CHAN_DESC_COUNT; i++) {
         descs[i].desc = reinterpret_cast<void*>(nxt_desc);
         wbs[i].wb = reinterpret_cast<void*>(nxt_wb);
 
@@ -163,10 +163,9 @@ void channel::set_pipeline() {
     descs[0].set_wb(wbs[0]);
     wbs[0].clear();
     auto buf = bufs.request();
-    buf->zero();
     descs[0].set_dst_buffer(buf);
 
-    for (int i = 1; i < XLNX_PCIE_DMA_CHAN_DESC_COUNT; i++) {
+    for (size_t i = 1; i < XLNX_PCIE_DMA_CHAN_DESC_COUNT; i++) {
         uint32_t nxt_adj = 0;
         descs[i].zero();
         if (i + 2 < XLNX_PCIE_DMA_CHAN_DESC_COUNT) {
@@ -177,10 +176,9 @@ void channel::set_pipeline() {
         descs[i].set_wb(wbs[i]);
         wbs[i].clear();
         auto buf = bufs.request();
-        buf->zero();
         descs[i].set_dst_buffer(buf);
     }
-    for (int i = 0; i < XLNX_PCIE_DMA_CHAN_DESC_COUNT - 1; ++i) {
+    for (size_t i = 0; i < XLNX_PCIE_DMA_CHAN_DESC_COUNT - 1; ++i) {
         descs[i].set_next(descs[i + 1]);
     }
     descs[XLNX_PCIE_DMA_CHAN_DESC_COUNT - 1].set_next(descs[0]);
@@ -207,7 +205,6 @@ void channel::set_block(size_t length) {
         descs[desc_index].set_wb(wbs[desc_index]);
         wbs[desc_index].clear();
         auto buf = bufs.request();
-        buf->zero();
         descs[desc_index].set_dst_buffer(buf);
 
         desc_index++;
@@ -220,10 +217,9 @@ void channel::set_block(size_t length) {
     descs[desc_index].set_wb(wbs[desc_index]);
     wbs[desc_index].clear();
     auto buf = bufs.request();
-    buf->zero();
     descs[desc_index].set_dst_buffer(buf);
 
-    for (int i = 0; i <= desc_index; ++i) {
+    for (size_t i = 0; i <= desc_index; ++i) {
         descs[i].set_next(descs[i + 1]);
     }
 
@@ -245,7 +241,7 @@ void channel::set_callback(callback& cb_) {
     cb = cb_;
 }
 
-void channel::run() {
+void channel::start() {
     if (is_running()) {
         return;
     }
@@ -266,7 +262,7 @@ void channel::run() {
     auto reg = read_chan(XLNX_PCIE_DMA_CHAN_CTRL);
     reg |= XLNX_PCIE_DMA_CHAN_CTRL_RUN;
 
-    auto id = benchmark::log::log_and_timestamp(benchmark::log::record::EP_DMA_PIPELINE_START);
+    benchmark::log::log_and_timestamp(benchmark::log::record::EP_DMA_PIPELINE_START);
     write_chan(XLNX_PCIE_DMA_CHAN_CTRL, reg);
 }
 
@@ -281,7 +277,6 @@ void channel::stop() {
     descs[0].set_length(DMA_BUFF_SIZE);
     descs[0].set_wb(wbs[0]);
     auto buf = bufs.request();
-    buf->zero();
     descs[0].set_dst_buffer(buf);
     descs[0].clear_next();
 
@@ -308,7 +303,6 @@ void channel::handle_intr() {
             d.buf = bufs.request();
 
             if (!d.wb->valid()) {
-                sleep(1);
                 std::ostringstream oss;
                 oss << "Channel " << id << ": Invalid DMA transfer";
                 throw std::runtime_error(oss.str());
@@ -334,7 +328,7 @@ uint32_t channel::read_chan(uint32_t offset) {
     return regs.read(dir, id, offset);
 }
 
-void channel::write_chan(uint32_t offset, uint32_t value) {
+inline void channel::write_chan(uint32_t offset, uint32_t value) {
     regs.write(dir, id, offset, value);
 }
 
@@ -394,7 +388,7 @@ void c2h_channel::run() {
     }
     lock_guard guard(lock);
     set_pipeline();
-    channel::run();
+    channel::start();
 }
 
 void c2h_channel::run(size_t length) {
@@ -404,7 +398,7 @@ void c2h_channel::run(size_t length) {
     lock_guard guard(lock);
     pipelined = false;
     set_block(length);
-    channel::run();
+    channel::start();
 }
 
 void h2c_channel::run() {
@@ -414,7 +408,7 @@ void h2c_channel::run() {
     lock_guard guard(lock);
     pipelined = false;
     queued = 0;
-    channel::run();
+    channel::start();
 }
 
 void h2c_channel::add_tx_buffer(mem::dma_buffer_ptr buf) {
@@ -449,8 +443,6 @@ void h2c_channel::add_tx_buffer(mem::dma_buffer_ptr buf) {
 
 controller::controller(std::string& path) {
     int status;
-    size_t region_count;
-    size_t msi_count;
     struct rtems_iodev_region region;
 
     h2c_count = 0;
@@ -514,7 +506,7 @@ controller::controller(std::string& path) {
     axis.write(C2H_CHAN_0_PACKET_LEN_OFF, DMA_BUFF_SIZE/8);
     axis.write(C2H_CHAN_1_PACKET_LEN_OFF, DMA_BUFF_SIZE/8);
 
-    for (auto i = 0; i < XLNX_PCIE_DMA_MAX_CHANS; i++) {
+    for (size_t i = 0; i < XLNX_PCIE_DMA_MAX_CHANS; i++) {
         if (regs.read(XLNX_PCIE_DMA_TARGET_H2C_CHANS, i, XLNX_PCIE_DMA_CHAN_ID)
             != 0) {
             auto chan = std::make_shared<h2c_channel>(regs,
@@ -525,7 +517,7 @@ controller::controller(std::string& path) {
     }
     h2c_count = h2c_chans.size();
 
-    for (auto i = 0; i < XLNX_PCIE_DMA_MAX_CHANS; i++) {
+    for (size_t i = 0; i < XLNX_PCIE_DMA_MAX_CHANS; i++) {
         if (regs.read(XLNX_PCIE_DMA_TARGET_C2H_CHANS, i, XLNX_PCIE_DMA_CHAN_ID)
             != 0) {
             auto chan = std::make_shared<c2h_channel>(regs,
@@ -537,7 +529,7 @@ controller::controller(std::string& path) {
     c2h_count = c2h_chans.size();
 
     uint32_t reg = 0;
-    for (auto i = 0; i < XLNX_PCIE_DMA_IRQ_USR_VEC_PER_REG; i++) {
+    for (size_t i = 0; i < XLNX_PCIE_DMA_IRQ_USR_VEC_PER_REG; i++) {
         reg |= (XLNX_PCIE_USR_MSI & XLNX_PCIE_DMA_IRQ_USR_VEC_MASK)
                   << (XLNX_PCIE_DMA_IRQ_USR_VEC_SHIFT * i);
     }
@@ -551,7 +543,7 @@ controller::controller(std::string& path) {
         reg);
 
     reg = 0;
-    for (auto i = 0; i < XLNX_PCIE_DMA_IRQ_CHAN_VEC_PER_REG; i++) {
+    for (size_t i = 0; i < XLNX_PCIE_DMA_IRQ_CHAN_VEC_PER_REG; i++) {
         reg |= (XLNX_PCIE_DMA_MSI & XLNX_PCIE_DMA_IRQ_CHAN_VEC_MASK)
                   << (XLNX_PCIE_DMA_IRQ_CHAN_VEC_SHIFT * i);
     }
@@ -668,7 +660,7 @@ void controller::dma_msi_worker() {
             lock_guard guard(lock);
             uint32_t reqs = regs.read(XLNX_PCIE_DMA_TARGET_IRQ_BLOCK,
                 XLNX_PCIE_DMA_IRQ_CHAN_INT);
-            for (int i = 0; i < c2h_count + h2c_count; i++) {
+            for (size_t i = 0; i < c2h_count + h2c_count; i++) {
                 if (reqs & (1U << i)) {
                     if (i < h2c_count) {
                         h2c_chans[i]->handle_intr();

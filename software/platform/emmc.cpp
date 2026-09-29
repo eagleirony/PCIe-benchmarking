@@ -27,7 +27,7 @@ namespace app {
 namespace platform {
 namespace emmc {
 
-static constexpr char emmc_path[] = "/dev/mmcsd0";
+static constexpr char emmc_path[] = "/dev/mmcsd1";
 
 void init() {
 
