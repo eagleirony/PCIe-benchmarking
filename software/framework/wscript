@@ -9,6 +9,7 @@ import buildver
 import software.firmware.fdt as fdt
 
 sources = [
+    'cpuuse.cpp',
     'dma.cpp',
     'dma-mem.cpp',
     'io.cpp',

@@ -81,7 +81,7 @@ template<size_t Size, RecordStruct Record> struct logbook {
             j.push_back(rj);
         }
 
-        ofile << j.dump();
+        ofile << j.dump(2);
         ofile.close();
 
         reset();

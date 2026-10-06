@@ -17,6 +17,7 @@
  */
 
 #include <framework/logging.hpp>
+#include <framework/cpuuse.hpp>
 
 namespace app {
 namespace framework {
@@ -43,6 +44,14 @@ void record::serialise(json& rj) {
         case EP_DMA_BLOCK_RX_END:
         case EP_DMA_BLOCK_TX_END:
             rj["transfer_size"] = transfer_size;
+            break;
+        case CPU_USE:
+            rj["usage"]["seconds"] = cpu_usage.usage.tv_sec;
+            rj["usage"]["nanoseconds"] = cpu_usage.usage.tv_nsec;
+        case THREAD_START:
+        case THREAD_END:
+            rj["task_name"] = api::cpuuse::name_from_id(cpu_usage.task_id);
+            rj["task_id"] = cpu_usage.task_id;
             break;
         default:
             break;

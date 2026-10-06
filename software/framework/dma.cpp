@@ -32,6 +32,7 @@
 
 #include <framework/dma.hpp>
 #include <framework/logging.hpp>
+#include <framework/cpuuse.hpp>
 
 namespace app {
 namespace framework {
@@ -601,7 +602,7 @@ void controller::start_dma_msi_thread() {
     rtems::thread::attributes attr;
     std::ostringstream oss;
 
-    oss << "CTLR_MSI_DMA";
+    oss << "DMA_CTLR_MSI";
 
     attr.set_name(oss.str().c_str());
     attr.set_rtems_priority(97);
@@ -616,7 +617,7 @@ void controller::start_usr_msi_thread() {
     rtems::thread::attributes attr;
     std::ostringstream oss;
 
-    oss << "CTLR_MSI_IRQ";
+    oss << "IRQ_CTLR_MSI";
 
     attr.set_name(oss.str().c_str());
     attr.set_rtems_priority(97);
@@ -627,6 +628,7 @@ void controller::start_usr_msi_thread() {
 }
 
 void controller::dma_msi_worker() {
+    api::cpuuse::log_guard lguard("DMA_CTLR_MSI");
     int status;
     size_t count;
     rtems_iodev_event_args event_args;
@@ -676,6 +678,7 @@ void controller::dma_msi_worker() {
 }
 
 void controller::usr_msi_worker() {
+    api::cpuuse::log_guard lguard("IRQ_CTLR_MSI");
     int status;
     size_t count;
     rtems_iodev_event_args event_args;
@@ -769,7 +772,6 @@ void init() {
         }
     }
 
-    sleep(1);
     for (auto& ep : *eps) {
         ep->report();
     }
@@ -786,11 +788,12 @@ void init() {
         return;
     };
 
+
+    eps->at(0)->axis.write(0x9C, 0x100);
     eps->at(0)->c2h_chans[0]->set_callback(cb);
     eps->at(0)->c2h_chans[0]->run();
     sleep(1);
     eps->at(0)->c2h_chans[0]->stop();
-    benchmark::log::output_and_reset("/net/aaron/unsw/logging/test4.log");
 
     /*
     controller::callback ccb = [](int irq) {
@@ -809,16 +812,13 @@ void init() {
 
     eps->at(0)->set_user_irq_callback(ccb);
     eps->at(0)->enable_user_irq(0);
+    */
 
-    clock_gettime(CLOCK_MONOTONIC, &start);
+    benchmark::log::log_and_timestamp(benchmark::log::record::EP_IO_READ_START);
     eps->at(0)->axis.read(0x0);
-    struct timespec end;
-    struct timespec result;
-    clock_gettime(CLOCK_MONOTONIC, &end);
-    result.tv_sec = end.tv_sec - start.tv_sec;
-    result.tv_nsec = end.tv_nsec - start.tv_nsec;
-    std::cout << "Read Latency: " << result.tv_nsec << "ns" << std::endl;
+    benchmark::log::timestamp_and_log(benchmark::log::record::EP_IO_READ_RETURNED);
 
+    /*
     sleep(1);
     uint32_t* status = (uint32_t*)0x80000090;
     clock_gettime(CLOCK_MONOTONIC, &start);

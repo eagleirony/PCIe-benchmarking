@@ -30,8 +30,10 @@
 #include <platform/emmc.hpp>
 #include <platform/nfs.hpp>
 
+#include <framework/cpuuse.hpp>
 #include <framework/dma.hpp>
 #include <framework/io.hpp>
+#include <framework/logging.hpp>
 #include <framework/logbook.hpp>
 
 static constexpr char emmc_mnt_path[] = "/emmc";
@@ -58,8 +60,14 @@ int main(int argc, char** argv) {
     std::cout << std::endl << "PCITB version: " << app_build_id() << std::endl;
 
     try {
+        app::framework::benchmark::log::reset();
+        app::framework::api::cpuuse::init(5);
         app::framework::api::io::init();
+        app::framework::api::cpuuse::run();
         app::framework::pcie::dma::init();
+        app::framework::api::cpuuse::stop();
+        app::framework::benchmark::log::output_and_reset(
+            "/net/pciebench/logging/test-active.log");
     } catch (const std::exception& e) {
         std::cout << "Error in DMA: " << e.what() << std::endl;
     }

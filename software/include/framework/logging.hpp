@@ -21,6 +21,8 @@
 
 #include <memory>
 
+#include <rtems.h>
+
 #include <framework/logbook.hpp>
 
 #include <externals/nlohmann/json.hpp>
@@ -33,6 +35,11 @@ namespace log {
 using json = nlohmann::json;
 
 constexpr size_t LOGBOOK_MAX_RECORDS = 20000;
+
+struct cpuusage_info {
+    rtems_id task_id;
+    struct timespec usage;
+};
 
 struct record {
     using id = size_t;
@@ -65,16 +72,27 @@ struct record {
     static constexpr type PL_IO_WRITE_RETURNED = 44;
 
     static constexpr type CPU_USE = 50;
+    static constexpr type THREAD_START = 51;
+    static constexpr type THREAD_END = 52;
 
     id id_;
     type type_;
     struct timespec timestamp;
     union {
         size_t transfer_size;
+        cpuusage_info cpu_usage;
     };
 
     void set_transfer_size(size_t size) {
         transfer_size = size;
+    }
+
+    void set_cpu_usage_id(rtems_id id) {
+        cpu_usage.task_id = id;
+    }
+
+    struct timespec* get_cpu_usage_timespec() {
+        return &cpu_usage.usage;
     }
 
     void serialise(json& j);
@@ -129,6 +147,10 @@ struct record {
 
             case CPU_USE:
                 return "CPU USE";
+            case THREAD_START:
+                return "THREAD START";
+            case THREAD_END:
+                return "THREAD END";
 
             default:
                 return "UNKNOWN TYPE";
@@ -169,6 +191,14 @@ inline void timestamp(record::id id) {
 
 inline void set_transfer_size(record::id id, size_t value) {
     lb_->records[id].set_transfer_size(value);
+}
+
+inline void set_cpu_usage_id(record::id id, rtems_id id_) {
+    lb_->records[id].set_cpu_usage_id(id_);
+}
+
+inline struct timespec* get_cpu_usage_timespec(record::id id) {
+    return lb_->records[id].get_cpu_usage_timespec();
 }
 
 } // namespace log

@@ -104,6 +104,10 @@ constexpr uint32_t EP_REG_SIGNALS_OFF = 0x98;
   constexpr uint32_t EP_REG_SIGNALS_STOP_USER_CLK   = (1U << 1);
   constexpr uint32_t EP_REG_SIGNALS_ACK_USER_IRQ    = (1U << 2);
 
+constexpr uint32_t EP_REG_C2H_0_PN23_RATE_OFF = 0x9C;
+constexpr uint32_t EP_REG_C2H_1_PN23_RATE_OFF = 0xA0;
+constexpr uint32_t EP_REG_H2C_1_PN23_RATE_OFF = 0xA4;
+
 struct registers {
     void* base;
 
