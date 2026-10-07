@@ -45,13 +45,19 @@ struct thread_index {
     using lock_guard = std::lock_guard<lock_type>;
     using rtems_thread = rtems::thread::thread;
 
+    struct thread_info {
+        rtems_id id;
+        std::string name;
+        bool active;
+    };
+
     lock_type lock;
     bool logging;
-    std::vector<std::pair<std::string, rtems_id>> index;
+    std::vector<thread_info> index;
     rtems_thread cpuuse_thread;
     uint64_t timeout_ms;
 
-    thread_index() : logging(0) {};
+    thread_index() : logging(false) {};
 
     ~thread_index() {
         stop();
@@ -59,26 +65,16 @@ struct thread_index {
 
     void add(std::string name, rtems_id id) {
         lock_guard guard(lock);
-        index.push_back({name, id});
-    }
-
-    void remove(std::string name) {
-        lock_guard guard(lock);
-        auto it = std::find_if(index.begin(), index.end(), [&name](const auto& item) {
-            return item.first == name;
-        });
-        if (it != index.end()) {
-            index.erase(it);
-        }
+        index.emplace_back(id, name, true);
     }
 
     void remove(rtems_id id) {
         lock_guard guard(lock);
         auto it = std::find_if(index.begin(), index.end(), [&id](const auto& item) {
-            return item.second == id;
+            return item.id == id;
         });
         if (it != index.end()) {
-            index.erase(it);
+            it->active = false;;
         }
     }
 
@@ -90,10 +86,10 @@ struct thread_index {
     std::string get_name(rtems_id id) {
         lock_guard guard(lock);
         auto it = std::find_if(index.begin(), index.end(), [&id](const auto& item) {
-            return item.second == id;
+            return item.id == id;
         });
         if (it != index.end()) {
-            return it->first;
+            return it->name;
         }
         return "Unknown Thread";
     }
@@ -130,20 +126,30 @@ struct thread_index {
         uint64_t timeout_us = timeout_ms * 1000;
         logging = true;
         while (logging) {
-            rtems_status_code sc;
 
             for (auto& item : index) {
-                auto log_id = benchmark::log::log(
-                    benchmark::log::record::CPU_USE);
-                benchmark::log::set_cpu_usage_id(log_id, item.second);
-                sc = rtems_task_get_cpu_usage(item.second,
-                    benchmark::log::get_cpu_usage_timespec(log_id));
-                benchmark::log::timestamp(log_id);
-                if (sc != RTEMS_SUCCESSFUL) {
-                    std::ostringstream oss;
-                    oss << "cpuuse: worker: failed to get cpu usage for "
-                        << item.first << ": " << sc;
-                    throw std::runtime_error(oss.str());
+                if (item.active) {
+                    rtems_status_code sc;
+                    struct timespec usage_ts;
+                    struct timespec* log_ts;
+                    sc = rtems_task_get_cpu_usage(item.id, &usage_ts);
+                    if (sc == RTEMS_INVALID_ID) {
+                        item.active = false;
+                        continue;
+                    }
+                    if (sc != RTEMS_SUCCESSFUL) {
+                        std::ostringstream oss;
+                        oss << "cpuuse: worker: failed to get cpu usage for "
+                            << item.name << ": " << sc;
+                        throw std::runtime_error(oss.str());
+                    }
+
+                    auto log_id = benchmark::log::timestamp_and_log(
+                        benchmark::log::record::CPU_USE);
+                    benchmark::log::set_cpu_usage_id(log_id, item.id);
+                    log_ts = benchmark::log::get_cpu_usage_timespec(log_id);
+                    log_ts->tv_sec = usage_ts.tv_sec;
+                    log_ts->tv_nsec = usage_ts.tv_nsec;
                 }
             }
 
@@ -198,9 +204,25 @@ void register_thread(std::string name) {
 }
 
 void unregister_thread() {
-    auto id = benchmark::log::log(benchmark::log::record::THREAD_END);
-    benchmark::log::set_cpu_usage_id(id, rtems_task_self());
-    benchmark::log::timestamp(id);
+    rtems_status_code sc;
+
+    ti->remove(rtems_task_self());
+
+    auto usage_log_id = benchmark::log::timestamp_and_log(
+        benchmark::log::record::CPU_USE);
+    benchmark::log::set_cpu_usage_id(usage_log_id, rtems_task_self());
+    sc = rtems_task_get_cpu_usage(rtems_task_self(),
+        benchmark::log::get_cpu_usage_timespec(usage_log_id));
+    if (sc != RTEMS_SUCCESSFUL) {
+        std::ostringstream oss;
+        oss << "cpuuse: unregister: failed to get cpu usage for "
+            << ti->get_name(rtems_task_self()) << ": " << sc;
+        throw std::runtime_error(oss.str());
+    }
+
+    auto end_log_id = benchmark::log::log(benchmark::log::record::THREAD_END);
+    benchmark::log::set_cpu_usage_id(end_log_id, rtems_task_self());
+    benchmark::log::timestamp(end_log_id);
 }
 
 std::string name_from_id(rtems_id id) {

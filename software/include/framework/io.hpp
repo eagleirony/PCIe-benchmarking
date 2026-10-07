@@ -24,12 +24,6 @@ namespace framework {
 namespace api {
 namespace io {
 
-struct io_registers;
-using io_registers_ptr = std::shared_ptr<io_registers>;
-
-io_registers_ptr make_io_registers();
-static io_registers_ptr ior_ = make_io_registers();
-
 constexpr int pcie_device_count = 4;
 
 constexpr uint32_t dma_devid = 0x902410ee;
@@ -148,6 +142,19 @@ protected:
 
 };
 
+struct io_registers {
+    registers endpoint;
+    registers pl;
+};
+using io_registers_ptr = std::shared_ptr<io_registers>;
+
+io_registers_ptr make_io_registers();
+static io_registers_ptr ior_ = make_io_registers();
+
+void init();
+
+io_registers_ptr get_io_registers();
+
 void log_ep_read_latency();
 
 void log_ep_write_latency();
@@ -159,8 +166,6 @@ void log_ep_one_way_write_latency();
 void log_pl_read_latency();
 
 void log_pl_write_latency();
-
-void init();
 
 } // namespace io
 } // namespace api

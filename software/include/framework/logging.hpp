@@ -24,6 +24,7 @@
 #include <rtems.h>
 
 #include <framework/logbook.hpp>
+#include <framework/dma-mem.hpp>
 
 #include <externals/nlohmann/json.hpp>
 
@@ -79,13 +80,13 @@ struct record {
     type type_;
     struct timespec timestamp;
     union {
-        size_t transfer_size;
+        pcie::dma::mem::buffer::statistics buf_stats;
         cpuusage_info cpu_usage;
         struct timespec latency;
     };
 
-    void set_transfer_size(size_t size) {
-        transfer_size = size;
+    void set_buf_stats(pcie::dma::mem::buffer::statistics& buf_stats_) {
+        buf_stats = buf_stats_;
     }
 
     void set_cpu_usage_id(rtems_id id) {
@@ -194,8 +195,9 @@ inline void timestamp(record::id id) {
     lb_->timestamp(id);
 }
 
-inline void set_transfer_size(record::id id, size_t value) {
-    lb_->records[id].set_transfer_size(value);
+inline void set_buf_stats(record::id id,
+    pcie::dma::mem::buffer::statistics& buf_stats_) {
+    lb_->records[id].set_buf_stats(buf_stats_);
 }
 
 inline void set_cpu_usage_id(record::id id, rtems_id id_) {

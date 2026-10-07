@@ -26,8 +26,6 @@
 #include <sys/ioctl.h>
 #include <sys/mman.h>
 
-#include <rtems/bspIo.h>
-
 #include <dev/io/iodev.h>
 #include <rtems/bsd/pci-iodev.h>
 
@@ -47,11 +45,6 @@ io_registers_ptr make_io_registers() {
     }
     return ior;
 }
-
-struct io_registers {
-    registers endpoint;
-    registers pl;
-};
 
 static bool probe_dma(std::string path) {
     int fd;
@@ -81,22 +74,6 @@ static bool probe_dma(std::string path) {
 
     return true;
 }
-
-/*
-rtems_interrupt_entry rie;
-struct timespec start;
-
-static void pl_intr(void* arg) {
-    struct timespec end;
-    struct timespec result;
-    clock_gettime(CLOCK_MONOTONIC, &end);
-    uint32_t* status = (uint32_t*)0x80000090;
-    *status = *status & ~PL_REG_SIGNALS_IRQ_OUT;
-    result.tv_sec = end.tv_sec - start.tv_sec;
-    result.tv_nsec = end.tv_nsec - start.tv_nsec;
-    printk("IRQ latency: %ldns\n", result.tv_nsec);
-}
-*/
 
 static void verify_registers() {
     if (ior->endpoint.read(EP_REG_PATTERN_0_OFF) != EP_REG_PATTERN_0_VAL) {
@@ -208,18 +185,10 @@ void init() {
         << std::endl;
     std::cout << "PL Build ID: 0x" << ior->pl.read(PL_REG_BUILD_ID_OFF)
         << std::endl;
-    /*
+}
 
-    const char pl_intr_name[] = "PL_INTR";
-    rtems_interrupt_entry_initialize(&rie, pl_intr, NULL, pl_intr_name);
-    rtems_interrupt_entry_install(121, RTEMS_INTERRUPT_SHARED, &rie);
-    clock_gettime(CLOCK_MONOTONIC, &start);
-    pl.write(PL_REG_SIGNALS_OFF, PL_REG_SIGNALS_IRQ_OUT);
-
-    uint32_t reg = endpoint.read(EP_REG_SIGNALS_OFF);
-    endpoint.write(EP_REG_SIGNALS_OFF, reg | EP_REG_SIGNALS_ACK_USER_IRQ);
-    endpoint.write(EP_REG_SIGNALS_OFF, reg & ~EP_REG_SIGNALS_ACK_USER_IRQ);
-    */
+io_registers_ptr get_io_registers() {
+    return ior;
 }
 
 void log_ep_read_latency() {

@@ -314,6 +314,8 @@ protected:
 
 void init();
 
+controller_ptr get_controller(size_t id);
+
 } // namespace dma
 } // namespace pcie
 } // namespace framework
