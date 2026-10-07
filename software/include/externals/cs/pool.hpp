@@ -70,11 +70,11 @@ template<typename T> struct pool {
 
     static constexpr size_t wait_for_ever = sync::variable::wait_for_ever;
 
-    pool(const size_t number);
+    template <typename... Args> pool(const size_t number, Args&&... args);
     pool();
     virtual ~pool();
 
-    void create(const size_t number);
+    template <typename... Args> void create(const size_t number, Args&&... args);
     void destroy();
 
     void wake();
@@ -113,7 +113,7 @@ protected:
 
     void release(object_ptr obj);
 
-    void unprotected_create(const size_t number);
+    template <typename... Args> void unprotected_create(const size_t number, Args&&... args);
     void unprotected_destroy();
     void unprotected_wake();
     handle unprotected_request();
@@ -182,9 +182,10 @@ protected:
     bool wakeup;
 };
 
-template<typename T> pool<T>::pool(const size_t number_)
+template<typename T> template <typename... Args>
+pool<T>::pool(const size_t number_, Args&&... args)
     : number(0), count_(0), waiter(lock), waiting(false), wakeup(false) {
-    create(number_);
+    create(number_, std::forward<Args>(args)...);
 }
 
 template<typename T> pool<T>::pool()
@@ -199,9 +200,10 @@ template<typename T> pool<T>::~pool() {
     }
 }
 
-template<typename T> void pool<T>::create(const size_t number_) {
+template<typename T> template <typename... Args>
+void pool<T>::create(const size_t number_, Args&&... args) {
     lock_guard guard(lock);
-    unprotected_create(number_);
+    unprotected_create(number_, std::forward<Args>(args)...);
 }
 
 template<typename T> void pool<T>::destroy() {
@@ -263,13 +265,14 @@ template<typename T> void pool<T>::output(std::ostream& out) {
     out << "count=" << count_.load() << " num=" << number;
 }
 
-template<typename T> void pool<T>::unprotected_create(const size_t number_) {
+template<typename T> template <typename... Args>
+void pool<T>::unprotected_create(const size_t number_, Args&&... args) {
     if (valid()) {
         throw std::runtime_error("pool is already created");
     }
     number = number_;
     for (size_t n = 0; n < number; ++n) {
-        object_ptr obj = new object;
+        object_ptr obj = new object(std::forward<Args>(args)...);
         objects.push_front(obj);
     }
     count_ = number;
