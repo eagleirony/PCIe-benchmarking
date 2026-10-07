@@ -64,6 +64,12 @@ int main(int argc, char** argv) {
         app::framework::api::cpuuse::init(5);
         app::framework::api::io::init();
         app::framework::api::cpuuse::run();
+        app::framework::api::io::log_ep_read_latency();
+        app::framework::api::io::log_ep_write_latency();
+        app::framework::api::io::log_ep_one_way_read_latency();
+        app::framework::api::io::log_ep_one_way_write_latency();
+        app::framework::api::io::log_pl_read_latency();
+        app::framework::api::io::log_pl_write_latency();
         app::framework::pcie::dma::init();
         app::framework::api::cpuuse::stop();
         app::framework::benchmark::log::output_and_reset(

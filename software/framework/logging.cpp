@@ -45,6 +45,11 @@ void record::serialise(json& rj) {
         case EP_DMA_BLOCK_TX_END:
             rj["transfer_size"] = transfer_size;
             break;
+        case EP_IO_WRITE_OCCURED:
+        case EP_IO_READ_OCCURED:
+            rj["latency"]["seconds"] = latency.tv_sec;
+            rj["latency"]["nanoseconds"] = latency.tv_nsec;
+            break;
         case CPU_USE:
             rj["usage"]["seconds"] = cpu_usage.usage.tv_sec;
             rj["usage"]["nanoseconds"] = cpu_usage.usage.tv_nsec;

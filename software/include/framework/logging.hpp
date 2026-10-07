@@ -81,6 +81,7 @@ struct record {
     union {
         size_t transfer_size;
         cpuusage_info cpu_usage;
+        struct timespec latency;
     };
 
     void set_transfer_size(size_t size) {
@@ -93,6 +94,10 @@ struct record {
 
     struct timespec* get_cpu_usage_timespec() {
         return &cpu_usage.usage;
+    }
+
+    struct timespec* get_latency_timespec() {
+        return &latency;
     }
 
     void serialise(json& j);
@@ -199,6 +204,10 @@ inline void set_cpu_usage_id(record::id id, rtems_id id_) {
 
 inline struct timespec* get_cpu_usage_timespec(record::id id) {
     return lb_->records[id].get_cpu_usage_timespec();
+}
+
+inline struct timespec* get_latency_timespec(record::id id) {
+    return lb_->records[id].get_latency_timespec();
 }
 
 } // namespace log

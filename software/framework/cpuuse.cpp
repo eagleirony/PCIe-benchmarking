@@ -105,8 +105,13 @@ struct thread_index {
 
     void run() {
         lock_guard guard(lock);
-        logging = true;
+        uint64_t timeout_us = timeout_ms * 1000;
         start_worker();
+        while(!logging) {
+            lock.unlock();
+            usleep(timeout_us);
+            lock.lock();
+        }
     }
 
     void stop() {
@@ -123,6 +128,7 @@ struct thread_index {
         log_guard lguard("CPU_USE");
         lock_guard guard(lock);
         uint64_t timeout_us = timeout_ms * 1000;
+        logging = true;
         while (logging) {
             rtems_status_code sc;
 

@@ -32,31 +32,26 @@
 #include <rtems/bsd/pci-iodev.h>
 
 #include <framework/io.hpp>
+#include <framework/logging.hpp>
 
 namespace app {
 namespace framework {
 namespace api {
 namespace io {
 
-uint32_t* registers::address(uint32_t offset) {
-    uint64_t address = reinterpret_cast<uint64_t>(base);
+io_registers_ptr ior;
 
-    address = address + offset;
-
-    return reinterpret_cast<uint32_t*>(address);
+io_registers_ptr make_io_registers() {
+    if (!ior) {
+        ior = std::make_shared<io_registers>();
+    }
+    return ior;
 }
 
-uint32_t registers::read(uint32_t offset) {
-    volatile uint32_t* reg = address(offset);
-
-    return *reg;
-}
-
-void registers::write(uint32_t offset, uint32_t value) {
-    uint32_t* reg = address(offset);
-
-    *reg = value;
-}
+struct io_registers {
+    registers endpoint;
+    registers pl;
+};
 
 static bool probe_dma(std::string path) {
     int fd;
@@ -87,6 +82,7 @@ static bool probe_dma(std::string path) {
     return true;
 }
 
+/*
 rtems_interrupt_entry rie;
 struct timespec start;
 
@@ -100,14 +96,55 @@ static void pl_intr(void* arg) {
     result.tv_nsec = end.tv_nsec - start.tv_nsec;
     printk("IRQ latency: %ldns\n", result.tv_nsec);
 }
+*/
+
+static void verify_registers() {
+    if (ior->endpoint.read(EP_REG_PATTERN_0_OFF) != EP_REG_PATTERN_0_VAL) {
+        throw std::runtime_error("io: verify: endpoint pattern 0 did not match");
+    }
+    if (ior->endpoint.read(EP_REG_PATTERN_1_OFF) != EP_REG_PATTERN_1_VAL) {
+        throw std::runtime_error("io: verify: endpoint pattern 1 did not match");
+    }
+    if (ior->endpoint.read(EP_REG_PATTERN_2_OFF) != EP_REG_PATTERN_2_VAL) {
+        throw std::runtime_error("io: verify: endpoint pattern 2 did not match");
+    }
+    if (ior->endpoint.read(EP_REG_PATTERN_3_OFF) != EP_REG_PATTERN_3_VAL) {
+        throw std::runtime_error("io: verify: endpoint pattern 3 did not match");
+    }
+    if (ior->endpoint.read(EP_REG_PATTERN_4_OFF) != EP_REG_PATTERN_4_VAL) {
+        throw std::runtime_error("io: verify: endpoint pattern 4 did not match");
+    }
+    if (ior->endpoint.read(EP_REG_PATTERN_5_OFF) != EP_REG_PATTERN_5_VAL) {
+        throw std::runtime_error("io: verify: endpoint pattern 5 did not match");
+    }
+
+    if (ior->pl.read(PL_REG_PATTERN_0_OFF) != PL_REG_PATTERN_0_VAL) {
+        throw std::runtime_error("io: verify: pl pattern 0 did not match");
+    }
+    if (ior->pl.read(PL_REG_PATTERN_1_OFF) != PL_REG_PATTERN_1_VAL) {
+        throw std::runtime_error("io: verify: pl pattern 1 did not match");
+    }
+    if (ior->pl.read(PL_REG_PATTERN_2_OFF) != PL_REG_PATTERN_2_VAL) {
+        throw std::runtime_error("io: verify: pl pattern 2 did not match");
+    }
+    if (ior->pl.read(PL_REG_PATTERN_3_OFF) != PL_REG_PATTERN_3_VAL) {
+        throw std::runtime_error("io: verify: pl pattern 3 did not match");
+    }
+    if (ior->pl.read(PL_REG_PATTERN_4_OFF) != PL_REG_PATTERN_4_VAL) {
+        throw std::runtime_error("io: verify: pl pattern 4 did not match");
+    }
+    if (ior->pl.read(PL_REG_PATTERN_5_OFF) != PL_REG_PATTERN_5_VAL) {
+        throw std::runtime_error("io: verify: pl pattern 5 did not match");
+    }
+}
 
 void init() {
-    registers endpoint;
-    registers pl;
     int fd;
     int status;
     struct rtems_iodev_region region;
     std::string path;
+    bool modified;
+    uint32_t git_hash;
 
     for (int i = 0; i < pcie_device_count; i++) {
         std::ostringstream oss;
@@ -138,7 +175,7 @@ void init() {
         throw std::runtime_error("dma: error: IOCTL get region failed");
     }
 
-    endpoint.base = mmap(
+    ior->endpoint.base = mmap(
         NULL,
         region.size,
         ( PROT_READ | PROT_WRITE ),
@@ -146,68 +183,32 @@ void init() {
         fd,
         region.index
     );
-    if (endpoint.base == MAP_FAILED ) {
+    if (ior->endpoint.base == MAP_FAILED ) {
         close(fd);
         fd = 0;
         throw std::runtime_error("dma: error: mmap failed");
     }
 
-    pl.base = reinterpret_cast<void*>(PL_REG_BASE);
+    ior->pl.base = reinterpret_cast<void*>(PL_REG_BASE);
 
-    std::cout << "Endpoint:" << std::endl;
-    std::cout << "Git Hash: ";
-    uint32_t git = endpoint.read(0x30) & 0x0FFFFFFF;
-    bool modified = ((endpoint.read(0x30) & 0x80000000) != 0);
-    std::cout << std::hex << "0x" << git << " modified: " << modified << std::endl;
-    std::cout << "Build ID: ";
-    std::cout << std::hex << "0x" << endpoint.read(0x2C) << std::endl;
-    std::cout << "Register Test Patterns: " << std::endl;
-    std::cout << std::hex << "0x" << endpoint.read(0x0) << std::endl;
-    std::cout << std::hex << "0x" << endpoint.read(0x4) << std::endl;
-    std::cout << std::hex << "0x" << endpoint.read(0x8) << std::endl;
-    std::cout << std::hex << "0x" << endpoint.read(0xC) << std::endl;
-    std::cout << std::hex << "0x" << endpoint.read(0x10) << std::endl;
-    std::cout << std::hex << "0x" << endpoint.read(0x14) << std::endl;
-    std::cout << "PCIe Status Register: ";
-    std::cout << std::hex << "0x" << endpoint.read(0x18) << std::endl;
-    std::cout << "FIFO Status Register: ";
-    std::cout << std::hex << "0x" << endpoint.read(0x1C) << std::endl;
-    uint64_t uptime = (((uint64_t)endpoint.read(0x20)) << 32)
-        | (endpoint.read(0x24));
-    std::cout << "uptime register: ";
-    std::cout << std::hex << "0x" << uptime << " (" << uptime * 4e-9 << "s)" << std::endl;
-    std::cout << "counter register: ";
-    std::cout << std::hex << "0x" << endpoint.read(0x28) << std::endl;
+    verify_registers();
 
-    std::cout << "PL:" << std::endl;
-    std::cout <<  "Git Hash: ";
-    git = pl.read(0x30) & 0x0FFFFFFF;
-    modified = ((pl.read(0x30) & 0x80000000) != 0);
-    std::cout << std::hex << "0x" << git << " modified: " << modified << std::endl;
-    std::cout << "Build ID: ";
-    std::cout << std::hex << "0x" << pl.read(0x2C) << std::endl;
-    uptime = (((uint64_t)pl.read(0x20)) << 32)
-        | (pl.read(0x24));
-    std::cout << "uptime register: ";
-    std::cout << std::hex << "0x" << uptime << std::dec << " ("
-        << uptime * 4e-9 << "s)" << std::endl;
-    std::cout << "counter register: ";
-    std::cout << std::hex << "0x" << pl.read(0x28) << std::endl;
+    std::cout << "Endpoint Git Hash: ";
+    git_hash = ior->endpoint.read(EP_REG_BUILD_VER_OFF) & 0x0FFFFFFF;
+    modified = ((ior->endpoint.read(EP_REG_BUILD_VER_OFF) & 0x80000000) != 0);
+    std::cout << std::hex << git_hash << " modified: " << modified
+        << std::endl;
+    std::cout << "Endpoint Build ID: 0x" << ior->endpoint.read(EP_REG_BUILD_ID_OFF)
+        << std::endl;
 
-    pl.write(0x90, 0x0);
-    pl.write(0x90, 0x2);
-    uint32_t latency = endpoint.read(0x28);
-    std::cout << "Read Latency: ";
-    std::cout << std::hex << "0x" << latency << std::dec
-        << " (" << latency * 4 << "ns)" << std::endl;
-
-    pl.write(0x90, 0x0);
-    pl.write(0x90, 0x1);
-    endpoint.write(0x98, 0x1);
-    latency = pl.read(0x28);
-    std::cout << "Write Latency: ";
-    std::cout << std::hex << "0x" << latency << std::dec
-        << " (" << latency * 4 << "ns)" << std::endl;
+    std::cout << "PL Git Hash: ";
+    git_hash = ior->pl.read(PL_REG_BUILD_VER_OFF) & 0x0FFFFFFF;
+    modified = ((ior->pl.read(PL_REG_BUILD_VER_OFF) & 0x80000000) != 0);
+    std::cout << std::hex << git_hash << " modified: " << modified
+        << std::endl;
+    std::cout << "PL Build ID: 0x" << ior->pl.read(PL_REG_BUILD_ID_OFF)
+        << std::endl;
+    /*
 
     const char pl_intr_name[] = "PL_INTR";
     rtems_interrupt_entry_initialize(&rie, pl_intr, NULL, pl_intr_name);
@@ -218,6 +219,74 @@ void init() {
     uint32_t reg = endpoint.read(EP_REG_SIGNALS_OFF);
     endpoint.write(EP_REG_SIGNALS_OFF, reg | EP_REG_SIGNALS_ACK_USER_IRQ);
     endpoint.write(EP_REG_SIGNALS_OFF, reg & ~EP_REG_SIGNALS_ACK_USER_IRQ);
+    */
+}
+
+void log_ep_read_latency() {
+    benchmark::log::log_and_timestamp(benchmark::log::record::EP_IO_READ_START);
+    ior->endpoint.read(EP_REG_PATTERN_0_OFF);
+    benchmark::log::timestamp_and_log(benchmark::log::record::EP_IO_READ_RETURNED);
+}
+
+void log_ep_write_latency() {
+    benchmark::log::log_and_timestamp(benchmark::log::record::EP_IO_WRITE_START);
+    ior->endpoint.write(EP_REG_SCRATCH_0_OFF, EP_REG_PATTERN_0_VAL);
+    benchmark::log::timestamp_and_log(benchmark::log::record::EP_IO_WRITE_RETURNED);
+}
+
+void log_ep_one_way_read_latency() {
+    struct timespec* latency_ts;
+    uint32_t latency;
+    uint32_t pl_reg = ior->pl.read(PL_REG_SIGNALS_OFF);
+    pl_reg = pl_reg & ~PL_REG_SIGNALS_EXPANSION_OUT;
+
+    ior->pl.write(PL_REG_SIGNALS_OFF, pl_reg);
+
+    pl_reg = pl_reg | PL_REG_SIGNALS_EXPANSION_OUT;
+
+    auto log_id = benchmark::log::log_and_timestamp(benchmark::log::record::EP_IO_READ_OCCURED);
+    ior->pl.write(PL_REG_SIGNALS_OFF, pl_reg);
+    latency = ior->endpoint.read(EP_REG_USER_TIME_OFF);
+
+    latency_ts = benchmark::log::get_latency_timespec(log_id);
+    latency_ts->tv_sec = 0;
+    latency_ts->tv_nsec = CLK_PERIOD_NS * latency;
+}
+
+void log_ep_one_way_write_latency() {
+    struct timespec* latency_ts;
+    uint32_t latency;
+    uint32_t pl_reg = ior->pl.read(PL_REG_SIGNALS_OFF);
+    uint32_t ep_reg = ior->pl.read(EP_REG_SIGNALS_OFF);
+    pl_reg = pl_reg & ~PL_REG_SIGNALS_USER_TIMER_RSTN;
+    ep_reg = ep_reg & ~EP_REG_SIGNALS_EXPANSION_OUT;
+
+    ior->pl.write(PL_REG_SIGNALS_OFF, pl_reg);
+    ior->endpoint.write(EP_REG_SIGNALS_OFF, ep_reg);
+
+    pl_reg = pl_reg | PL_REG_SIGNALS_USER_TIMER_RSTN;
+    ep_reg = ep_reg | EP_REG_SIGNALS_EXPANSION_OUT;
+
+    auto log_id = benchmark::log::log_and_timestamp(benchmark::log::record::EP_IO_WRITE_OCCURED);
+    ior->pl.write(PL_REG_SIGNALS_OFF, pl_reg);
+    ior->endpoint.write(EP_REG_SIGNALS_OFF, ep_reg);
+    latency = ior->pl.read(PL_REG_USER_TIME_OFF);
+
+    latency_ts = benchmark::log::get_latency_timespec(log_id);
+    latency_ts->tv_sec = 0;
+    latency_ts->tv_nsec = CLK_PERIOD_NS * latency;
+}
+
+void log_pl_read_latency() {
+    benchmark::log::log_and_timestamp(benchmark::log::record::PL_IO_READ_START);
+    ior->pl.read(PL_REG_PATTERN_0_OFF);
+    benchmark::log::timestamp_and_log(benchmark::log::record::PL_IO_READ_RETURNED);
+}
+
+void log_pl_write_latency() {
+    benchmark::log::log_and_timestamp(benchmark::log::record::PL_IO_WRITE_START);
+    ior->pl.write(PL_REG_SCRATCH_0_OFF, PL_REG_PATTERN_0_VAL);
+    benchmark::log::timestamp_and_log(benchmark::log::record::PL_IO_WRITE_RETURNED);
 }
 
 } // namespace io

@@ -24,6 +24,12 @@ namespace framework {
 namespace api {
 namespace io {
 
+struct io_registers;
+using io_registers_ptr = std::shared_ptr<io_registers>;
+
+io_registers_ptr make_io_registers();
+static io_registers_ptr ior_ = make_io_registers();
+
 constexpr int pcie_device_count = 4;
 
 constexpr uint32_t dma_devid = 0x902410ee;
@@ -46,9 +52,9 @@ constexpr uint32_t PL_REG_PATTERN_4_OFF   = 0x10;
 constexpr uint32_t PL_REG_PATTERN_5_OFF   = 0x14;
   constexpr uint32_t PL_REG_PATTERN_5_VAL   = 0x89ABCDEF;
 
-constexpr uint32_t PL_REG_UPTIME_HI_OFF     = 0x20;
-constexpr uint32_t PL_REG_UPTIME_LO_OFF     = 0x24;
-constexpr uint32_t PL_REG_USER_TIME_LO_OFF  = 0x28;
+constexpr uint32_t PL_REG_UPTIME_HI_OFF = 0x20;
+constexpr uint32_t PL_REG_UPTIME_LO_OFF = 0x24;
+constexpr uint32_t PL_REG_USER_TIME_OFF = 0x28;
 
 constexpr uint32_t PL_REG_BUILD_ID_OFF  = 0x2C;
 constexpr uint32_t PL_REG_BUILD_VER_OFF = 0x30;
@@ -76,10 +82,11 @@ constexpr uint32_t EP_REG_PATTERN_4_OFF   = 0x10;
 constexpr uint32_t EP_REG_PATTERN_5_OFF   = 0x14;
   constexpr uint32_t EP_REG_PATTERN_5_VAL   = 0x89ABCDEF;
 
-constexpr uint32_t EP_REG_PCIE_STS_OFF      = 0x18;
-constexpr uint32_t EP_REG_UPTIME_HI_OFF     = 0x20;
-constexpr uint32_t EP_REG_UPTIME_LO_OFF     = 0x24;
-constexpr uint32_t EP_REG_USER_TIME_LO_OFF  = 0x28;
+constexpr uint32_t EP_REG_PCIE_STS_OFF = 0x18;
+
+constexpr uint32_t EP_REG_UPTIME_HI_OFF = 0x20;
+constexpr uint32_t EP_REG_UPTIME_LO_OFF = 0x24;
+constexpr uint32_t EP_REG_USER_TIME_OFF = 0x28;
 
 constexpr uint32_t EP_REG_BUILD_ID_OFF  = 0x2C;
 constexpr uint32_t EP_REG_BUILD_VER_OFF = 0x30;
@@ -108,6 +115,8 @@ constexpr uint32_t EP_REG_C2H_0_PN23_RATE_OFF = 0x9C;
 constexpr uint32_t EP_REG_C2H_1_PN23_RATE_OFF = 0xA0;
 constexpr uint32_t EP_REG_H2C_1_PN23_RATE_OFF = 0xA4;
 
+constexpr uint32_t CLK_PERIOD_NS = 0x4;
+
 struct registers {
     void* base;
 
@@ -116,14 +125,40 @@ struct registers {
         base = src.base;
     }
 
-    uint32_t read(uint32_t offset);
-    void write(uint32_t offset, uint32_t value);
+    inline uint32_t read(uint32_t offset) {
+        volatile uint32_t* reg = address(offset);
+
+        return *reg;
+    }
+
+    inline void write(uint32_t offset, uint32_t value) {
+        uint32_t* reg = address(offset);
+
+        *reg = value;
+    }
 
 protected:
-    uint32_t* address(uint32_t offset);
+    inline uint32_t* address(uint32_t offset) {
+        uint64_t address = reinterpret_cast<uint64_t>(base);
+
+        address = address + offset;
+
+        return reinterpret_cast<uint32_t*>(address);
+    }
+
 };
 
-void test_latency();
+void log_ep_read_latency();
+
+void log_ep_write_latency();
+
+void log_ep_one_way_read_latency();
+
+void log_ep_one_way_write_latency();
+
+void log_pl_read_latency();
+
+void log_pl_write_latency();
 
 void init();
 
