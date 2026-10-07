@@ -37,30 +37,35 @@ namespace pcie {
 namespace dma {
 namespace mem {
 
-template<size_t Size, size_t Alignment, size_t Boundary> struct buffer {
+struct buffer {
     struct statistics {
         bool eop;
+        bool eos;
         size_t length;
     };
 
     void* buf;
     statistics stats;
+    size_t size;
+    size_t alignment;
+    size_t boundary;
 
     size_t get_size() {
-        return Size;
+        return size;
     }
     size_t get_alignment() {
-        return Alignment;
+        return alignment;
     }
     size_t get_boundary() {
-        return Boundary;
+        return boundary;
     }
 
-    buffer() {
+    buffer(size_t size_, size_t alignment_, size_t boundary_) :
+        size(size_), alignment(alignment_), boundary(boundary_) {
         buf = rtems_cache_coherent_allocate(
-            Size,
-            Alignment,
-            Boundary);
+            size,
+            alignment,
+            boundary);
         if (buf == nullptr) {
             throw std::bad_alloc();
         }
@@ -72,9 +77,9 @@ template<size_t Size, size_t Alignment, size_t Boundary> struct buffer {
     buffer& operator=(const buffer&&) = delete;
 };
 
-using dma_buffer = buffer<DMA_BUFF_SIZE, DMA_BUFF_ALIGN, DMA_BUFF_BOUNDARY>;
+using dma_buffer = buffer;
 using dma_buffer_ptr =
-    std::shared_ptr<buffer<DMA_BUFF_SIZE, DMA_BUFF_ALIGN, DMA_BUFF_BOUNDARY>>;
+    std::shared_ptr<buffer>;
 
 struct writeback {
     void* wb;

@@ -103,7 +103,7 @@ inline void registers::write(uint32_t target, uint32_t offset, uint32_t value) {
 channel::channel(registers& reg_, uint32_t dir_, size_t id_, size_t cid_,
     size_t desc_count_) : regs(reg_), dir(dir_), id(id_), cid(cid_),
     running(false) {
-    bufs.create(2 * XLNX_PCIE_DMA_CHAN_DESC_COUNT);
+    bufs.create(2 * XLNX_PCIE_DMA_CHAN_DESC_COUNT, DMA_BUFF_SIZE, DMA_BUFF_ALIGN, DMA_BUFF_BOUNDARY);
 
     descs[0].desc = rtems_cache_coherent_allocate(
         XLNX_PCIE_DMA_DESC_SIZE * XLNX_PCIE_DMA_CHAN_DESC_COUNT,
@@ -231,22 +231,23 @@ void channel::set_block(size_t length) {
 }
 
 bool channel::is_running() {
+    lock_guard guard(lock);
     return running;
 }
 
 void channel::set_callback(callback& cb_) {
+    lock_guard guard(lock);
     if (is_running()) {
         throw std::runtime_error("Channel is running");
     }
-    lock_guard guard(lock);
     cb = cb_;
 }
 
 void channel::start() {
+    lock_guard guard(lock);
     if (is_running()) {
         return;
     }
-    lock_guard guard(lock);
     uint32_t desc_hi;
     uint32_t desc_lo;
     mem::descriptor* desc;
@@ -310,6 +311,12 @@ void channel::handle_intr() {
             }
 
             cmpl_buf->stats.eop = d.wb->eop();
+            if (pipelined &&
+                status & XLNX_PCIE_DMA_CHAN_STS_STOP) {
+                cmpl_buf->stats.eos = true;
+            } else {
+                cmpl_buf->stats.eos = false;
+            }
             cmpl_buf->stats.length = d.wb->length();
             d.wb->clear();
 
@@ -602,7 +609,7 @@ void controller::start_dma_msi_thread() {
     rtems::thread::attributes attr;
     std::ostringstream oss;
 
-    oss << "DMA_CTLR_MSI";
+    oss << "CTLR_MSI_DMA";
 
     attr.set_name(oss.str().c_str());
     attr.set_rtems_priority(97);
@@ -617,7 +624,7 @@ void controller::start_usr_msi_thread() {
     rtems::thread::attributes attr;
     std::ostringstream oss;
 
-    oss << "IRQ_CTLR_MSI";
+    oss << "CTLR_MSI_IRQ";
 
     attr.set_name(oss.str().c_str());
     attr.set_rtems_priority(97);
@@ -628,7 +635,7 @@ void controller::start_usr_msi_thread() {
 }
 
 void controller::dma_msi_worker() {
-    api::cpuuse::log_guard lguard("DMA_CTLR_MSI");
+    api::cpuuse::log_guard lguard("CTLR_MSI_DMA");
     int status;
     size_t count;
     rtems_iodev_event_args event_args;
@@ -678,7 +685,7 @@ void controller::dma_msi_worker() {
 }
 
 void controller::usr_msi_worker() {
-    api::cpuuse::log_guard lguard("IRQ_CTLR_MSI");
+    api::cpuuse::log_guard lguard("CTLR_MSI_IRQ");
     int status;
     size_t count;
     rtems_iodev_event_args event_args;
@@ -784,47 +791,24 @@ void init() {
 
     channel::callback cb = [](mem::dma_buffer_ptr buf){
         auto id = benchmark::log::timestamp_and_log(benchmark::log::record::EP_DMA_PIPELINE_RECV);
-        benchmark::log::set_transfer_size(id, buf->stats.length);
-        return;
+        benchmark::log::set_buf_stats(id, buf->stats);
     };
 
-
-    eps->at(0)->axis.write(0x9C, 0x100);
     eps->at(0)->c2h_chans[0]->set_callback(cb);
+    /*
     eps->at(0)->c2h_chans[0]->run();
     sleep(1);
     eps->at(0)->c2h_chans[0]->stop();
-
-    /*
-    controller::callback ccb = [](int irq) {
-        struct timespec end;
-        struct timespec result;
-        clock_gettime(CLOCK_MONOTONIC, &end);
-        std::cout << "IRQ from " << irq << std::endl;
-        result.tv_sec = end.tv_sec - start.tv_sec;
-        result.tv_nsec = end.tv_nsec - start.tv_nsec;
-        std::cout << "MSI Latency: " << result.tv_nsec << "ns" << std::endl;
-        uint32_t* status = (uint32_t*)0x80000090;
-        *status = 0x0;
-        eps->at(0)->axis.write(0x98, 0x4);
-        eps->at(0)->axis.write(0x98, 0x0);
-    };
-
-    eps->at(0)->set_user_irq_callback(ccb);
-    eps->at(0)->enable_user_irq(0);
     */
+}
 
-    benchmark::log::log_and_timestamp(benchmark::log::record::EP_IO_READ_START);
-    eps->at(0)->axis.read(0x0);
-    benchmark::log::timestamp_and_log(benchmark::log::record::EP_IO_READ_RETURNED);
-
-    /*
-    sleep(1);
-    uint32_t* status = (uint32_t*)0x80000090;
-    clock_gettime(CLOCK_MONOTONIC, &start);
-    *status = 0x2;
-    */
-
+controller_ptr get_controller(size_t id) {
+    if (id >= eps->size()) {
+        std::ostringstream oss;
+        oss << "dma: get_controller: id out of range: " << id << " >= " << eps->size();
+        throw std::runtime_error(oss.str());
+    }
+    return eps->at(id);
 }
 
 } // namespace dma
