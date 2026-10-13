@@ -11,6 +11,9 @@ import buildver
 import software.firmware.uboot as uboot
 import hog
 
+from waflib import Logs
+from waflib.Build import BuildContext
+
 rtems_version = "7"
 
 directories = ['software']
@@ -34,6 +37,14 @@ except:
     sys.exit(1)
 
 
+class HardwarePLContext(BuildContext):
+    cmd = 'build_pl'
+    variant = 'hardware_pl'
+
+class HardwareEndpointContext(BuildContext):
+    cmd = 'build_ep'
+    variant = 'hardware_ep'
+
 def init(ctx):
     rtems_waf.rtems.init(ctx, version=rtems_version, long_commands=True)
     buildcontrol.recurse(ctx, directories)
@@ -45,20 +56,43 @@ def bsp_configure(conf, arch_bsp):
     conf.env.LIB = ['bsd', 'z'] + conf.env.LIB
 
 def options(opt):
+    opt.add_option_group('PCIe Benchmark Build')
+    pbb_opts = opt.get_option_group('PCIe Benchmark Build')
+    pbb_opts.add_option('--build',
+                        default='both',
+                        dest='build_type',
+                        help='Build hardware, software or both')
+
     buildcontrol.recurse(opt, directories)
     buildcontrol.options(opt)
     rtems_waf.rtems.options(opt)
     rtems_waf.rtems_bsd.options(opt)
 
 
-def configure(conf):
+def configure_software(conf):
     buildcontrol.recurse(conf, directories)
     buildcontrol.options(conf)
     uboot.configure(conf)
     rtems_waf.rtems.configure(conf, bsp_configure=bsp_configure)
 
 
-def build(bld):
+def configure_hardware(conf):
+    hog.configure(conf)
+
+
+def configure(conf):
+    conf.env.BUILD_TYPE = conf.options.build_type
+
+    if conf.options.build_type == 'both':
+        configure_software(conf)
+        configure_hardware(conf)
+    if conf.options.build_type == 'software':
+        configure_software(conf)
+    if conf.options.build_type == 'hardware':
+        configure_hardware(conf)
+
+
+def build_software(bld):
     buildcontrol.recurse(bld, directories)
 
     bld.objects(features='cxx cxxprogram',
@@ -74,18 +108,28 @@ def build(bld):
 
     uboot.mkimage(bld, 'app')
 
-def create_endpoint(bld):
-    buildver.build_vhdl()
-    hog.hog_c('endpoint')
-
-def build_endpoint(bld):
-    buildver.build_vhdl()
-    hog.hog_cw('endpoint')
-
-def create_pl(bld):
-    buildver.build_vhdl()
-    hog.hog_c('pl')
+def build_ep(bld):
+    buildver.build_vhdl(bld)
+    hog.hog_build(bld, 'endpoint')
 
 def build_pl(bld):
-    buildver.build_vhdl()
-    hog.hog_cw('pl')
+    buildver.build_vhdl(bld)
+    hog.hog_build(bld, 'pl')
+
+def build(bld):
+    if (bld.variant == 'hardware_pl'):
+        if (bld.env.BUILD_TYPE != 'hardware' and
+            bld.env.BUILD_TYPE != 'both'):
+            bld.fatal('Not configured to build hardware')
+        build_pl(bld)
+    elif(bld.variant == 'hardware_ep'):
+        if (bld.env.BUILD_TYPE != 'hardware' and
+            bld.env.BUILD_TYPE != 'both'):
+            bld.fatal('Not configured to build hardware')
+        build_ep(bld)
+    elif (bld.variant != 'hardware_pl' and
+        bld.variant != 'hardware_ep'):
+        if (bld.env.BUILD_TYPE != 'software' and
+            bld.env.BUILD_TYPE != 'both'):
+            bld.fatal('Not configured to build software')
+        build_software(bld)

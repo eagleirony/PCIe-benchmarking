@@ -16,22 +16,64 @@
  # limitations under the License.
  #
 
-import subprocess
+import shutil
 
 from waflib.Context import Context
 
 import buildver
 
-def hog_c(project):
-    cmd = ['./Hog/Do', 'CREATE', project];
+hog_data = {
+    'endpoint': {
+        'bit': 'Projects/endpoint/endpoint.runs/impl_1/top.bit',
+        'ltx': 'Projects/endpoint/endpoint.runs/impl_1/top.ltx'
+        },
+    'pl': {
+        'xsa': 'Projects/pl/pl.xsa'
+        }
+}
 
-    res = subprocess.run(cmd)
+def hog_build(bld, project):
+    from waflib import Task
 
-    return res.returncode
+    hog_cmd = './Hog/Do CREATEWORKFLOW ' + project
+    xsa_cmd = ('vivado -mode batch -source ./hardware/tcl/pl/xsa.tcl -notrace '
+        '-tclargs ' + hog_data['pl']['xsa'])
 
-def hog_cw(project):
-    cmd = ['./Hog/Do', 'CREATEWORKFLOW', project];
+    def run_hog(task):
+        return task.exec_command(hog_cmd, cwd='.', stdout=None, stderr=None)
 
-    res = subprocess.run(cmd)
+    def export_xsa(task):
+        if project == 'pl':
+            return task.exec_command(xsa_cmd, cwd='.',
+                                     stdout=None, stderr=None)
 
-    return res.returncode
+    def copy_files(task):
+        if project == 'endpoint':
+            bit_file = task.outputs[0].abspath();
+            ltx_file = task.outputs[1].abspath();
+            shutil.copy(hog_data[project]['bit'], bit_file)
+            shutil.copy(hog_data[project]['ltx'], ltx_file)
+        elif project == 'pl':
+            xsa_file = task.outputs[0].abspath();
+            shutil.copy(hog_data[project]['xsa'], xsa_file)
+
+    class hog_task(Task.Task):
+        color = 'PINK'
+        run_str = (run_hog, export_xsa, copy_files)
+
+    hog_tsk = hog_task(env=bld.env)
+
+    if project == 'endpoint':
+        hog_tsk.set_outputs(bld.path.find_or_declare(bld.env.BUILD_ID + '.bit'))
+        hog_tsk.set_outputs(bld.path.find_or_declare(bld.env.BUILD_ID + '.ltx'))
+    elif project == 'pl':
+        hog_tsk.set_outputs(bld.path.find_or_declare(bld.env.BUILD_ID + '.xsa'))
+    bld.add_to_group(hog_tsk)
+
+
+def options(opt):
+    pass
+
+
+def configure(conf):
+    conf.find_program('vivado', var='VIVADO', mandatory=True)

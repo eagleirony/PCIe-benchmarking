@@ -99,9 +99,15 @@ def set_build_id(bld):
         bid = out[:7]
     elif bid is None:
         bid = 'no-repo'
+
+    bld.env.BUILD_ID_TIME = hex(int(time.time()))[2:]
+    bld.env.BUILD_ID_GIT = bid
+    bld.env.BUILD_ID_MODIFIED = modified
+
     if modified:
         bid += '-m'
-    bid += '-' + hex(int(time.time()))[2:]
+
+    bid += '-' + bld.env.BUILD_ID_TIME
     bld.env.BUILD_ID = bid
 
 
@@ -131,31 +137,18 @@ def build_c(bld):
     build_ver_tsk.set_outputs(outs)
     bld.add_to_group(build_ver_tsk)
 
-def build_vhdl():
-    bid = None
-    bver = None
-    modified = None
-    out = None
-    try:
-        cmd = ["git", "ls-files", "--modified"]
-        res = subprocess.run(cmd, capture_output=True, text = True)
-        modified = res.stdout;
-        cmd = ["git", "rev-parse", "--verify", "HEAD"]
-        res = subprocess.run(cmd, capture_output=True, text = True)
-        out = res.stdout;
-    except:
-        out = '0000000'
-        modified = False
+def build_vhdl(bld):
+    set_build_id(bld)
 
-    if out:
-        bver = out[:7]
+    bid = bld.env.BUILD_ID_TIME
+    bver = bld.env.BUILD_ID_GIT
+    modified = bld.env.BUILD_ID_MODIFIED
 
     if modified:
         bver = '8' + bver
     else:
         bver = '0' + bver
 
-    bid = hex(int(time.time()))[2:]
 
     with open(outputs_vhdl[0], 'w') as bv:
         bv.write(build_ver_template_vhdl[0])
