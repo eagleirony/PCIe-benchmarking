@@ -17,6 +17,7 @@
  #
 
 import shutil
+import sys
 
 from waflib.Context import Context
 
@@ -40,11 +41,18 @@ def hog_build(bld, project):
         '-tclargs ' + hog_data['pl']['xsa'])
 
     def run_hog(task):
-        return task.exec_command(hog_cmd, cwd='.', stdout=None, stderr=None)
+        cmd = hog_cmd
+        if task.env.WIN_BASH:
+            cmd = [task.env.WIN_BASH[0], '-c', hog_cmd]
+
+        return task.exec_command(cmd, cwd='.', stdout=None, stderr=None)
 
     def export_xsa(task):
         if project == 'pl':
-            return task.exec_command(xsa_cmd, cwd='.',
+            cmd = xsa_cmd
+            if task.env.WIN_BASH:
+                cmd = [task.env.WIN_BASH[0], '-c', xsa_cmd]
+            return task.exec_command(cmd, cwd='.',
                                      stdout=None, stderr=None)
 
     def copy_files(task):
@@ -77,3 +85,7 @@ def options(opt):
 
 def configure(conf):
     conf.find_program('vivado', var='VIVADO', mandatory=True)
+
+    if sys.platform == 'win32':
+        conf.find_program('bash', var='WIN_BASH', mandatory=True)
+
