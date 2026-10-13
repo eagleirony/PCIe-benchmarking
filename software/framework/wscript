@@ -12,6 +12,7 @@ sources = [
     'cpuuse.cpp',
     'dma.cpp',
     'dma-mem.cpp',
+    'events.cpp',
     'io.cpp',
     'intr.cpp',
     'logging.cpp',

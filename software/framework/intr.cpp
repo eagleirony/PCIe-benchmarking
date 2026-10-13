@@ -21,13 +21,12 @@
 #include <rtems.h>
 #include <rtems/rtems/intr.h>
 
-#include <rtems/bspIo.h>
-
 #include <framework/cpuuse.hpp>
 #include <framework/dma.hpp>
 #include <framework/intr.hpp>
 #include <framework/io.hpp>
 #include <framework/logging.hpp>
+#include <framework/events.hpp>
 
 #include <externals/rtems/thread.hpp>
 
@@ -50,7 +49,8 @@ intr_ctlr_ptr make_intr_ctlr() {
 struct intr_ctlr {
     using lock_type = std::recursive_mutex;
     using lock_guard = std::lock_guard<lock_type>;
-    using rtems_thread = rtems::thread::thread;
+    using rtems_thread = ::rtems::thread::thread;
+    using rtems_event_ptr = std::shared_ptr<rtems::events::event>;
 
     lock_type lock;
     bool running;
@@ -58,6 +58,8 @@ struct intr_ctlr {
     rtems_interrupt_entry rie;
     rtems_interrupt_lock ilock;
     rtems_id waiter;
+    rtems_event_ptr ep_evt;
+    rtems_event_ptr pl_evt;
 
     intr_ctlr() : running(false), waiter(RTEMS_ID_NONE) {};
 
@@ -90,6 +92,34 @@ struct intr_ctlr {
         return running;
     }
 
+    void set_ep_event(rtems_event_ptr evt_) {
+        lock_guard guard(lock);
+        ep_evt = evt_;
+    }
+
+    void clear_ep_event() {
+        lock_guard guard(lock);
+        ep_evt = nullptr;
+    }
+
+    rtems_event_ptr get_ep_event() {
+        return ep_evt;
+    }
+
+    void set_pl_event(rtems_event_ptr evt_) {
+        lock_guard guard(lock);
+        pl_evt = evt_;
+    }
+
+    void clear_pl_event() {
+        lock_guard guard(lock);
+        pl_evt = nullptr;
+    }
+
+    rtems_event_ptr get_pl_event() {
+        return pl_evt;
+    }
+
     void worker() {
         cpuuse::log_guard lguard("PL_INTR");
         lock_guard guard(lock);
@@ -117,16 +147,18 @@ struct intr_ctlr {
             if (status == RTEMS_SUCCESSFUL) {
                 benchmark::log::timestamp_and_log(
                     benchmark::log::record::PL_USER_INTR_END);
-            } else {
-                if (status != RTEMS_TIMEOUT) {
-                    std::ostringstream oss;
-                    running = false;
-                    rtems_interrupt_lock_acquire(&ic->ilock, &lock_context);
-                    waiter = RTEMS_ID_NONE;
-                    rtems_interrupt_lock_release(&ic->ilock, &lock_context);
-                    oss << "pl: intr: worker: wait failed: " << status;
-                    throw std::runtime_error(oss.str());
+                auto evt = ic->get_pl_event();
+                if (evt != nullptr) {
+                    evt->signal();
                 }
+            } else if (status != RTEMS_TIMEOUT) {
+                std::ostringstream oss;
+                running = false;
+                rtems_interrupt_lock_acquire(&ic->ilock, &lock_context);
+                waiter = RTEMS_ID_NONE;
+                rtems_interrupt_lock_release(&ic->ilock, &lock_context);
+                oss << "pl: intr: worker: wait failed: " << status;
+                throw std::runtime_error(oss.str());
             }
         }
         rtems_interrupt_lock_acquire(&ic->ilock, &lock_context);
@@ -136,7 +168,7 @@ struct intr_ctlr {
 
     void start_worker() {
         lock_guard guard(lock);
-        rtems::thread::attributes attr;
+        ::rtems::thread::attributes attr;
         std::ostringstream oss;
 
         oss << "PL_INTR";
@@ -145,7 +177,7 @@ struct intr_ctlr {
         attr.set_rtems_priority(97);
         attr.set_stack_size(RTEMS_MINIMUM_STACK_SIZE);
 
-        pl_intr_thread = rtems::thread::thread(attr, &intr_ctlr::worker, this);
+        pl_intr_thread = ::rtems::thread::thread(attr, &intr_ctlr::worker, this);
     }
 };
 
@@ -180,15 +212,27 @@ void init() {
             benchmark::log::record::EP_USER_INTR_END);
 
         auto ior = io::get_io_registers();
+
         reg = ior->pl.read(io::PL_REG_SIGNALS_OFF);
         reg = reg & ~io::PL_REG_SIGNALS_EXPANSION_OUT;
         ior->pl.write(io::PL_REG_SIGNALS_OFF, reg);
+
+        reg = ior->endpoint.read(io::EP_REG_SIGNALS_OFF);
+        reg = reg | io::EP_REG_SIGNALS_ACK_USER_IRQ;
+        ior->endpoint.write(io::EP_REG_SIGNALS_OFF, reg);
+
+        reg = reg & ~io::EP_REG_SIGNALS_ACK_USER_IRQ;
+        ior->endpoint.write(io::EP_REG_SIGNALS_OFF, reg);
+
+        auto evt = ic->get_ep_event();
+        if (evt != nullptr) {
+            evt->signal();
+        }
     };
 
     try {
         auto ctlr = pcie::dma::get_controller(0);
         ctlr->set_user_irq_callback(ccb);
-        ctlr->enable_user_irq(0);
     } catch (const std::runtime_error& e) {
         throw std::runtime_error("intr: init: dma must be initialised before intr");
     }
@@ -210,26 +254,37 @@ void log_pl_intr() {
         throw std::runtime_error("io: log_pl_intr: PL_INTR not running");
     }
 
+    auto evt = std::make_shared<rtems::events::event>(true, RTEMS_EVENT_1);
+    ic->set_pl_event(evt);
+
     reg = ior->pl.read(io::PL_REG_SIGNALS_OFF);
     reg = reg | io::PL_REG_SIGNALS_IRQ_OUT;
 
     benchmark::log::log_and_timestamp(benchmark::log::record::PL_USER_INTR_START);
     ior->pl.write(io::PL_REG_SIGNALS_OFF, reg);
+
+    evt->wait();
+    ic->clear_pl_event();
 }
 
 void log_ep_intr() {
     uint32_t reg;
     auto ior = io::get_io_registers();
 
-    if (!ic->is_running()) {
-        throw std::runtime_error("io: log_pl_intr: PL_INTR not running");
-    }
+    auto ctlr = pcie::dma::get_controller(0);
+    ctlr->enable_user_irq(0);
+    auto evt = std::make_shared<rtems::events::event>(true, RTEMS_EVENT_0);
+    ic->set_ep_event(evt);
 
     reg = ior->pl.read(io::PL_REG_SIGNALS_OFF);
     reg = reg | io::PL_REG_SIGNALS_EXPANSION_OUT;
 
     benchmark::log::log_and_timestamp(benchmark::log::record::EP_USER_INTR_START);
     ior->pl.write(io::PL_REG_SIGNALS_OFF, reg);
+
+    evt->wait();
+    ic->clear_ep_event();
+    ctlr->disable_user_irq(0);
 }
 
 } // namespace intr

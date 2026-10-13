@@ -64,20 +64,22 @@ int main(int argc, char** argv) {
         app::framework::benchmark::log::reset();
         app::framework::api::cpuuse::init(5);
         app::framework::api::io::init();
+        app::framework::api::cpuuse::run();
         app::framework::pcie::dma::init();
         app::framework::api::intr::init();
 
-        app::framework::api::cpuuse::run();
         app::framework::api::intr::start();
 
-        app::framework::api::intr::log_pl_intr();
-        app::framework::api::intr::log_ep_intr();
-        app::framework::api::io::log_ep_read_latency();
-        app::framework::api::io::log_ep_write_latency();
-        app::framework::api::io::log_ep_one_way_read_latency();
-        app::framework::api::io::log_ep_one_way_write_latency();
-        app::framework::api::io::log_pl_read_latency();
-        app::framework::api::io::log_pl_write_latency();
+        for (int i = 0; i < 1000; i++) {
+            app::framework::api::intr::log_pl_intr();
+            app::framework::api::intr::log_ep_intr();
+            app::framework::api::io::log_ep_read_latency();
+            app::framework::api::io::log_ep_write_latency();
+            app::framework::api::io::log_ep_one_way_read_latency();
+            app::framework::api::io::log_ep_one_way_write_latency();
+            app::framework::api::io::log_pl_read_latency();
+            app::framework::api::io::log_pl_write_latency();
+        }
         app::framework::api::intr::stop();
 
         app::framework::api::cpuuse::stop();

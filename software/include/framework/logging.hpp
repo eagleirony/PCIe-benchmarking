@@ -35,7 +35,7 @@ namespace log {
 
 using json = nlohmann::json;
 
-constexpr size_t LOGBOOK_MAX_RECORDS = 20000;
+constexpr size_t LOGBOOK_MAX_RECORDS = 100000;
 
 struct cpuusage_info {
     rtems_id task_id;

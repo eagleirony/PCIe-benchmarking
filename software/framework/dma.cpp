@@ -276,11 +276,11 @@ void channel::stop() {
 
     descs[0].zero();
     descs[0].header(false, true);
+    descs[0].clear_next();
     descs[0].set_length(DMA_BUFF_SIZE);
     descs[0].set_wb(wbs[0]);
     auto buf = bufs.request();
     descs[0].set_dst_buffer(buf);
-    descs[0].clear_next();
 
     benchmark::log::timestamp_and_log(benchmark::log::record::EP_DMA_PIPELINE_END);
     running = false;
@@ -795,11 +795,9 @@ void init() {
     };
 
     eps->at(0)->c2h_chans[0]->set_callback(cb);
-    /*
     eps->at(0)->c2h_chans[0]->run();
     sleep(1);
     eps->at(0)->c2h_chans[0]->stop();
-    */
 }
 
 controller_ptr get_controller(size_t id) {
