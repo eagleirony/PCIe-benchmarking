@@ -75,15 +75,14 @@ begin
 
   end process;
 
-  process (clk, rstn) is
+  process (clk) is
   begin
 
-    if (rstn = '0') then
-      rdp      <= (others => '0');
-      wrp      <= (others => '0');
-      sig_dout <= x"DEADC0DEDEADC0DE";
-    else
-      if rising_edge(clk) then
+    if rising_edge(clk) then
+      if (rstn = '0') then
+        rdp      <= (others => '0');
+        wrp      <= (others => '0');
+      else
         if (rd = '1' and sig_empty = '0') then
           sig_dout <= mem(to_integer(int_rdp));
           rdp      <= rdp + 1;
