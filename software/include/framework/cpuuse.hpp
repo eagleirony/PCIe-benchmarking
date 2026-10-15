@@ -47,7 +47,7 @@ void register_thread(std::string name);
 
 void unregister_thread();
 
-std::string name_from_id(rtems_id id);
+std::string name_from_uid(size_t uid);
 
 struct log_guard {
     log_guard(std::string name) {

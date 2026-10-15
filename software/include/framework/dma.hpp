@@ -30,16 +30,16 @@
 #include <externals/cs/pool.hpp>
 #include <externals/rtems/thread.hpp>
 
+namespace app {
+namespace framework {
+namespace pcie {
+namespace dma {
+
 constexpr uint32_t XLNX_PCIE_DMA_MAX_CHANS = 4;
 constexpr size_t XLNX_PCIE_DMA_CHAN_DESC_COUNT = 16;
 
 constexpr uint32_t XLNX_PCIE_DMA_MSI = 0;
 constexpr uint32_t XLNX_PCIE_USR_MSI = 1;
-
-/* AXI Lite registers */
-
-static constexpr uint32_t C2H_CHAN_0_PACKET_LEN_OFF = 0x90;
-static constexpr uint32_t C2H_CHAN_1_PACKET_LEN_OFF = 0x94;
 
 /* Descriptors */
 static constexpr uint32_t XLNX_PCIE_DMA_DESC_SIZE = 0x20;
@@ -168,11 +168,6 @@ static constexpr uint32_t XLNX_PCIE_DMA_CHAN_SG_DESC_CRED    = 0x8C;
 static constexpr uint32_t XLNX_PCIE_DMA_SGDMA_ID             = 0x00;
 static constexpr uint32_t XLNX_PCIE_DMA_SGDMA_DESC_CTRL      = 0x10;
 static constexpr uint32_t XLNX_PCIE_DMA_SGDMA_DESC_CRED_MODE = 0x20;
-
-namespace app {
-namespace framework {
-namespace pcie {
-namespace dma {
 
 struct controller;
 using controller_ptr = std::shared_ptr<controller>;

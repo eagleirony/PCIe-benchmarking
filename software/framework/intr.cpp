@@ -271,6 +271,17 @@ void log_ep_intr() {
     uint32_t reg;
     auto ior = io::get_io_registers();
 
+    reg = ior->pl.read(io::PL_REG_SIGNALS_OFF);
+    reg = reg & ~io::PL_REG_SIGNALS_EXPANSION_OUT;
+    ior->pl.write(io::PL_REG_SIGNALS_OFF, reg);
+
+    reg = ior->endpoint.read(io::EP_REG_SIGNALS_OFF);
+    reg = reg | io::EP_REG_SIGNALS_ACK_USER_IRQ;
+    ior->endpoint.write(io::EP_REG_SIGNALS_OFF, reg);
+
+    reg = reg & ~io::EP_REG_SIGNALS_ACK_USER_IRQ;
+    ior->endpoint.write(io::EP_REG_SIGNALS_OFF, reg);
+
     auto ctlr = pcie::dma::get_controller(0);
     ctlr->enable_user_irq(0);
     auto evt = std::make_shared<rtems::events::event>(true, RTEMS_EVENT_0);

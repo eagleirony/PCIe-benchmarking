@@ -127,8 +127,8 @@ protected:
     lock_type lock;
 
     sync::variable waiter;
-    bool waiting;
-    bool wakeup;
+    volatile bool waiting;
+    volatile bool wakeup;
 };
 
 /**
@@ -149,7 +149,8 @@ template<typename T> struct queue {
     void wait(size_t timeout_msec = 0);
     void wake();
 
-    bool push(handle obj);
+    bool push_front(handle obj);
+    bool push_back(handle obj);
     handle pop();
     handle pop(size_t timeout_msec);
 
@@ -180,8 +181,8 @@ protected:
     lock_type lock;
     std::atomic_size_t count_;
     sync::variable waiter;
-    bool waiting;
-    bool wakeup;
+    volatile bool waiting;
+    volatile bool wakeup;
 };
 
 template<typename T> template <typename... Args>
@@ -282,9 +283,7 @@ void pool<T>::unprotected_create(const size_t number_, Args&&... args) {
 
 template<typename T> void pool<T>::unprotected_destroy() {
     if (number > 0) {
-        if (count_.load() != number) {
-            throw std::runtime_error("pool destroy made while busy");
-        }
+        bool is_busy = count_.load() != number;
         while (!objects.empty()) {
             object_ptr obj = objects.front();
             delete obj;
@@ -292,6 +291,9 @@ template<typename T> void pool<T>::unprotected_destroy() {
         }
         number = 0;
         count_ = 0;
+        if (is_busy) {
+            throw std::runtime_error("cs: pool: destroy made while busy");
+        }
     }
 }
 
@@ -347,7 +349,16 @@ template<typename T> void queue<T>::wake() {
     }
 }
 
-template<typename T> bool queue<T>::push(handle obj) {
+template<typename T> bool queue<T>::push_front(handle obj) {
+    lock_guard guard(lock);
+    bool is_zero = count_ == 0;
+    objects.push_front(obj);
+    ++count_;
+    unprotected_wake();
+    return is_zero;
+}
+
+template<typename T> bool queue<T>::push_back(handle obj) {
     lock_guard guard(lock);
     bool is_zero = count_ == 0;
     objects.push_back(obj);
@@ -369,11 +380,11 @@ template<typename T> handle_type<T> queue<T>::pop(size_t timeout_msec) {
     waiting = true;
     while (count_.load() == 0) {
         if (waiter.wait(timeout_msec)) {
-            waiting = false;
             break;
         }
         if (wakeup) {
             wakeup = false;
+            waiting = false;
             return handle();
         }
     }
@@ -438,7 +449,7 @@ template<typename T> queue<T>& queue<T>::operator=(queue<T>& from) {
 }
 
 template<typename T> queue<T>& queue<T>::operator=(handle obj) {
-    push(obj);
+    push_back(obj);
     return *this;
 }
 

@@ -107,7 +107,6 @@ constexpr uint32_t EP_REG_SIGNALS_OFF = 0x98;
 
 constexpr uint32_t EP_REG_C2H_0_PN23_RATE_OFF = 0x9C;
 constexpr uint32_t EP_REG_C2H_1_PN23_RATE_OFF = 0xA0;
-constexpr uint32_t EP_REG_H2C_1_PN23_RATE_OFF = 0xA4;
 
 constexpr uint32_t CLK_PERIOD_NS = 0x4;
 
@@ -126,7 +125,7 @@ struct registers {
     }
 
     inline void write(uint32_t offset, uint32_t value) {
-        uint32_t* reg = address(offset);
+        volatile uint32_t* reg = address(offset);
 
         *reg = value;
     }

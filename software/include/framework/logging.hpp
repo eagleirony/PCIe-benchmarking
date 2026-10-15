@@ -38,7 +38,7 @@ using json = nlohmann::json;
 constexpr size_t LOGBOOK_MAX_RECORDS = 100000;
 
 struct cpuusage_info {
-    rtems_id task_id;
+    size_t task_uid;
     struct timespec usage;
 };
 
@@ -89,8 +89,8 @@ struct record {
         buf_stats = buf_stats_;
     }
 
-    void set_cpu_usage_id(rtems_id id) {
-        cpu_usage.task_id = id;
+    void set_cpu_usage_uid(size_t uid) {
+        cpu_usage.task_uid = uid;
     }
 
     struct timespec* get_cpu_usage_timespec() {
@@ -200,8 +200,8 @@ inline void set_buf_stats(record::id id,
     lb_->records[id].set_buf_stats(buf_stats_);
 }
 
-inline void set_cpu_usage_id(record::id id, rtems_id id_) {
-    lb_->records[id].set_cpu_usage_id(id_);
+inline void set_cpu_usage_uid(record::id id, size_t uid_) {
+    lb_->records[id].set_cpu_usage_uid(uid_);
 }
 
 inline struct timespec* get_cpu_usage_timespec(record::id id) {

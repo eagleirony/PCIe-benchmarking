@@ -33,6 +33,7 @@
 #include <framework/dma.hpp>
 #include <framework/logging.hpp>
 #include <framework/cpuuse.hpp>
+#include <framework/io.hpp>
 
 namespace app {
 namespace framework {
@@ -220,7 +221,8 @@ void channel::set_block(size_t length) {
     auto buf = bufs.request();
     descs[desc_index].set_dst_buffer(buf);
 
-    for (size_t i = 0; i <= desc_index; ++i) {
+    for (size_t i = 0; i <= std::min(desc_index, XLNX_PCIE_DMA_CHAN_DESC_COUNT);
+        ++i) {
         descs[i].set_next(descs[i + 1]);
     }
 
@@ -373,11 +375,12 @@ void channel::report() {
     std::cout << "Clock Cycle Count: " << maxed_str << cycle_count
         << std::endl;
 
-    data_count = static_cast<uint64_t>(read_chan(XLNX_PCIE_DMA_CHAN_PERF_DATA_HI))
-        << 32;
-    data_count |= (read_chan(XLNX_PCIE_DMA_CHAN_PERF_DATA_LO) &
-        XLNX_PCIE_DMA_CHAN_PERF_HI_COUNT_MASK);
-    if (read_chan(XLNX_PCIE_DMA_CHAN_PERF_DATA_LO) &
+    data_count =
+        static_cast<uint64_t>(read_chan(XLNX_PCIE_DMA_CHAN_PERF_DATA_LO));
+    data_count |=
+        (static_cast<uint64_t>(read_chan(XLNX_PCIE_DMA_CHAN_PERF_DATA_HI) &
+        XLNX_PCIE_DMA_CHAN_PERF_HI_COUNT_MASK)) << 32;
+    if (read_chan(XLNX_PCIE_DMA_CHAN_PERF_DATA_HI) &
             XLNX_PCIE_DMA_CHAN_PERF_HI_MAXED_MASK) {
         maxed_str = "Maxed ";
     }
@@ -511,8 +514,11 @@ controller::controller(std::string& path) {
         throw std::runtime_error("dma: error: mmap failed");
     }
 
-    axis.write(C2H_CHAN_0_PACKET_LEN_OFF, DMA_BUFF_SIZE/8);
-    axis.write(C2H_CHAN_1_PACKET_LEN_OFF, DMA_BUFF_SIZE/8);
+    axis.write(api::io::EP_REG_C2H_0_PACK_LEN_OFF, DMA_BUFF_SIZE/8 - 1);
+    axis.write(api::io::EP_REG_C2H_1_PACK_LEN_OFF, DMA_BUFF_SIZE/8 - 1);
+
+    axis.write(api::io::EP_REG_C2H_0_PN23_RATE_OFF, 0x370A3D71);
+    axis.write(api::io::EP_REG_C2H_1_PN23_RATE_OFF, 1);
 
     for (size_t i = 0; i < XLNX_PCIE_DMA_MAX_CHANS; i++) {
         if (regs.read(XLNX_PCIE_DMA_TARGET_H2C_CHANS, i, XLNX_PCIE_DMA_CHAN_ID)

@@ -226,7 +226,7 @@ void log_ep_one_way_write_latency() {
     struct timespec* latency_ts;
     uint32_t latency;
     uint32_t pl_reg = ior->pl.read(PL_REG_SIGNALS_OFF);
-    uint32_t ep_reg = ior->pl.read(EP_REG_SIGNALS_OFF);
+    uint32_t ep_reg = ior->endpoint.read(EP_REG_SIGNALS_OFF);
     pl_reg = pl_reg & ~PL_REG_SIGNALS_USER_TIMER_RSTN;
     ep_reg = ep_reg & ~EP_REG_SIGNALS_EXPANSION_OUT;
 
