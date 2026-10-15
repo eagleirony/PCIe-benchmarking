@@ -1,6 +1,21 @@
+files:
+  testbenches:
+    - "*_TB.vhd"
+
 rule:
   global:
     indent_style: 'spaces'
     indent_size: 2
   length_001:
     length: 80
+  generic_007:
+    case: 'upper'
+
+testbenches:
+  rule:
+    signal_007:
+      disable: true
+    port_012:
+      disable: true
+    variable_007:
+      disable: true

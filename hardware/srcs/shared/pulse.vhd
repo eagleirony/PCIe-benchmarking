@@ -23,8 +23,8 @@ begin
   begin
 
     if (rising_edge(clk)) then
-      if async_in = '1' then
-        if latch = '0' then
+      if (async_in = '1') then
+        if (latch = '0') then
           pulse <= '1';
           latch <= '1';
         else

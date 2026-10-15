@@ -1,9 +1,11 @@
 library ieee;
   use ieee.std_logic_1164.all;
+  use ieee.numeric_std.all;
 
 entity axis_tb is
   generic (
-    data_width : positive := 64
+    DATA_WIDTH : positive := 64;
+    REGISTER_WIDTH : positive := 32
   );
 end entity axis_tb;
 
@@ -11,12 +13,14 @@ architecture behavioral of axis_tb is
 
   component pn23 is
     generic (
-      data_width : positive := 64
+      DATA_WIDTH : positive := 64;
+      REGISTER_WIDTH : positive := 32
     );
     port (
       clk   : in    std_logic;
       rstn  : in    std_logic;
-      hold  : in    std_logic;
+      ena  : in    std_logic;
+      delay : in    std_logic_vector(REGISTER_WIDTH - 1 downto 0);
       valid : out   std_logic;
       value : out   std_logic_vector(63 downto 0)
     );
@@ -24,23 +28,21 @@ architecture behavioral of axis_tb is
 
   component axis_master is
     generic (
-      c_m_axis_tdata_width : integer  := 64;
-      c_m_start_count      : integer  := 32;
-      register_width       : integer := 32;
-      fifo_depth           : integer := 14
+      DATA_WIDTH     : integer := 64;
+      REGISTER_WIDTH : integer := 32;
+      FIFO_DEPTH     : integer := 14
     );
     port (
-      fifo_status   : out   std_logic_vector(register_width - 1 downto 0);
-      fifo_data_in  : in    std_logic_vector(c_m_axis_tdata_width - 1 downto 0);
-      fifo_wr_ena   : in    std_logic;
-      fifo_full     : out   std_logic;
-      packet_length : in    std_logic_vector(register_width - 1 downto 0);
-
+      fifo_status    : out   std_logic_vector(REGISTER_WIDTH - 1 downto 0);
+      fifo_data_in   : in    std_logic_vector(DATA_WIDTH - 1 downto 0);
+      fifo_wr_ena    : in    std_logic;
+      fifo_full      : out   std_logic;
+      packet_length  : in    std_logic_vector(REGISTER_WIDTH - 1 downto 0);
       m_axis_aclk    : in    std_logic;
       m_axis_aresetn : in    std_logic;
       m_axis_tvalid  : out   std_logic;
-      m_axis_tdata   : out   std_logic_vector(c_m_axis_tdata_width - 1 downto 0);
-      m_axis_tstrb   : out   std_logic_vector((c_m_axis_tdata_width / 8) - 1 downto 0);
+      m_axis_tdata   : out   std_logic_vector(DATA_WIDTH - 1 downto 0);
+      m_axis_tstrb   : out   std_logic_vector((DATA_WIDTH / 8) - 1 downto 0);
       m_axis_tlast   : out   std_logic;
       m_axis_tready  : in    std_logic
     );
@@ -82,14 +84,18 @@ architecture behavioral of axis_tb is
   signal axis_tready : std_logic;
 
   signal sig_fifo_empty    : std_logic;
-  signal sig_fifo_status   : std_logic_vector(32 - 1 downto 0);
+  signal sig_fifo_status   : std_logic_vector(register_width - 1 downto 0);
   signal sig_fifo_data_out : std_logic_vector(data_width - 1 downto 0);
 
-  signal pn23_hold : std_logic;
+  signal pn23_ena : std_logic;
+  signal pn23_delay : std_logic_vector(register_width - 1 downto 0);
+  signal fifo_full : std_logic;
 
 begin
 
   clk <= not clk after 10 ns;
+
+  pn23_delay <= std_logic_vector(to_unsigned(1, REGISTER_WIDTH));
 
   run : process is
   begin
@@ -101,28 +107,29 @@ begin
 
   end process run;
 
+  pn23_ena <= not(fifo_full);
+
   test : component pn23
     port map (
       clk   => clk,
       rstn  => rstn,
-      hold  => pn23_hold,
+      ena   => pn23_ena,
       value => value,
       valid => ready
     );
 
   axis_c2h : component axis_master
     generic map (
-      c_m_axis_tdata_width => data_width,
-      c_m_start_count      => 8,
-      register_width       => 32,
-      fifo_depth           => 5
+      DATA_WIDTH => DATA_WIDTH,
+      REGISTER_WIDTH       => 32,
+      FIFO_DEPTH           => 5
     )
     port map (
       fifo_status    => fifo_status,
       fifo_data_in   => value,
       fifo_wr_ena    => ready,
-      fifo_full      => pn23_hold,
-      packet_length  => x"00000009",
+      fifo_full      => fifo_full,
+      packet_length  => x"00000008",
       m_axis_aclk    => clk,
       m_axis_aresetn => rstn,
       m_axis_tvalid  => axis_tvalid,
@@ -134,9 +141,9 @@ begin
 
   axis_slave_inst : component axis_slave
     generic map (
-      c_s_axis_tdata_width => data_width,
-      fifo_status_width    => 32,
-      fifo_depth           => 5
+      C_S_AXIS_TDATA_WIDTH  => DATA_WIDTH,
+      FIFO_STATUS_WIDTH    => 32,
+      FIFO_DEPTH           => 5
     )
     port map (
       fifo_status    => sig_fifo_status,

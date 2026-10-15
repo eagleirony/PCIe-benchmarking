@@ -8,63 +8,63 @@ library work;
 
 entity dual_fifo is
   generic (
-    data_width     : positive := 32;
-    register_width : positive := 32;
-    fifo_depth     : positive := 5
+    DATA_WIDTH     : positive := 32;
+    REGISTER_WIDTH : positive := 32;
+    FIFO_DEPTH     : positive := 5
   );
   port (
     clk      : in    std_logic;
     rstn     : in    std_logic;
     wr       : in    std_logic;
-    din      : in    std_logic_vector(data_width - 1 downto 0);
+    din      : in    std_logic_vector(DATA_WIDTH - 1 downto 0);
     rd       : in    std_logic;
-    dout     : out   std_logic_vector(data_width - 1 downto 0);
+    dout     : out   std_logic_vector(DATA_WIDTH - 1 downto 0);
     empty    : out   std_logic;
     full     : out   std_logic;
-    timeout  : in    std_logic_vector(register_width - 1 downto 0);
-    status   : out   std_logic_vector(register_width - 1 downto 0);
-    timeouts : out   std_logic_vector(register_width - 1 downto 0);
-    total    : out   std_logic_vector(register_width - 1 downto 0)
+    timeout  : in    std_logic_vector(REGISTER_WIDTH - 1 downto 0);
+    status   : out   std_logic_vector(REGISTER_WIDTH - 1 downto 0);
+    timeouts : out   std_logic_vector(REGISTER_WIDTH - 1 downto 0);
+    total    : out   std_logic_vector(REGISTER_WIDTH - 1 downto 0)
   );
 end entity dual_fifo;
 
 architecture arch of dual_fifo is
 
   type state is (
-    a_out,          -- Outputting fifo A and filling fifo B
-    a_out_wait,     -- Outputting fifo A and fifo B timed out
-    b_out,          -- Outputting fifo B and filling fifo A
-    b_out_wait      -- Outputting fifo B and fifo \A timed out
+    a_out,      -- Outputting fifo A and filling fifo B
+    a_out_wait, -- Outputting fifo A and fifo B timed out
+    b_out,      -- Outputting fifo B and filling fifo A
+    b_out_wait  -- Outputting fifo B and fifo \A timed out
   );
 
   signal curr_state : state;
   signal next_state : state;
 
-  signal a_size : unsigned(fifo_depth - 1 downto 0);
-  signal b_size : unsigned(fifo_depth - 1 downto 0);
-  signal fifo_limit : unsigned(register_width - 1 downto 0);
+  signal a_size     : unsigned(FIFO_DEPTH - 1 downto 0);
+  signal b_size     : unsigned(FIFO_DEPTH - 1 downto 0);
+  signal fifo_limit : unsigned(REGISTER_WIDTH - 1 downto 0);
 
-  signal timeouts_sig  : unsigned(register_width - 1 downto 0);
-  signal total_sig     : unsigned(register_width - 1 downto 0);
+  signal timeouts_sig  : unsigned(REGISTER_WIDTH - 1 downto 0);
+  signal total_sig     : unsigned(REGISTER_WIDTH - 1 downto 0);
   signal timed_out     : std_logic;
-  signal counter       : unsigned(register_width - 1 downto 0);
-  signal timeout_value : unsigned(register_width - 1 downto 0);
+  signal counter       : unsigned(REGISTER_WIDTH - 1 downto 0);
+  signal timeout_value : unsigned(REGISTER_WIDTH - 1 downto 0);
 
   signal a_full   : std_logic;
   signal a_empty  : std_logic;
   signal a_read   : std_logic;
   signal a_write  : std_logic;
-  signal a_dout   : std_logic_vector(data_width - 1 downto 0);
-  signal a_din    : std_logic_vector(data_width - 1 downto 0);
-  signal a_status : std_logic_vector(register_width - 1 downto 0);
+  signal a_dout   : std_logic_vector(DATA_WIDTH - 1 downto 0);
+  signal a_din    : std_logic_vector(DATA_WIDTH - 1 downto 0);
+  signal a_status : std_logic_vector(REGISTER_WIDTH - 1 downto 0);
 
   signal b_full   : std_logic;
   signal b_empty  : std_logic;
   signal b_read   : std_logic;
   signal b_write  : std_logic;
-  signal b_dout   : std_logic_vector(data_width - 1 downto 0);
-  signal b_din    : std_logic_vector(data_width - 1 downto 0);
-  signal b_status : std_logic_vector(register_width - 1 downto 0);
+  signal b_dout   : std_logic_vector(DATA_WIDTH - 1 downto 0);
+  signal b_din    : std_logic_vector(DATA_WIDTH - 1 downto 0);
+  signal b_status : std_logic_vector(REGISTER_WIDTH - 1 downto 0);
 
 begin
 
@@ -77,6 +77,7 @@ begin
 
   curr_state_control : process (clk) is
   begin
+
     if (rising_edge (clk)) then
       if (rstn = '0') then
         curr_state <= a_out;
@@ -84,10 +85,12 @@ begin
         curr_state <= next_state;
       end if;
     end if;
+
   end process curr_state_control;
 
   next_state_control : process (timed_out, a_full, b_full, a_empty, b_empty) is
   begin
+
     next_state <= curr_state;
 
     case (curr_state) is
@@ -185,7 +188,7 @@ begin
 
     if (rising_edge (clk)) then
       if (rstn = '0') then
-        total_sig  <= (others => '0');
+        total_sig <= (others => '0');
       else
         if (curr_state /= next_state) then
           if (curr_state = a_out or curr_state = b_out) then
@@ -205,13 +208,13 @@ begin
         a_size <= (others => '0');
         b_size <= (others => '0');
       else
-        if (a_write = '1' and a_size /= (2**a_size'length - 1)) then
+        if (a_write = '1' and a_size /= (2 ** a_size'length - 1)) then
           a_size <= a_size + 1;
         end if;
         if (a_read = '1' and a_size /= 0) then
           a_size <= a_size - 1;
         end if;
-        if (b_write = '1' and b_size /= (2**a_size'length - 1)) then
+        if (b_write = '1' and b_size /= (2 ** a_size'length - 1)) then
           b_size <= b_size + 1;
         end if;
         if (b_read = '1' and b_size /= 0) then
@@ -251,9 +254,9 @@ begin
 
   fifo_a : component fifo
     generic map (
-      data_width   => data_width,
-      status_width => register_width,
-      fifo_depth   => fifo_depth
+      data_width   => DATA_WIDTH,
+      status_width => REGISTER_WIDTH,
+      fifo_depth   => FIFO_DEPTH
     )
     port map (
       clk    => clk,
@@ -269,9 +272,9 @@ begin
 
   fifo_b : component fifo
     generic map (
-      data_width   => data_width,
-      status_width => register_width,
-      fifo_depth   => fifo_depth
+      data_width   => DATA_WIDTH,
+      status_width => REGISTER_WIDTH,
+      fifo_depth   => FIFO_DEPTH
     )
     port map (
       clk    => clk,

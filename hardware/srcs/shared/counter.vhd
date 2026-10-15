@@ -4,19 +4,19 @@ library ieee;
 
 entity counter is
   generic (
-    data_width : positive := 32
+    DATA_WIDTH : positive := 32
   );
   port (
     clk   : in    std_logic;
     rstn  : in    std_logic;
     stop  : in    std_logic;
-    value : out   std_logic_vector(data_width - 1 downto 0)
+    value : out   std_logic_vector(DATA_WIDTH - 1 downto 0)
   );
 end entity counter;
 
 architecture behavioral of counter is
 
-  signal counter : unsigned(data_width - 1 downto 0);
+  signal counter : unsigned(DATA_WIDTH - 1 downto 0);
   signal stopped : std_logic;
 
 begin

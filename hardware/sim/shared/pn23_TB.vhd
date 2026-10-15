@@ -1,86 +1,92 @@
-----------------------------------------------------------------------------------
--- Company: 
--- Engineer: 
--- 
--- Create Date: 14.05.2026 20:52:53
--- Design Name: 
--- Module Name: pn23_TB - Behavioral
--- Project Name: 
--- Target Devices: 
--- Tool Versions: 
--- Description: 
--- 
--- Dependencies: 
--- 
--- Revision:
--- Revision 0.01 - File Created
--- Additional Comments:
--- 
-----------------------------------------------------------------------------------
+library ieee;
+  use ieee.std_logic_1164.all;
+  use ieee.numeric_std.all;
 
+entity pn23_tb is
+  generic (
+    DATA_WIDTH : positive := 64;
+    REGISTER_WIDTH : positive := 32
+  );
+end entity pn23_tb;
 
-library IEEE;
-use IEEE.STD_LOGIC_1164.ALL;
-
--- Uncomment the following library declaration if using
--- arithmetic functions with Signed or Unsigned values
---use IEEE.NUMERIC_STD.ALL;
-
--- Uncomment the following library declaration if instantiating
--- any Xilinx leaf cells in this code.
---library UNISIM;
---use UNISIM.VComponents.all;
-
-entity pn23_TB is
-        generic (
-            DATA_WIDTH : positive := 64
-        );
-end pn23_TB;
-
-architecture Behavioral of pn23_TB is
+architecture behavioral of pn23_tb is
 
   component pn23 is
     generic (
-      data_width : positive := 64
+      DATA_WIDTH     : positive := 64
     );
     port (
-      clk   : in    std_logic;
+      clk   : in    std_logic := '0';
       rstn  : in    std_logic;
-      hold  : in    std_logic;
+      ena   : in    std_logic;
       valid : out   std_logic;
-      value : out   std_logic_vector(63 downto 0)
+      value : out   std_logic_vector(DATA_WIDTH - 1 downto 0)
     );
   end component pn23;
 
-    signal clk : std_logic := '0';
-    signal rstn : std_logic := '0';
-    signal value : STD_LOGIC_VECTOR (DATA_WIDTH - 1 downto 0);
-    signal hold : std_logic;
-    signal valid : std_logic;
+  component phase_accum is
+    generic (
+      REGISTER_WIDTH : positive := 32
+    );
+    port (
+      clk  : in  std_logic;
+      rstn : in  std_logic;
+      inc  : in  std_logic_vector(REGISTER_WIDTH - 1 downto 0);
+      ena  : out std_logic
+    );
+  end component;
+
+  signal clk   : std_logic := '0';
+  signal rstn  : std_logic := '0';
+  signal value : std_logic_vector(DATA_WIDTH - 1 downto 0);
+  signal pn23_ena  : std_logic;
+  signal valid : std_logic;
+  signal pa_inc : std_logic_vector(REGISTER_WIDTH - 1 downto 0);
 
 begin
 
-    clk <= not clk after 10 ns;
 
-    process is
-    begin
-      rstn <= '0';
-      hold <= '0';
-      wait for 40 ns;
-      rstn <= '1';
-      wait for 80 ns;
-      hold <= '1';
-      wait for 40 ns;
-      hold <= '0';
-      wait for 400us;
-    end process;
+  clk <= not clk after 10 ns;
 
-    test: pn23 port map (
-        clk => clk,
-        rstn => rstn,
-        hold => hold,
-        valid => valid,
-        value => value
+  process is
+  begin
+
+    rstn <= '0';
+    pa_inc <= x"00000000";
+    wait for 40 ns;
+    rstn <= '1';
+    pa_inc <= x"33333333";
+    wait for 500 ns;
+    pa_inc <= x"66666666";
+    wait for 500 ns;
+    pa_inc <= x"C0000000";
+    wait for 500 ns;
+    pa_inc <= x"F3333333";
+    wait for 400us;
+
+  end process;
+
+  phase_accum_test : component phase_accum
+    generic map (
+      REGISTER_WIDTH => REGISTER_WIDTH
+    )
+    port map (
+      clk => clk,
+      rstn => rstn,
+      inc => pa_inc,
+      ena => pn23_ena
     );
 
-end Behavioral;
+  pn23_test : component pn23
+    generic map (
+      DATA_WIDTH => DATA_WIDTH
+    )
+    port map (
+      clk   => clk,
+      rstn  => rstn,
+      ena   => pn23_ena,
+      valid => valid,
+      value => value
+    );
+
+end architecture behavioral;

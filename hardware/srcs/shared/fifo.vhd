@@ -5,20 +5,20 @@ library ieee;
 
 entity fifo is
   generic (
-    data_width : positive := 32;
-    status_width : positive := 32;
-    fifo_depth : positive := 5
+    DATA_WIDTH   : positive := 32;
+    STATUS_WIDTH : positive := 32;
+    FIFO_DEPTH   : positive := 5
   );
   port (
     clk    : in    std_logic;
     rstn   : in    std_logic;
     wr     : in    std_logic;
     rd     : in    std_logic;
-    din    : in    std_logic_vector(data_width - 1 downto 0);
+    din    : in    std_logic_vector(DATA_WIDTH - 1 downto 0);
     empty  : out   std_logic;
     full   : out   std_logic;
-    dout   : out   std_logic_vector(data_width - 1 downto 0);
-    status : out   std_logic_vector(status_width - 1 downto 0)
+    dout   : out   std_logic_vector(DATA_WIDTH - 1 downto 0);
+    status : out   std_logic_vector(STATUS_WIDTH - 1 downto 0)
   );
 end entity fifo;
 
@@ -28,19 +28,19 @@ architecture arch of fifo is
 
   signal mem : fifo_t;
 
-  signal rdp     : unsigned(fifo_depth downto 0) := (others => '0');
-  signal wrp     : unsigned(fifo_depth downto 0) := (others => '0');
-  signal int_rdp : unsigned(fifo_depth - 1 downto 0);
-  signal int_wrp : unsigned(fifo_depth - 1 downto 0);
+  signal rdp     : unsigned(FIFO_DEPTH downto 0) := (others => '0');
+  signal wrp     : unsigned(FIFO_DEPTH downto 0) := (others => '0');
+  signal int_rdp : unsigned(FIFO_DEPTH - 1 downto 0);
+  signal int_wrp : unsigned(FIFO_DEPTH - 1 downto 0);
 
-  signal sig_used   : unsigned(fifo_depth downto 0);
-  signal sig_status : std_logic_vector(status_width - 1 downto 0);
+  signal sig_used   : unsigned(FIFO_DEPTH downto 0);
+  signal sig_status : std_logic_vector(STATUS_WIDTH - 1 downto 0);
 
   signal sig_full  : std_logic;
   signal sig_empty : std_logic;
 
-  signal sig_din  : std_logic_vector(data_width - 1 downto 0);
-  signal sig_dout : std_logic_vector(data_width - 1 downto 0) := x"DEADC0DEDEADC0DE";
+  signal sig_din  : std_logic_vector(DATA_WIDTH - 1 downto 0);
+  signal sig_dout : std_logic_vector(DATA_WIDTH - 1 downto 0) := x"DEADC0DEDEADC0DE";
 
 begin
 
@@ -49,14 +49,14 @@ begin
   sig_din  <= din;
   dout     <= sig_dout;
   status   <= sig_status;
-  int_rdp  <= rdp(fifo_depth - 1 downto 0);
-  int_wrp  <= wrp(fifo_depth - 1 downto 0);
+  int_rdp  <= rdp(FIFO_DEPTH - 1 downto 0);
+  int_wrp  <= wrp(FIFO_DEPTH - 1 downto 0);
   sig_used <= wrp - rdp;
 
   sig_status(status_width - 1)                       <= sig_full;
   sig_status(status_width - 2)                       <= sig_empty;
   sig_status(status_width - 3 downto FIFO_DEPTH + 1) <= (others => '0');
-  sig_status(FIFO_DEPTH downto 0)                  <= std_logic_vector(sig_used);
+  sig_status(FIFO_DEPTH downto 0)                    <= std_logic_vector(sig_used);
 
   process (rdp, wrp, int_rdp, int_wrp) is
   begin

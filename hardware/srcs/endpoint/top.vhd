@@ -32,10 +32,10 @@ entity top is
     ENDPOINT_VER       : std_logic_vector(31 downto 0) := (others => '0');
     ENDPOINT_SHA       : std_logic_vector(31 downto 0) := (others => '0');
 
-    axil_data_width : integer := 32;
-    axil_addr_width : integer := 8;
-    axis_data_width : integer := 64;
-    pcie_lanes      : integer := 4
+    AXIL_DATA_WIDTH : integer := 32;
+    AXIL_ADDR_WIDTH : integer := 8;
+    AXIS_DATA_WIDTH : integer := 64;
+    PCIE_LANES      : integer := 4
   );
   port (
     -- ---------------------------------------------------
@@ -70,12 +70,12 @@ entity top is
     -- ---------------------------------------------------
 
     -- TX
-    pcie_tx_p : out   std_logic_vector(pcie_lanes - 1 downto 0);
-    pcie_tx_n : out   std_logic_vector(pcie_lanes - 1 downto 0);
+    pcie_tx_p : out   std_logic_vector(PCIE_LANES - 1 downto 0);
+    pcie_tx_n : out   std_logic_vector(PCIE_LANES - 1 downto 0);
 
     -- RX
-    pcie_rx_p : in    std_logic_vector(pcie_lanes - 1 downto 0);
-    pcie_rx_n : in    std_logic_vector(pcie_lanes - 1 downto 0)
+    pcie_rx_p : in    std_logic_vector(PCIE_LANES - 1 downto 0);
+    pcie_rx_n : in    std_logic_vector(PCIE_LANES - 1 downto 0)
   );
 end entity top;
 
@@ -102,79 +102,88 @@ architecture rtl of top is
   signal stop_user_clock : std_logic;
 
   -- AXI Lite register values
-  signal uptime_counter : std_logic_vector((axil_data_width * 2) - 1 downto 0);
-  signal user_counter   : std_logic_vector(axil_data_width - 1 downto 0);
+  signal uptime_counter : std_logic_vector((AXIL_DATA_WIDTH * 2) - 1 downto 0);
+  signal user_counter   : std_logic_vector(AXIL_DATA_WIDTH - 1 downto 0);
 
   signal msi_ena   : std_logic;
   signal msi_count : std_logic_vector(2 downto 0);
 
-  signal build_ver : std_logic_vector(axil_data_width - 1 downto 0);
-  signal build_id  : std_logic_vector(axil_data_width - 1 downto 0);
+  signal build_ver : std_logic_vector(AXIL_DATA_WIDTH - 1 downto 0);
+  signal build_id  : std_logic_vector(AXIL_DATA_WIDTH - 1 downto 0);
 
   -- C2H Channel 0
-  signal axis_c2h_0_tdata  : std_logic_vector(axis_data_width - 1 downto 0);
-  signal axis_c2h_0_tstrb  : std_logic_vector((axis_data_width / 8) - 1 downto 0);
+  signal axis_c2h_0_tdata  : std_logic_vector(AXIS_DATA_WIDTH - 1 downto 0);
+  signal axis_c2h_0_tstrb  : std_logic_vector((AXIS_DATA_WIDTH / 8) - 1 downto 0);
   signal axis_c2h_0_tlast  : std_logic;
   signal axis_c2h_0_tvalid : std_logic;
   signal axis_c2h_0_tready : std_logic;
-  signal axis_c2h_0_tkeep  : std_logic_vector((axis_data_width / 8) - 1 downto 0);
+  signal axis_c2h_0_tkeep  : std_logic_vector((AXIS_DATA_WIDTH / 8) - 1 downto 0);
 
   signal c2h_sts_0 : std_logic_vector(7 downto 0);
 
-  signal pn23_c2h_0_value : std_logic_vector(axis_data_width - 1 downto 0);
+  signal pn23_c2h_0_value : std_logic_vector(AXIS_DATA_WIDTH - 1 downto 0);
   signal pn23_c2h_0_valid : std_logic;
-  signal pn23_c2h_0_hold  : std_logic;
+  signal pn23_c2h_0_ena   : std_logic;
+  signal pn23_c2h_0_rate  : std_logic_vector(AXIL_DATA_WIDTH - 1 downto 0);
 
-  signal c2h_chan_0_packet_len : std_logic_vector(axil_data_width - 1 downto 0);
-  signal c2h_0_fifo_status     : std_logic_vector(axil_data_width - 1 downto 0);
+  signal phase_accum_c2h_0_ena : std_logic;
+  signal fifo_c2h_0_full       : std_logic;
+
+  signal c2h_chan_0_packet_len : std_logic_vector(AXIL_DATA_WIDTH - 1 downto 0);
+  signal c2h_0_fifo_status     : std_logic_vector(AXIL_DATA_WIDTH - 1 downto 0);
 
   -- C2H Channel 1
-  signal axis_c2h_1_tdata  : std_logic_vector(axis_data_width - 1 downto 0);
-  signal axis_c2h_1_tstrb  : std_logic_vector((axis_data_width / 8) - 1 downto 0);
+  signal axis_c2h_1_tdata  : std_logic_vector(AXIS_DATA_WIDTH - 1 downto 0);
+  signal axis_c2h_1_tstrb  : std_logic_vector((AXIS_DATA_WIDTH / 8) - 1 downto 0);
   signal axis_c2h_1_tlast  : std_logic;
   signal axis_c2h_1_tvalid : std_logic;
   signal axis_c2h_1_tready : std_logic;
-  signal axis_c2h_1_tkeep  : std_logic_vector((axis_data_width / 8) - 1 downto 0);
+  signal axis_c2h_1_tkeep  : std_logic_vector((AXIS_DATA_WIDTH / 8) - 1 downto 0);
 
   signal c2h_sts_1 : std_logic_vector(7 downto 0);
 
-  signal pn23_c2h_1_value : std_logic_vector(axis_data_width - 1 downto 0);
+  signal pn23_c2h_1_value : std_logic_vector(AXIS_DATA_WIDTH - 1 downto 0);
   signal pn23_c2h_1_valid : std_logic;
-  signal pn23_c2h_1_hold  : std_logic;
+  signal pn23_c2h_1_ena   : std_logic;
+  signal pn23_c2h_1_rate  : std_logic_vector(AXIL_DATA_WIDTH - 1 downto 0);
 
-  signal c2h_chan_1_packet_len : std_logic_vector(axil_data_width - 1 downto 0);
-  signal c2h_1_fifo_status     : std_logic_vector(axil_data_width - 1 downto 0);
+  signal phase_accum_c2h_1_ena : std_logic;
+  signal fifo_c2h_1_full       : std_logic;
+
+  signal c2h_chan_1_packet_len : std_logic_vector(AXIL_DATA_WIDTH - 1 downto 0);
+  signal c2h_1_fifo_status     : std_logic_vector(AXIL_DATA_WIDTH - 1 downto 0);
 
   -- H2C Channel 0
-  signal axis_h2c_tdata  : std_logic_vector(axis_data_width - 1 downto 0);
-  signal axis_h2c_tstrb  : std_logic_vector((axis_data_width / 8) - 1 downto 0);
+  signal axis_h2c_tdata  : std_logic_vector(AXIS_DATA_WIDTH - 1 downto 0);
+  signal axis_h2c_tstrb  : std_logic_vector((AXIS_DATA_WIDTH / 8) - 1 downto 0);
   signal axis_h2c_tlast  : std_logic;
   signal axis_h2c_tvalid : std_logic;
   signal axis_h2c_tready : std_logic;
-  signal axis_h2c_tkeep  : std_logic_vector((axis_data_width / 8) - 1 downto 0);
+  signal axis_h2c_tkeep  : std_logic_vector((AXIS_DATA_WIDTH / 8) - 1 downto 0);
 
   signal h2c_sts_0 : std_logic_vector(7 downto 0);
 
-  signal h2c_data_out : std_logic_vector(axis_data_width - 1 downto 0);
+  signal h2c_data_out : std_logic_vector(AXIS_DATA_WIDTH - 1 downto 0);
   signal h2c_rd_ena   : std_logic;
   signal h2c_empty    : std_logic;
 
-  signal pn23_h2c_value : std_logic_vector(axis_data_width - 1 downto 0);
+  signal pn23_h2c_value : std_logic_vector(AXIS_DATA_WIDTH - 1 downto 0);
   signal pn23_h2c_valid : std_logic;
   signal pn23_h2c_hold  : std_logic;
+  signal pn23_h2c_rate  : std_logic_vector(AXIL_DATA_WIDTH - 1 downto 0);
 
-  signal validate_errors : std_logic_vector(axil_data_width - 1 downto 0);
-  signal validate_correct : std_logic_vector(axil_data_width - 1 downto 0);
+  signal validate_errors  : std_logic_vector(AXIL_DATA_WIDTH - 1 downto 0);
+  signal validate_correct : std_logic_vector(AXIL_DATA_WIDTH - 1 downto 0);
 
-  signal h2c_0_fifo_status : std_logic_vector(axil_data_width - 1 downto 0);
+  signal h2c_0_fifo_status : std_logic_vector(AXIL_DATA_WIDTH - 1 downto 0);
 
   -- AXI Lite Bar space
   signal axil_awaddr  : std_logic_vector(31 downto 0);
   signal axil_awprot  : std_logic_vector(2 downto 0);
   signal axil_awvalid : std_logic;
   signal axil_awready : std_logic;
-  signal axil_wdata   : std_logic_vector(axil_data_width - 1 downto 0);
-  signal axil_wstrb   : std_logic_vector((axil_data_width / 8) - 1 downto 0);
+  signal axil_wdata   : std_logic_vector(AXIL_DATA_WIDTH - 1 downto 0);
+  signal axil_wstrb   : std_logic_vector((AXIL_DATA_WIDTH / 8) - 1 downto 0);
   signal axil_wvalid  : std_logic;
   signal axil_wready  : std_logic;
   signal axil_bvalid  : std_logic;
@@ -184,7 +193,7 @@ architecture rtl of top is
   signal axil_arprot  : std_logic_vector(2 downto 0);
   signal axil_arvalid : std_logic;
   signal axil_arready : std_logic;
-  signal axil_rdata   : std_logic_vector(axil_data_width - 1 downto 0);
+  signal axil_rdata   : std_logic_vector(AXIL_DATA_WIDTH - 1 downto 0);
   signal axil_rresp   : std_logic_vector(1 downto 0);
   signal axil_rvalid  : std_logic;
   signal axil_rready  : std_logic;
@@ -291,19 +300,33 @@ begin
     );
 
   -- C2H Channel 0
+
+  pn23_c2h_0_ena <= phase_accum_c2h_0_ena and not(fifo_c2h_0_full);
+
   pn23_gen_c2h_0_inst : component pn23
     port map (
       clk   => axi_aclk,
       rstn  => axi_aresetn,
-      hold  => pn23_c2h_0_hold,
+      ena   => pn23_c2h_0_ena,
       valid => pn23_c2h_0_valid,
       value => pn23_c2h_0_value
     );
 
+  phase_accum_c2h_0_inst : component phase_accum
+    generic map (
+      register_width => AXIL_DATA_WIDTH
+    )
+    port map (
+      clk  => axi_aclk,
+      rstn => axi_aresetn,
+      inc  => pn23_c2h_0_rate,
+      ena  => phase_accum_c2h_0_ena
+    );
+
   axis_c2h_0_inst : component axis_master
     generic map (
-      c_m_axis_tdata_width => axis_data_width,
-      register_width       => axil_data_width,
+      c_m_axis_tdata_width => AXIS_DATA_WIDTH,
+      register_width       => AXIL_DATA_WIDTH,
       c_m_start_count      => 16,
       fifo_depth           => 10
     )
@@ -311,7 +334,7 @@ begin
       fifo_status    => c2h_0_fifo_status,
       fifo_data_in   => pn23_c2h_0_value,
       fifo_wr_ena    => pn23_c2h_0_valid,
-      fifo_full      => pn23_c2h_0_hold,
+      fifo_full      => fifo_c2h_0_full,
       packet_length  => c2h_chan_0_packet_len,
       m_axis_aclk    => axi_aclk,
       m_axis_aresetn => axi_aresetn,
@@ -323,19 +346,33 @@ begin
     );
 
   -- C2H Channel 1
+
+  pn23_c2h_1_ena <= phase_accum_c2h_1_ena and not(fifo_c2h_1_full);
+
   pn23_gen_c2h_1_inst : component pn23
     port map (
       clk   => axi_aclk,
       rstn  => axi_aresetn,
-      hold  => pn23_c2h_1_hold,
+      ena   => pn23_c2h_1_ena,
       valid => pn23_c2h_1_valid,
       value => pn23_c2h_1_value
     );
 
+  phase_accum_c2h_1_inst : component phase_accum
+    generic map (
+      register_width => AXIL_DATA_WIDTH
+    )
+    port map (
+      clk  => axi_aclk,
+      rstn => axi_aresetn,
+      inc  => pn23_c2h_1_rate,
+      ena  => phase_accum_c2h_1_ena
+    );
+
   axis_c2h_1_inst : component axis_master
     generic map (
-      c_m_axis_tdata_width => axis_data_width,
-      register_width       => axil_data_width,
+      c_m_axis_tdata_width => AXIS_DATA_WIDTH,
+      register_width       => AXIL_DATA_WIDTH,
       c_m_start_count      => 16,
       fifo_depth           => 10
     )
@@ -343,7 +380,7 @@ begin
       fifo_status    => c2h_1_fifo_status,
       fifo_data_in   => pn23_c2h_1_value,
       fifo_wr_ena    => pn23_c2h_1_valid,
-      fifo_full      => pn23_c2h_1_hold,
+      fifo_full      => fifo_c2h_1_full,
       packet_length  => c2h_chan_1_packet_len,
       m_axis_aclk    => axi_aclk,
       m_axis_aresetn => axi_aresetn,
@@ -357,8 +394,8 @@ begin
   -- H2C Channel 0
   axis_h2c_inst : component axis_slave
     generic map (
-      c_s_axis_tdata_width => axis_data_width,
-      fifo_status_width    => axil_data_width,
+      c_s_axis_tdata_width => AXIS_DATA_WIDTH,
+      fifo_status_width    => AXIL_DATA_WIDTH,
       fifo_depth           => 10
     )
     port map (
@@ -379,12 +416,10 @@ begin
     port map (
       clk   => axi_aclk,
       rstn  => axi_aresetn,
-      hold  => pn23_h2c_hold,
+      ena   => h2c_rd_ena,
       valid => pn23_h2c_valid,
       value => pn23_h2c_value
     );
-
-  pn23_h2c_hold <= not h2c_rd_ena;
 
   validate_h2c_inst : component validate
     port map (
@@ -402,8 +437,8 @@ begin
   -- AXI Lite Interface
   pcie_bar_registers_inst : component registers
     generic map (
-      data_width => axil_data_width,
-      addr_width => axil_addr_width
+      data_width => AXIL_DATA_WIDTH,
+      addr_width => AXIL_ADDR_WIDTH
     )
     port map (
       -- Control interface (AXI4-Lite) slave
@@ -433,6 +468,10 @@ begin
       c2h_1_fifo_status_reg => c2h_1_fifo_status,
       h2c_0_fifo_status_reg => h2c_0_fifo_status,
 
+      c2h_0_pn23_rate_reg => pn23_c2h_0_rate,
+      c2h_1_pn23_rate_reg => pn23_c2h_1_rate,
+      h2c_0_pn23_rate_reg => pn23_h2c_rate,
+
       c2h_chan_0_packet_len => c2h_chan_0_packet_len,
       c2h_chan_1_packet_len => c2h_chan_1_packet_len,
 
@@ -452,13 +491,13 @@ begin
       stop_user_clock => stop_user_clock,
       irq_ack         => irq_ack,
 
-      validate_error => validate_errors,
+      validate_error   => validate_errors,
       validate_correct => validate_correct
     );
 
   uptime_counter_inst : component counter
     generic map (
-      data_width => 2 * axil_data_width
+      data_width => 2 * AXIL_DATA_WIDTH
     )
     port map (
       clk   => axi_aclk,
@@ -469,7 +508,7 @@ begin
 
   user_counter_inst : component counter
     generic map (
-      data_width => axil_data_width
+      data_width => AXIL_DATA_WIDTH
     )
     port map (
       clk   => axi_aclk,
@@ -496,6 +535,6 @@ begin
       led  => led1
     );
 
-  led2            <= expand_port_in;
+  led2 <= expand_port_in;
 
 end architecture rtl;
