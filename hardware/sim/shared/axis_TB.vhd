@@ -13,18 +13,28 @@ architecture behavioral of axis_tb is
 
   component pn23 is
     generic (
-      DATA_WIDTH : positive := 64;
-      REGISTER_WIDTH : positive := 32
+      DATA_WIDTH : positive := 64
     );
     port (
       clk   : in    std_logic;
       rstn  : in    std_logic;
-      ena  : in    std_logic;
-      delay : in    std_logic_vector(REGISTER_WIDTH - 1 downto 0);
+      ena   : in    std_logic;
       valid : out   std_logic;
       value : out   std_logic_vector(63 downto 0)
     );
   end component pn23;
+
+  component phase_accum is
+    generic (
+      REGISTER_WIDTH : positive := 32
+    );
+    port (
+      clk  : in    std_logic;
+      rstn : in    std_logic;
+      inc  : in    std_logic_vector(REGISTER_WIDTH - 1 downto 0);
+      ena  : out   std_logic
+    );
+  end component phase_accum;
 
   component axis_master is
     generic (
@@ -50,21 +60,21 @@ architecture behavioral of axis_tb is
 
   component axis_slave is
     generic (
-      c_s_axis_tdata_width : integer  := 32;
-      fifo_status_width    : integer := 32;
-      fifo_depth           : integer := 14
+      C_S_AXIS_TDATA_WIDTH : integer  := 32;
+      FIFO_STATUS_WIDTH    : integer := 32;
+      FIFO_DEPTH           : integer := 14
     );
     port (
-      fifo_status   : out   std_logic_vector(fifo_status_width - 1 downto 0);
-      fifo_data_out : out   std_logic_vector(c_s_axis_tdata_width - 1 downto 0);
+      fifo_status   : out   std_logic_vector(FIFO_STATUS_WIDTH - 1 downto 0);
+      fifo_data_out : out   std_logic_vector(C_S_AXIS_TDATA_WIDTH - 1 downto 0);
       fifo_rd_ena   : in    std_logic;
       fifo_empty    : out   std_logic;
 
       s_axis_aclk    : in    std_logic;
       s_axis_aresetn : in    std_logic;
       s_axis_tready  : out   std_logic;
-      s_axis_tdata   : in    std_logic_vector(c_s_axis_tdata_width - 1 downto 0);
-      s_axis_tstrb   : in    std_logic_vector((c_s_axis_tdata_width / 8) - 1 downto 0);
+      s_axis_tdata   : in    std_logic_vector(C_S_AXIS_TDATA_WIDTH - 1 downto 0);
+      s_axis_tstrb   : in    std_logic_vector((C_S_AXIS_TDATA_WIDTH / 8) - 1 downto 0);
       s_axis_tlast   : in    std_logic;
       s_axis_tvalid  : in    std_logic
     );
@@ -72,24 +82,29 @@ architecture behavioral of axis_tb is
 
   signal clk   : std_logic := '0';
   signal rstn  : std_logic;
-  signal value : std_logic_vector(data_width - 1 downto 0);
+  signal value : std_logic_vector(DATA_WIDTH - 1 downto 0);
   signal ready : std_logic;
 
   signal fifo_status : std_logic_vector(32 - 1 downto 0);
 
-  signal axis_tdata  : std_logic_vector(data_width - 1 downto 0);
+  signal axis_tdata  : std_logic_vector(DATA_WIDTH - 1 downto 0);
   signal axis_tvalid : std_logic;
-  signal axis_tstrb  : std_logic_vector((data_width / 8) - 1 downto 0);
+  signal axis_tstrb  : std_logic_vector((DATA_WIDTH / 8) - 1 downto 0);
   signal axis_tlast  : std_logic;
   signal axis_tready : std_logic;
 
   signal sig_fifo_empty    : std_logic;
-  signal sig_fifo_status   : std_logic_vector(register_width - 1 downto 0);
-  signal sig_fifo_data_out : std_logic_vector(data_width - 1 downto 0);
+  signal sig_fifo_status   : std_logic_vector(REGISTER_WIDTH - 1 downto 0);
+  signal sig_fifo_data_out : std_logic_vector(DATA_WIDTH - 1 downto 0);
 
   signal pn23_ena : std_logic;
-  signal pn23_delay : std_logic_vector(register_width - 1 downto 0);
+  signal pn23_delay : std_logic_vector(REGISTER_WIDTH - 1 downto 0);
   signal fifo_full : std_logic;
+
+  signal pa_master_inc : std_logic_vector(REGISTER_WIDTH - 1 downto 0);
+  signal pa_master_ena : std_logic;
+  signal pa_slave_inc : std_logic_vector(REGISTER_WIDTH - 1 downto 0);
+  signal pa_slave_ena : std_logic;
 
 begin
 
@@ -101,15 +116,31 @@ begin
   begin
 
     rstn <= '0';
+    pa_master_inc <= X"A0000000";
+    pa_slave_inc <= X"40000000";
     wait for 40 ns;
     rstn <= '1';
+    wait for 1000 ns;
+    pa_master_inc <= X"40000000";
+    pa_slave_inc <= X"A0000000";
     wait for 20us;
 
   end process run;
 
-  pn23_ena <= not(fifo_full);
+  master_rate_inst : component phase_accum
+    generic map (
+      REGISTER_WIDTH => REGISTER_WIDTH
+    )
+    port map (
+      clk => clk,
+      rstn => rstn,
+      inc => pa_master_inc,
+      ena => pa_master_ena
+    );
 
-  test : component pn23
+  pn23_ena <= not(fifo_full) and pa_master_ena;
+
+  pn23_test : component pn23
     port map (
       clk   => clk,
       rstn  => rstn,
@@ -122,7 +153,7 @@ begin
     generic map (
       DATA_WIDTH => DATA_WIDTH,
       REGISTER_WIDTH       => 32,
-      FIFO_DEPTH           => 5
+      FIFO_DEPTH           => 3
     )
     port map (
       fifo_status    => fifo_status,
@@ -139,16 +170,27 @@ begin
       m_axis_tready  => axis_tready
     );
 
+  slave_rate_inst : component phase_accum
+    generic map (
+      REGISTER_WIDTH => REGISTER_WIDTH
+    )
+    port map (
+      clk => clk,
+      rstn => rstn,
+      inc => pa_slave_inc,
+      ena => pa_slave_ena
+    );
+
   axis_slave_inst : component axis_slave
     generic map (
       C_S_AXIS_TDATA_WIDTH  => DATA_WIDTH,
       FIFO_STATUS_WIDTH    => 32,
-      FIFO_DEPTH           => 5
+      FIFO_DEPTH           => 3
     )
     port map (
       fifo_status    => sig_fifo_status,
       fifo_data_out  => sig_fifo_data_out,
-      fifo_rd_ena    => '1',
+      fifo_rd_ena    => pa_slave_ena,
       fifo_empty     => sig_fifo_empty,
       s_axis_aclk    => clk,
       s_axis_aresetn => rstn,
