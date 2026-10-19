@@ -154,28 +154,31 @@ architecture rtl of top is
   signal c2h_1_fifo_status     : std_logic_vector(AXIL_DATA_WIDTH - 1 downto 0);
 
   -- H2C Channel 0
-  signal axis_h2c_tdata  : std_logic_vector(AXIS_DATA_WIDTH - 1 downto 0);
-  signal axis_h2c_tstrb  : std_logic_vector((AXIS_DATA_WIDTH / 8) - 1 downto 0);
-  signal axis_h2c_tlast  : std_logic;
-  signal axis_h2c_tvalid : std_logic;
-  signal axis_h2c_tready : std_logic;
-  signal axis_h2c_tkeep  : std_logic_vector((AXIS_DATA_WIDTH / 8) - 1 downto 0);
+  signal axis_h2c_0_tdata  : std_logic_vector(AXIS_DATA_WIDTH - 1 downto 0);
+  signal axis_h2c_0_tstrb  : std_logic_vector((AXIS_DATA_WIDTH / 8) - 1 downto 0);
+  signal axis_h2c_0_tlast  : std_logic;
+  signal axis_h2c_0_tvalid : std_logic;
+  signal axis_h2c_0_tready : std_logic;
+  signal axis_h2c_0_tkeep  : std_logic_vector((AXIS_DATA_WIDTH / 8) - 1 downto 0);
 
   signal h2c_sts_0 : std_logic_vector(7 downto 0);
 
-  signal h2c_data_out : std_logic_vector(AXIS_DATA_WIDTH - 1 downto 0);
-  signal h2c_rd_ena   : std_logic;
-  signal h2c_empty    : std_logic;
+  signal h2c_0_data_out : std_logic_vector(AXIS_DATA_WIDTH - 1 downto 0);
+  signal h2c_0_rd_ena   : std_logic;
+  signal h2c_0_empty    : std_logic;
 
-  signal pn23_h2c_value : std_logic_vector(AXIS_DATA_WIDTH - 1 downto 0);
-  signal pn23_h2c_valid : std_logic;
-  signal pn23_h2c_hold  : std_logic;
-  signal pn23_h2c_rate  : std_logic_vector(AXIL_DATA_WIDTH - 1 downto 0);
+  signal pn23_h2c_0_value : std_logic_vector(AXIS_DATA_WIDTH - 1 downto 0);
+  signal pn23_h2c_0_valid : std_logic;
+  signal pn23_h2c_0_hold  : std_logic;
+  signal pn23_h2c_0_rate  : std_logic_vector(AXIL_DATA_WIDTH - 1 downto 0);
 
   signal validate_errors  : std_logic_vector(AXIL_DATA_WIDTH - 1 downto 0);
   signal validate_correct : std_logic_vector(AXIL_DATA_WIDTH - 1 downto 0);
 
   signal h2c_0_fifo_status : std_logic_vector(AXIL_DATA_WIDTH - 1 downto 0);
+
+  signal pn23_rate_empty : std_logic;
+  signal phase_accum_h2c_0_ena : std_logic;
 
   -- AXI Lite Bar space
   signal axil_awaddr  : std_logic_vector(31 downto 0);
@@ -274,11 +277,11 @@ begin
       s_axis_c2h_tvalid_1 => axis_c2h_1_tvalid,
       s_axis_c2h_tready_1 => axis_c2h_1_tready,
       s_axis_c2h_tkeep_1  => axis_c2h_1_tkeep,
-      m_axis_h2c_tdata_0  => axis_h2c_tdata,
-      m_axis_h2c_tlast_0  => axis_h2c_tlast,
-      m_axis_h2c_tvalid_0 => axis_h2c_tvalid,
-      m_axis_h2c_tready_0 => axis_h2c_tready,
-      m_axis_h2c_tkeep_0  => axis_h2c_tkeep,
+      m_axis_h2c_tdata_0  => axis_h2c_0_tdata,
+      m_axis_h2c_tlast_0  => axis_h2c_0_tlast,
+      m_axis_h2c_tvalid_0 => axis_h2c_0_tvalid,
+      m_axis_h2c_tready_0 => axis_h2c_0_tready,
+      m_axis_h2c_tkeep_0  => axis_h2c_0_tkeep,
       c2h_sts_0           => c2h_sts_0,
       h2c_sts_0           => h2c_sts_0,
       c2h_sts_1           => c2h_sts_1
@@ -286,7 +289,7 @@ begin
 
   axis_c2h_0_tkeep <= (others => '1');
   axis_c2h_1_tkeep <= (others => '1');
-  axis_h2c_tstrb   <= (others => '1');
+  axis_h2c_0_tstrb   <= (others => '1');
 
   msi_req(1) <= '0';
 
@@ -328,7 +331,7 @@ begin
       c_m_axis_tdata_width => AXIS_DATA_WIDTH,
       register_width       => AXIL_DATA_WIDTH,
       c_m_start_count      => 16,
-      fifo_depth           => 10
+      fifo_depth           => 4
     )
     port map (
       fifo_status    => c2h_0_fifo_status,
@@ -374,7 +377,7 @@ begin
       c_m_axis_tdata_width => AXIS_DATA_WIDTH,
       register_width       => AXIL_DATA_WIDTH,
       c_m_start_count      => 16,
-      fifo_depth           => 10
+      fifo_depth           => 4
     )
     port map (
       fifo_status    => c2h_1_fifo_status,
@@ -392,44 +395,57 @@ begin
     );
 
   -- H2C Channel 0
-  axis_h2c_inst : component axis_slave
+  axis_h2c_0_inst : component axis_slave
     generic map (
       c_s_axis_tdata_width => AXIS_DATA_WIDTH,
       fifo_status_width    => AXIL_DATA_WIDTH,
-      fifo_depth           => 10
+      fifo_depth           => 4
     )
     port map (
       fifo_status    => h2c_0_fifo_status,
-      fifo_data_out  => h2c_data_out,
-      fifo_rd_ena    => h2c_rd_ena,
-      fifo_empty     => h2c_empty,
+      fifo_data_out  => h2c_0_data_out,
+      fifo_rd_ena    => h2c_0_rd_ena,
+      fifo_empty     => h2c_0_empty,
       s_axis_aclk    => axi_aclk,
       s_axis_aresetn => axi_aresetn,
-      s_axis_tvalid  => axis_h2c_tvalid,
-      s_axis_tdata   => axis_h2c_tdata,
-      s_axis_tstrb   => axis_h2c_tstrb,
-      s_axis_tlast   => axis_h2c_tlast,
-      s_axis_tready  => axis_h2c_tready
+      s_axis_tvalid  => axis_h2c_0_tvalid,
+      s_axis_tdata   => axis_h2c_0_tdata,
+      s_axis_tstrb   => axis_h2c_0_tstrb,
+      s_axis_tlast   => axis_h2c_0_tlast,
+      s_axis_tready  => axis_h2c_0_tready
     );
 
-  pn23_gen_h2c_inst : component pn23
+  phase_accum_h2c_0_inst : component phase_accum
+    generic map (
+      register_width => AXIL_DATA_WIDTH
+    )
+    port map (
+      clk  => axi_aclk,
+      rstn => axi_aresetn,
+      inc  => pn23_h2c_0_rate,
+      ena  => phase_accum_h2c_0_ena
+    );
+
+  pn23_rate_empty <= not(phase_accum_h2c_0_ena);
+
+  pn23_gen_h2c_0_inst : component pn23
     port map (
       clk   => axi_aclk,
       rstn  => axi_aresetn,
-      ena   => h2c_rd_ena,
-      valid => pn23_h2c_valid,
-      value => pn23_h2c_value
+      ena   => h2c_0_rd_ena,
+      valid => pn23_h2c_0_valid,
+      value => pn23_h2c_0_value
     );
 
-  validate_h2c_inst : component validate
+  validate_h2c_0_inst : component validate
     port map (
       clk     => axi_aclk,
       rstn    => axi_aresetn,
-      rd_fifo => h2c_rd_ena,
-      empty_a => h2c_empty,
-      empty_b => '0',
-      data_a  => h2c_data_out,
-      data_b  => pn23_h2c_value,
+      rd_fifo => h2c_0_rd_ena,
+      empty_a => h2c_0_empty,
+      empty_b => pn23_rate_empty,
+      data_a  => h2c_0_data_out,
+      data_b  => pn23_h2c_0_value,
       errors  => validate_errors,
       correct => validate_correct
     );
@@ -470,7 +486,7 @@ begin
 
       c2h_0_pn23_rate_reg => pn23_c2h_0_rate,
       c2h_1_pn23_rate_reg => pn23_c2h_1_rate,
-      h2c_0_pn23_rate_reg => pn23_h2c_rate,
+      h2c_0_pn23_rate_reg => pn23_h2c_0_rate,
 
       c2h_chan_0_packet_len => c2h_chan_0_packet_len,
       c2h_chan_1_packet_len => c2h_chan_1_packet_len,
@@ -501,7 +517,7 @@ begin
     )
     port map (
       clk   => axi_aclk,
-      rstn  => sys_rst_n,
+      rstn  => axi_aresetn,
       stop  => '0',
       value => uptime_counter
     );
@@ -531,7 +547,7 @@ begin
     )
     port map (
       clk  => axi_aclk,
-      rstn => sys_rst_n,
+      rstn => axi_aresetn,
       led  => led1
     );
 
