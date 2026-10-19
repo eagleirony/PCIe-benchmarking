@@ -61,6 +61,7 @@ def options(opt):
     pbb_opts.add_option('--build',
                         default='both',
                         dest='build_type',
+                        choices=['software','hardware','both'],
                         help='Build hardware, software or both')
 
     buildcontrol.recurse(opt, directories)
@@ -99,7 +100,7 @@ def build_software(bld):
                 target='app',
                 cflags=builditems.get_cflags(bld, cflags),
                 cxxflags=builditems.get_cxxflags(bld, cxxflags),
-                include=builditems.get_includes(bld, includes),
+                includes=builditems.get_includes(bld, includes),
                 defines=builditems.get_defines(bld, defines),
                 use=['app_firmware', 'app_platform', 'app_framework', 'app_externals'],
                 source=sources)

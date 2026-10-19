@@ -33,7 +33,7 @@ using thread_index_ptr = std::shared_ptr<thread_index>;
 thread_index_ptr make_thread_index();
 static thread_index_ptr ti_ = make_thread_index();
 
-void init(uint64_t usecs);
+void init(uint64_t msecs);
 
 void stop();
 

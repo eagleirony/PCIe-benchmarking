@@ -103,40 +103,8 @@ inline void registers::write(uint32_t target, uint32_t offset, uint32_t value) {
 
 channel::channel(registers& reg_, uint32_t dir_, size_t id_, size_t cid_,
     size_t desc_count_) : regs(reg_), dir(dir_), id(id_), cid(cid_),
-    running(false) {
+    running(false), stopping(false), pipelined(false), head(0), tail(0) {
     bufs.create(2 * XLNX_PCIE_DMA_CHAN_DESC_COUNT, DMA_BUFF_SIZE, DMA_BUFF_ALIGN, DMA_BUFF_BOUNDARY);
-
-    descs[0].desc = rtems_cache_coherent_allocate(
-        XLNX_PCIE_DMA_DESC_SIZE * XLNX_PCIE_DMA_CHAN_DESC_COUNT,
-        XLNX_PCIE_DMA_DESC_ALIGNMENT,
-        XLNX_PCIE_DMA_DESC_BOUNDARY);
-    if (descs[0].desc == nullptr) {
-        throw std::bad_alloc();
-    }
-
-    wbs[0].wb = rtems_cache_coherent_allocate(
-        XLNX_PCIE_DMA_WB_SIZE * XLNX_PCIE_DMA_CHAN_DESC_COUNT,
-        XLNX_PCIE_DMA_WB_ALIGNMENT,
-        XLNX_PCIE_DMA_WB_BOUNDARY);
-    if (wbs[0].wb == nullptr) {
-        rtems_cache_coherent_free(descs[0].desc);
-        throw std::bad_alloc();
-    }
-
-    uint64_t nxt_desc = reinterpret_cast<uint64_t>(descs[0].desc);
-    uint64_t nxt_wb = reinterpret_cast<uint64_t>(wbs[0].wb);
-    nxt_desc += XLNX_PCIE_DMA_DESC_SIZE;
-    nxt_wb += XLNX_PCIE_DMA_WB_SIZE;
-
-    for (size_t i = 1; i < XLNX_PCIE_DMA_CHAN_DESC_COUNT; i++) {
-        descs[i].desc = reinterpret_cast<void*>(nxt_desc);
-        wbs[i].wb = reinterpret_cast<void*>(nxt_wb);
-
-        nxt_desc += XLNX_PCIE_DMA_DESC_SIZE;
-        nxt_wb += XLNX_PCIE_DMA_WB_SIZE;
-    }
-    head = 0;
-    tail = 0;
 
     /* Set performance tracking to auto */
     write_chan(XLNX_PCIE_DMA_CHAN_PERF_CTRL, XLNX_PCIE_DMA_CHAN_PERF_CTRL_RUN
@@ -156,24 +124,9 @@ channel::channel(registers& reg_, uint32_t dir_, size_t id_, size_t cid_,
 
 void channel::set_pipeline() {
     lock_guard guard(lock);
-    if (pipelined) {
-        return;
-    }
-    descs[0].zero();
-    descs[0].header(true, false, XLNX_PCIE_DMA_CHAN_DESC_COUNT - 2);
-    descs[0].set_length(DMA_BUFF_SIZE);
-    descs[0].set_wb(wbs[0]);
-    wbs[0].clear();
-    auto buf = bufs.request();
-    descs[0].set_dst_buffer(buf);
-
-    for (size_t i = 1; i < XLNX_PCIE_DMA_CHAN_DESC_COUNT; i++) {
-        uint32_t nxt_adj = 0;
+    for (size_t i = 0; i < XLNX_PCIE_DMA_CHAN_DESC_COUNT; i++) {
         descs[i].zero();
-        if (i + 2 < XLNX_PCIE_DMA_CHAN_DESC_COUNT) {
-            nxt_adj = XLNX_PCIE_DMA_CHAN_DESC_COUNT - i - 2;
-        }
-        descs[i].header(true, false, nxt_adj);
+        descs[i].header(true, false);
         descs[i].set_length(DMA_BUFF_SIZE);
         descs[i].set_wb(wbs[i]);
         wbs[i].clear();
@@ -197,7 +150,8 @@ void channel::set_block(size_t length) {
     size_t desc_index = 0;
     auto desc_chain_len = (length + DMA_BUFF_SIZE - 1) / DMA_BUFF_SIZE;
     if (desc_chain_len > XLNX_PCIE_DMA_CHAN_DESC_COUNT) {
-        throw std::runtime_error("Length too long for block transfer");
+        throw std::runtime_error(
+            "error: dma: block transfer: length too long for block transfer");
     }
 
     while (length > DMA_BUFF_SIZE) {
@@ -214,20 +168,19 @@ void channel::set_block(size_t length) {
     }
 
     descs[desc_index].zero();
-    descs[desc_index].header(false, true, 0);
+    descs[desc_index].header(true, true, 0);
     descs[desc_index].set_length(length);
     descs[desc_index].set_wb(wbs[desc_index]);
     wbs[desc_index].clear();
     auto buf = bufs.request();
     descs[desc_index].set_dst_buffer(buf);
 
-    for (size_t i = 0; i <= std::min(desc_index, XLNX_PCIE_DMA_CHAN_DESC_COUNT);
-        ++i) {
+    for (size_t i = 0; i < desc_index; ++i) {
         descs[i].set_next(descs[i + 1]);
     }
 
     head = 0;
-    tail = desc_index + 1;
+    tail = 0;
 
     pipelined = false;
 }
@@ -256,8 +209,13 @@ void channel::start() {
 
     desc = &descs[head];
 
-    desc_lo = static_cast<uint32_t>(reinterpret_cast<uint64_t>(desc->desc) & 0xFFFFFFFF);
-    desc_hi = static_cast<uint32_t>(reinterpret_cast<uint64_t>(desc->desc) >> 32);
+    //TODO
+    __asm__ volatile ( "dsb SY" : : : "memory" );
+
+    desc_lo = static_cast<uint32_t>(
+        reinterpret_cast<uint64_t>(desc->addr) & 0xFFFFFFFF);
+    desc_hi = static_cast<uint32_t>(
+        reinterpret_cast<uint64_t>(desc->addr) >> 32);
     write_sgdma(XLNX_PCIE_DMA_CHAN_SG_DESC_ADDR_LO, desc_lo);
     write_sgdma(XLNX_PCIE_DMA_CHAN_SG_DESC_ADDR_HI, desc_hi);
     write_sgdma(XLNX_PCIE_DMA_CHAN_SG_DESC_ADJ, 0);
@@ -266,71 +224,113 @@ void channel::start() {
     auto reg = read_chan(XLNX_PCIE_DMA_CHAN_CTRL);
     reg |= XLNX_PCIE_DMA_CHAN_CTRL_RUN;
 
-    benchmark::log::log_and_timestamp(benchmark::log::record::EP_DMA_PIPELINE_START);
+    benchmark::log::log_and_timestamp(
+        benchmark::log::record::EP_DMA_PIPELINE_START);
     write_chan(XLNX_PCIE_DMA_CHAN_CTRL, reg);
 }
 
 void channel::stop() {
+    uint32_t status;
     if (!is_running()) {
         return;
     }
     lock_guard guard(lock);
-
-    descs[0].zero();
-    descs[0].header(false, true);
-    descs[0].clear_next();
-    descs[0].set_length(DMA_BUFF_SIZE);
-    descs[0].set_wb(wbs[0]);
-    auto buf = bufs.request();
-    descs[0].set_dst_buffer(buf);
-
-    benchmark::log::timestamp_and_log(benchmark::log::record::EP_DMA_PIPELINE_END);
+    auto reg = read_chan(XLNX_PCIE_DMA_CHAN_CTRL);
+    reg &= ~XLNX_PCIE_DMA_CHAN_CTRL_RUN;
+    write_chan(XLNX_PCIE_DMA_CHAN_CTRL, reg);
+    status = read_chan(XLNX_PCIE_DMA_CHAN_STS);
+    while ((status & XLNX_PCIE_DMA_CHAN_STS_IDLE) == 0) {
+        status = read_chan(XLNX_PCIE_DMA_CHAN_STS);
+        lock.unlock();
+        usleep(1);
+        lock.lock();
+    }
+    benchmark::log::timestamp_and_log(
+        benchmark::log::record::EP_DMA_PIPELINE_END);
     running = false;
+    stopping = false;
+}
+
+void channel::error(uint32_t status) {
+    if (status & XLNX_PCIE_DMA_CHAN_STS_ALIGN) {
+        std::cout << "error: dma: alignment mismatch" << std::endl;
+        write_chan(XLNX_PCIE_DMA_CHAN_STS, XLNX_PCIE_DMA_CHAN_STS_ALIGN);
+    }
+    if (status & XLNX_PCIE_DMA_CHAN_STS_MAGIC) {
+        std::cout << "error: dma: invalid magic value in descriptor"
+            << std::endl;
+        write_chan(XLNX_PCIE_DMA_CHAN_STS, XLNX_PCIE_DMA_CHAN_STS_MAGIC);
+    }
+    if (status & XLNX_PCIE_DMA_CHAN_STS_INV_LEN) {
+        std::cout << "error: dma: invalid buffer length" << std::endl;
+        write_chan(XLNX_PCIE_DMA_CHAN_STS, XLNX_PCIE_DMA_CHAN_STS_INV_LEN);
+    }
+    if (status & XLNX_PCIE_DMA_CHAN_STS_INV_LEN) {
+        std::cout << "error: dma: invalid buffer length" << std::endl;
+        write_chan(XLNX_PCIE_DMA_CHAN_STS, XLNX_PCIE_DMA_CHAN_STS_INV_LEN);
+    }
 }
 
 void channel::handle_intr() {
     lock_guard guard(lock);
     /* Clear intr sources */
     uint32_t status = read_chan(XLNX_PCIE_DMA_CHAN_STS);
-    write_chan(XLNX_PCIE_DMA_CHAN_STS, status);
 
-    if (pipelined) {
-        tail = (tail + 1) % XLNX_PCIE_DMA_CHAN_DESC_COUNT;
+    if (status &
+        ~(XLNX_PCIE_DMA_CHAN_STS_STOP
+          | XLNX_PCIE_DMA_CHAN_STS_COMP
+          | XLNX_PCIE_DMA_CHAN_STS_BUSY
+          | XLNX_PCIE_DMA_CHAN_STS_IDLE)) {
+        error(status);
+        stop();
+        return;
     }
 
-    while (head != tail) {
-        if (dir == XLNX_PCIE_DMA_TARGET_C2H_CHANS) {
-            mem::dma_buffer_ptr cmpl_buf;
-            auto& d = descs[head];
+    if (status & XLNX_PCIE_DMA_CHAN_STS_IDLE ||
+        status & XLNX_PCIE_DMA_CHAN_STS_STOP) {
+        running = false;
+        stopping = false;
+        write_chan(XLNX_PCIE_DMA_CHAN_STS,
+            (XLNX_PCIE_DMA_CHAN_STS_IDLE | XLNX_PCIE_DMA_CHAN_STS_STOP));
+    }
 
-            cmpl_buf = d.buf;
-            d.buf = bufs.request();
+    if (status & XLNX_PCIE_DMA_CHAN_STS_COMP) {
+        auto d = &descs[head];
+        while (d->wb->valid()) {
+            head = (head + 1) % XLNX_PCIE_DMA_CHAN_DESC_COUNT;
+            d = &descs[head];
+        }
 
-            if (!d.wb->valid()) {
-                std::ostringstream oss;
-                oss << "Channel " << id << ": Invalid DMA transfer";
-                throw std::runtime_error(oss.str());
-            }
+        while (head != tail) {
+            if (dir == XLNX_PCIE_DMA_TARGET_C2H_CHANS) {
+                mem::dma_buffer_ptr cmpl_buf;
+                auto& d = descs[tail];
 
-            cmpl_buf->stats.eop = d.wb->eop();
-            if (pipelined &&
-                status & XLNX_PCIE_DMA_CHAN_STS_STOP) {
-                cmpl_buf->stats.eos = true;
+                tail = (tail + 1) % XLNX_PCIE_DMA_CHAN_DESC_COUNT;
+
+                cmpl_buf = d.buf;
+                d.buf = bufs.request();
+                d.set_dst_buffer(d.buf);
+
+                cmpl_buf->stats.eop = d.wb->eop();
+                cmpl_buf->stats.length = d.wb->length();
+                d.wb->clear();
+                if (!running && tail == head) {
+                    cmpl_buf->stats.eos = true;
+                } else {
+                    cmpl_buf->stats.eos = false;
+                }
+
+                if (cb != nullptr) {
+                    cb(cmpl_buf);
+                }
             } else {
-                cmpl_buf->stats.eos = false;
-            }
-            cmpl_buf->stats.length = d.wb->length();
-            d.wb->clear();
-
-            if (cb != nullptr) {
-                cb(cmpl_buf);
-            }
-        } else {
-            if (cb != nullptr) {
-                cb(nullptr);
+                if (cb != nullptr) {
+                    cb(nullptr);
+                }
             }
         }
-        head = (head + 1) % XLNX_PCIE_DMA_CHAN_DESC_COUNT;
+        write_chan(XLNX_PCIE_DMA_CHAN_STS, XLNX_PCIE_DMA_CHAN_STS_COMP);
     }
 }
 
@@ -364,11 +364,12 @@ void channel::report() {
     }
     std::cout << dir_str << " " << id << " channel:" << std::endl;
 
-    cycle_count = static_cast<uint64_t>(read_chan(XLNX_PCIE_DMA_CHAN_PERF_CYC_HI))
-        << 32;
-    cycle_count |= (read_chan(XLNX_PCIE_DMA_CHAN_PERF_CYC_LO) &
-        XLNX_PCIE_DMA_CHAN_PERF_HI_COUNT_MASK);
-    if (read_chan(XLNX_PCIE_DMA_CHAN_PERF_CYC_LO) &
+    cycle_count =
+          static_cast<uint64_t>(read_chan(XLNX_PCIE_DMA_CHAN_PERF_CYC_LO));
+    cycle_count |=
+        (static_cast<uint64_t>(read_chan(XLNX_PCIE_DMA_CHAN_PERF_CYC_HI)) &
+        XLNX_PCIE_DMA_CHAN_PERF_HI_COUNT_MASK) << 32;
+    if (read_chan(XLNX_PCIE_DMA_CHAN_PERF_CYC_HI) &
             XLNX_PCIE_DMA_CHAN_PERF_HI_MAXED_MASK) {
         maxed_str = "Maxed ";
     }
@@ -517,7 +518,7 @@ controller::controller(std::string& path) {
     axis.write(api::io::EP_REG_C2H_0_PACK_LEN_OFF, DMA_BUFF_SIZE/8 - 1);
     axis.write(api::io::EP_REG_C2H_1_PACK_LEN_OFF, DMA_BUFF_SIZE/8 - 1);
 
-    axis.write(api::io::EP_REG_C2H_0_PN23_RATE_OFF, 0x370A3D71);
+    axis.write(api::io::EP_REG_C2H_0_PN23_RATE_OFF, 0x35C28F5C);
     axis.write(api::io::EP_REG_C2H_1_PN23_RATE_OFF, 1);
 
     for (size_t i = 0; i < XLNX_PCIE_DMA_MAX_CHANS; i++) {
@@ -576,7 +577,7 @@ void controller::set_user_irq_callback(callback& cb) {
 }
 
 void controller::enable_user_irq(int irq) {
-    if (irq > 32) {
+    if (irq >= 16) {
         throw std::runtime_error("IRQ cannot be enabled, out of range");
     }
     lock_guard guard(lock);
@@ -587,7 +588,7 @@ void controller::enable_user_irq(int irq) {
 }
 
 void controller::disable_user_irq(int irq) {
-    if (irq > 32) {
+    if (irq >= 16) {
         throw std::runtime_error("IRQ cannot be disabled, out of range");
     }
     lock_guard guard(lock);
@@ -725,7 +726,7 @@ void controller::usr_msi_worker() {
             lock_guard guard(lock);
             uint32_t reqs = regs.read(XLNX_PCIE_DMA_TARGET_IRQ_BLOCK,
                 XLNX_PCIE_DMA_IRQ_USR_INT);
-            for (int i = 0; i < 32; i++) {
+            for (int i = 0; i < 16; i++) {
                 if (reqs & (1U << i)) {
                     user_irq_callback(i);
                 }
@@ -762,8 +763,6 @@ static bool probe_dma(std::string path) {
 
     return true;
 }
-
-struct timespec start;
 
 void init() {
 

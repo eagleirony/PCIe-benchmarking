@@ -25,14 +25,23 @@ namespace dma {
 namespace mem {
 
 uint32_t writeback::read(uint32_t offset) {
-    uint64_t address = reinterpret_cast<uint64_t>(wb);
+    if (addr == nullptr) {
+        throw std::runtime_error("writeback: read: writeback address is null");
+    }
+
+    uint64_t address = reinterpret_cast<uint64_t>(addr);
     address += offset;
     volatile uint32_t* reg = reinterpret_cast<uint32_t*>(address);
     return *reg;
 }
 
 void writeback::write(uint32_t offset, uint32_t value) {
-    uint64_t address = reinterpret_cast<uint64_t>(wb);
+    if (addr == nullptr) {
+        throw std::runtime_error(
+            "writeback: write: writeback address is null");
+    }
+
+    uint64_t address = reinterpret_cast<uint64_t>(addr);
     address += offset;
     uint32_t* reg = reinterpret_cast<uint32_t*>(address);
     *reg = value;
@@ -63,14 +72,24 @@ uint32_t writeback::length() {
 }
 
 uint32_t descriptor::read(uint32_t offset) {
-    uint64_t address = reinterpret_cast<uint64_t>(desc);
+    if (addr == nullptr) {
+        throw std::runtime_error(
+            "descriptor: read: descriptor address is null");
+    }
+
+    uint64_t address = reinterpret_cast<uint64_t>(addr);
     address += offset;
     volatile uint32_t* reg = reinterpret_cast<uint32_t*>(address);
     return *reg;
 }
 
 void descriptor::write(uint32_t offset, uint32_t value) {
-    uint64_t address = reinterpret_cast<uint64_t>(desc);
+    if (addr == nullptr) {
+        throw std::runtime_error(
+            "descriptor: write: descriptor address is null");
+    }
+
+    uint64_t address = reinterpret_cast<uint64_t>(addr);
     address += offset;
     uint32_t* reg = reinterpret_cast<uint32_t*>(address);
     *reg = value;
@@ -114,10 +133,6 @@ void descriptor::header(bool cmpl, bool stop, size_t adj) {
 void descriptor::set_length(size_t length) {
     uint32_t len_trunc;
 
-    if (desc == nullptr) {
-        return;
-    }
-
     if (length > XLNX_PCIE_DMA_DESC_LEN_MASK) {
         throw std::runtime_error(
             "Request too large for single descriptor transfer");
@@ -133,12 +148,8 @@ void descriptor::set_wb(writeback& wb_) {
     uint32_t wb_hi;
     uint32_t wb_lo;
 
-    if (desc == nullptr) {
-        return;
-    }
-
     wb = &wb_;
-    wb_addr = reinterpret_cast<uint64_t>(wb->wb);
+    wb_addr = reinterpret_cast<uint64_t>(wb->addr);
 
     wb_lo = static_cast<uint32_t>(wb_addr & 0xFFFFFFFF);
     wb_hi = static_cast<uint32_t>(wb_addr >> 32);
@@ -153,7 +164,7 @@ void descriptor::set_next(descriptor& next_) {
     uint32_t nxt_lo;
     next = &next_;
 
-    nxt_addr = reinterpret_cast<uint64_t>(next->desc);
+    nxt_addr = reinterpret_cast<uint64_t>(next->addr);
 
     nxt_lo = static_cast<uint32_t>(nxt_addr & 0xFFFFFFFF);
     nxt_hi = static_cast<uint32_t>(nxt_addr >> 32);
@@ -174,12 +185,8 @@ void descriptor::set_dst_buffer(dma_buffer_ptr buf_) {
     uint32_t buf_hi;
     uint32_t buf_lo;
 
-    if (desc == nullptr) {
-        return;
-    }
-
     buf = buf_;
-    buf_addr = reinterpret_cast<uint64_t>(buf->buf);
+    buf_addr = reinterpret_cast<uint64_t>(buf->addr);
 
     buf_lo = static_cast<uint32_t>(buf_addr & 0xFFFFFFFF);
     buf_hi = static_cast<uint32_t>(buf_addr >> 32);
@@ -193,12 +200,8 @@ void descriptor::set_src_buffer(dma_buffer_ptr buf_) {
     uint32_t buf_hi;
     uint32_t buf_lo;
 
-    if (desc == nullptr) {
-        return;
-    }
-
     buf = buf_;
-    buf_addr = reinterpret_cast<uint64_t>(buf->buf);
+    buf_addr = reinterpret_cast<uint64_t>(buf->addr);
 
     buf_lo = static_cast<uint32_t>(buf_addr & 0xFFFFFFFF);
     buf_hi = static_cast<uint32_t>(buf_addr >> 32);

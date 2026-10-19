@@ -26,6 +26,11 @@ namespace framework {
 namespace rtems {
 namespace events {
 
+event::event(bool pending_, rtems_event_set event_set_) : waiting(false),
+    pending_allowed(pending_), waiter(RTEMS_ID_NONE), event_set(event_set_) {
+    waiter = rtems_task_self();
+}
+
 event::status_code event::wait(int timeout_ms) {
     rtems_event_set event_out;
     rtems_interval timeout;

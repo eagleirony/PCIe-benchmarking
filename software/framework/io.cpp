@@ -122,6 +122,7 @@ void init() {
     std::string path;
     bool modified;
     uint32_t git_hash;
+    bool found = false;
 
     for (int i = 0; i < pcie_device_count; i++) {
         std::ostringstream oss;
@@ -132,13 +133,18 @@ void init() {
 
         path = oss.str();
         if (probe_dma(path)) {
+            found = true;
             break;
         }
     }
 
+    if (!found) {
+        throw std::runtime_error("io: error: no PCIe device found");
+    }
+
     fd = ::open(path.c_str(), O_RDWR);
     if (fd == -1) {
-        throw std::runtime_error("dma: error: iodev open failed");
+        throw std::runtime_error("io: error: iodev open failed");
     }
 
     region.index = 0;
@@ -149,7 +155,7 @@ void init() {
     if (status == -1) {
         close(fd);
         fd = 0;
-        throw std::runtime_error("dma: error: IOCTL get region failed");
+        throw std::runtime_error("io: error: IOCTL get region failed");
     }
 
     ior->endpoint.base = mmap(
@@ -163,7 +169,7 @@ void init() {
     if (ior->endpoint.base == MAP_FAILED ) {
         close(fd);
         fd = 0;
-        throw std::runtime_error("dma: error: mmap failed");
+        throw std::runtime_error("io: error: mmap failed");
     }
 
     ior->pl.base = reinterpret_cast<void*>(PL_REG_BASE);

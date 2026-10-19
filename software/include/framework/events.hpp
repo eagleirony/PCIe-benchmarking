@@ -47,8 +47,7 @@ struct event {
     rtems_id waiter;
     rtems_event_set event_set;
 
-    event(bool pending_, rtems_event_set event_set_) : waiting(false),
-        pending_allowed(pending_), waiter(RTEMS_ID_NONE), event_set(event_set_) {}
+    event(bool pending_, rtems_event_set event_set_);
 
     status_code wait();
     status_code wait(int timeout_ms);

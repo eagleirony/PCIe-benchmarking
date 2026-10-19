@@ -56,10 +56,10 @@ struct thread_index {
     bool logging;
     std::vector<thread_info> index;
     rtems_thread cpuuse_thread;
-    uint64_t timeout_ms;
     size_t uid;
+    uint64_t timeout_ms;
 
-    thread_index() : logging(false), uid(0) {};
+    thread_index() : logging(false), uid(0), timeout_ms(1) {};
 
     ~thread_index() {
         stop();
@@ -205,8 +205,8 @@ struct thread_index {
     }
 };
 
-void init(uint64_t usecs) {
-    ti->set_timeout(usecs);
+void init(uint64_t msecs) {
+    ti->set_timeout(msecs);
 }
 
 void run() {
@@ -228,12 +228,12 @@ void stop() {
 }
 
 void register_thread(std::string name) {
-    auto log_id = benchmark::log::log(benchmark::log::record::THREAD_START);
+    ti->add(name, rtems_task_self());
+
+    auto log_id = benchmark::log::timestamp_and_log(
+        benchmark::log::record::THREAD_START);
     auto uid = ti->get_uid_by_rtems_id(rtems_task_self());
     benchmark::log::set_cpu_usage_uid(log_id, uid);
-
-    ti->add(name, rtems_task_self());
-    benchmark::log::timestamp(log_id);
 
     ti->log(uid);
 }

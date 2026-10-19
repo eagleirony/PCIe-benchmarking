@@ -42,10 +42,6 @@ constexpr uint32_t XLNX_PCIE_DMA_MSI = 0;
 constexpr uint32_t XLNX_PCIE_USR_MSI = 1;
 
 /* Descriptors */
-static constexpr uint32_t XLNX_PCIE_DMA_DESC_SIZE = 0x20;
-static constexpr uint32_t XLNX_PCIE_DMA_DESC_ALIGNMENT = 0x20;
-static constexpr uint32_t XLNX_PCIE_DMA_DESC_BOUNDARY = 0x1000;
-
 static constexpr uint32_t XLNX_PCIE_DMA_DESC_MAGIC_NXT_CTRL_OFF = 0x00;
   static constexpr uint32_t XLNX_PCIE_DMA_DESC_MAGIC_VAL  = 0xAD4B0000;
   static constexpr uint32_t XLNX_PCIE_DMA_DESC_MAGIC_MASK = 0xFFFF0000;
@@ -66,11 +62,6 @@ static constexpr uint32_t XLNX_PCIE_DMA_DESC_NXT_ADDR_LOWER_OFF = 0x18;
 static constexpr uint32_t XLNX_PCIE_DMA_DESC_NXT_ADDR_UPPER_OFF = 0x1C;
 
 /* Write back */
-
-static constexpr uint32_t XLNX_PCIE_DMA_WB_SIZE = 0x8;
-static constexpr uint32_t XLNX_PCIE_DMA_WB_ALIGNMENT = 0x8;
-static constexpr uint32_t XLNX_PCIE_DMA_WB_BOUNDARY = 0x0;
-
 static constexpr uint32_t XLNX_PCIE_DMA_WB_MAGIC_STATUS_OFF = 0x0;
   static constexpr uint32_t XLNX_PCIE_DMA_WB_MAGIC_MASK       = 0xFFFF0000;
   static constexpr uint32_t XLNX_PCIE_DMA_WB_MAGIC_VAL        = 0x52B40000;
@@ -207,6 +198,7 @@ struct channel {
     size_t id;
     size_t cid;
     bool running;
+    bool stopping;
     bool pipelined;
     size_t head;
     size_t tail;
@@ -231,8 +223,9 @@ struct channel {
     void report();
 
     void handle_intr();
-
 protected:
+    void error(uint32_t status);
+
     void set_pipeline();
     void set_block(size_t length);
 

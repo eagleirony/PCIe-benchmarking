@@ -37,6 +37,15 @@ namespace pcie {
 namespace dma {
 namespace mem {
 
+static constexpr uint32_t XLNX_PCIE_DMA_DESC_SIZE = 0x20;
+static constexpr uint32_t XLNX_PCIE_DMA_DESC_ALIGNMENT = 0x20;
+static constexpr uint32_t XLNX_PCIE_DMA_DESC_BOUNDARY = 0x1000;
+
+static constexpr uint32_t XLNX_PCIE_DMA_WB_SIZE = 0x8;
+static constexpr uint32_t XLNX_PCIE_DMA_WB_ALIGNMENT = 0x8;
+static constexpr uint32_t XLNX_PCIE_DMA_WB_BOUNDARY = 0x0;
+
+
 struct buffer {
     struct statistics {
         bool eop;
@@ -44,7 +53,7 @@ struct buffer {
         size_t length;
     };
 
-    void* buf;
+    void* addr;
     statistics stats;
     size_t size;
     size_t alignment;
@@ -62,13 +71,16 @@ struct buffer {
 
     buffer(size_t size_, size_t alignment_, size_t boundary_) :
         size(size_), alignment(alignment_), boundary(boundary_) {
-        buf = rtems_cache_coherent_allocate(
+        addr = rtems_cache_coherent_allocate(
             size,
             alignment,
             boundary);
-        if (buf == nullptr) {
+        if (addr == nullptr) {
             throw std::bad_alloc();
         }
+    };
+    ~buffer() {
+        rtems_cache_coherent_free(addr);
     };
 
     buffer(const buffer&) = delete;
@@ -82,9 +94,20 @@ using dma_buffer_ptr =
     std::shared_ptr<buffer>;
 
 struct writeback {
-    void* wb;
+    void* addr;
 
-    writeback() : wb(nullptr) {};
+    writeback() {
+        addr = rtems_cache_coherent_allocate(
+            XLNX_PCIE_DMA_WB_SIZE,
+            XLNX_PCIE_DMA_WB_ALIGNMENT,
+            XLNX_PCIE_DMA_WB_BOUNDARY);
+        if (addr == nullptr) {
+            throw std::bad_alloc();
+        }
+    };
+    ~writeback() {
+        rtems_cache_coherent_free(addr);
+    };
     writeback(const writeback&) = delete;
     writeback& operator=(const writeback&) = delete;
     writeback(writeback&&) = delete;
@@ -102,13 +125,24 @@ protected:
 };
 
 struct descriptor {
-    void* desc;
+    void* addr;
     uint32_t length;
     dma_buffer_ptr buf;
     writeback* wb;
     descriptor* next;
 
-    descriptor() : desc(nullptr), length(0), buf(nullptr), wb(nullptr) {};
+    descriptor() : length(0), buf(nullptr), wb(nullptr) {
+        addr = rtems_cache_coherent_allocate(
+            XLNX_PCIE_DMA_DESC_SIZE,
+            XLNX_PCIE_DMA_DESC_ALIGNMENT,
+            XLNX_PCIE_DMA_DESC_BOUNDARY);
+        if (addr == nullptr) {
+            throw std::bad_alloc();
+        }
+    };
+    ~descriptor() {
+        rtems_cache_coherent_free(addr);
+    }
     descriptor(const descriptor&) = delete;
     descriptor& operator=(const descriptor&) = delete;
     descriptor(descriptor&&) = delete;
