@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include <framework/dma.hpp>
+#include <framework/dma-pcie.hpp>
 
 namespace app {
 namespace framework {

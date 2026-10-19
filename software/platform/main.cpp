@@ -31,7 +31,7 @@
 #include <platform/nfs.hpp>
 
 #include <framework/cpuuse.hpp>
-#include <framework/dma.hpp>
+#include <framework/dma-pcie.hpp>
 #include <framework/intr.hpp>
 #include <framework/io.hpp>
 #include <framework/logbook.hpp>

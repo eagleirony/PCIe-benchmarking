@@ -30,7 +30,7 @@
 
 #include <rtems/bsd/pci-iodev.h>
 
-#include <framework/dma.hpp>
+#include <framework/dma-pcie.hpp>
 #include <framework/logging.hpp>
 #include <framework/cpuuse.hpp>
 #include <framework/io.hpp>
@@ -103,7 +103,7 @@ inline void registers::write(uint32_t target, uint32_t offset, uint32_t value) {
 
 channel::channel(registers& reg_, uint32_t dir_, size_t id_, size_t cid_,
     size_t desc_count_) : regs(reg_), dir(dir_), id(id_), cid(cid_),
-    running(false), stopping(false), pipelined(false), head(0), tail(0) {
+    running(false), pipelined(false), head(0), tail(0) {
     bufs.create(2 * XLNX_PCIE_DMA_CHAN_DESC_COUNT, DMA_BUFF_SIZE, DMA_BUFF_ALIGN, DMA_BUFF_BOUNDARY);
 
     /* Set performance tracking to auto */
@@ -124,7 +124,7 @@ channel::channel(registers& reg_, uint32_t dir_, size_t id_, size_t cid_,
 
 void channel::set_pipeline() {
     lock_guard guard(lock);
-    for (size_t i = 0; i < XLNX_PCIE_DMA_CHAN_DESC_COUNT; i++) {
+    for (size_t i = 0; i < XLNX_PCIE_DMA_CHAN_DESC_COUNT; ++i) {
         descs[i].zero();
         descs[i].header(true, false);
         descs[i].set_length(DMA_BUFF_SIZE);
@@ -156,14 +156,14 @@ void channel::set_block(size_t length) {
 
     while (length > DMA_BUFF_SIZE) {
         descs[desc_index].zero();
-        descs[desc_index].header(false, false);
+        descs[desc_index].header(true, false);
         descs[desc_index].set_length(DMA_BUFF_SIZE);
         descs[desc_index].set_wb(wbs[desc_index]);
         wbs[desc_index].clear();
         auto buf = bufs.request();
         descs[desc_index].set_dst_buffer(buf);
 
-        desc_index++;
+        ++desc_index;
         length = length - DMA_BUFF_SIZE;
     }
 
@@ -209,9 +209,6 @@ void channel::start() {
 
     desc = &descs[head];
 
-    //TODO
-    __asm__ volatile ( "dsb SY" : : : "memory" );
-
     desc_lo = static_cast<uint32_t>(
         reinterpret_cast<uint64_t>(desc->addr) & 0xFFFFFFFF);
     desc_hi = static_cast<uint32_t>(
@@ -230,7 +227,6 @@ void channel::start() {
 }
 
 void channel::stop() {
-    uint32_t status;
     if (!is_running()) {
         return;
     }
@@ -238,17 +234,32 @@ void channel::stop() {
     auto reg = read_chan(XLNX_PCIE_DMA_CHAN_CTRL);
     reg &= ~XLNX_PCIE_DMA_CHAN_CTRL_RUN;
     write_chan(XLNX_PCIE_DMA_CHAN_CTRL, reg);
-    status = read_chan(XLNX_PCIE_DMA_CHAN_STS);
-    while ((status & XLNX_PCIE_DMA_CHAN_STS_IDLE) == 0) {
-        status = read_chan(XLNX_PCIE_DMA_CHAN_STS);
-        lock.unlock();
-        usleep(1);
-        lock.lock();
-    }
     benchmark::log::timestamp_and_log(
         benchmark::log::record::EP_DMA_PIPELINE_END);
     running = false;
-    stopping = false;
+}
+
+void channel::stop(int timeout_sec) {
+    if (!is_running()) {
+        return;
+    }
+    lock_guard guard(lock);
+    stop();
+
+    int sec_waited = 0;
+    while (running) {
+        lock.unlock();
+        sleep(1);
+        lock.lock();
+        ++sec_waited;
+        if (timeout_sec != 0
+            && sec_waited >= timeout_sec) {
+            break;
+        }
+    }
+    if (running) {
+        throw std::runtime_error("error: dma: stop timed out");
+    }
 }
 
 void channel::error(uint32_t status) {
@@ -265,10 +276,6 @@ void channel::error(uint32_t status) {
         std::cout << "error: dma: invalid buffer length" << std::endl;
         write_chan(XLNX_PCIE_DMA_CHAN_STS, XLNX_PCIE_DMA_CHAN_STS_INV_LEN);
     }
-    if (status & XLNX_PCIE_DMA_CHAN_STS_INV_LEN) {
-        std::cout << "error: dma: invalid buffer length" << std::endl;
-        write_chan(XLNX_PCIE_DMA_CHAN_STS, XLNX_PCIE_DMA_CHAN_STS_INV_LEN);
-    }
 }
 
 void channel::handle_intr() {
@@ -276,33 +283,47 @@ void channel::handle_intr() {
     /* Clear intr sources */
     uint32_t status = read_chan(XLNX_PCIE_DMA_CHAN_STS);
 
-    if (status &
-        ~(XLNX_PCIE_DMA_CHAN_STS_STOP
-          | XLNX_PCIE_DMA_CHAN_STS_COMP
-          | XLNX_PCIE_DMA_CHAN_STS_BUSY
-          | XLNX_PCIE_DMA_CHAN_STS_IDLE)) {
-        error(status);
-        stop();
-        return;
-    }
-
-    if (status & XLNX_PCIE_DMA_CHAN_STS_IDLE ||
-        status & XLNX_PCIE_DMA_CHAN_STS_STOP) {
-        running = false;
-        stopping = false;
-        write_chan(XLNX_PCIE_DMA_CHAN_STS,
-            (XLNX_PCIE_DMA_CHAN_STS_IDLE | XLNX_PCIE_DMA_CHAN_STS_STOP));
-    }
-
-    if (status & XLNX_PCIE_DMA_CHAN_STS_COMP) {
-        auto d = &descs[head];
-        while (d->wb->valid()) {
-            head = (head + 1) % XLNX_PCIE_DMA_CHAN_DESC_COUNT;
-            d = &descs[head];
+    while (status & ~XLNX_PCIE_DMA_CHAN_STS_BUSY) {
+        if (status &
+            ~(XLNX_PCIE_DMA_CHAN_STS_STOP
+              | XLNX_PCIE_DMA_CHAN_STS_COMP
+              | XLNX_PCIE_DMA_CHAN_STS_BUSY
+              | XLNX_PCIE_DMA_CHAN_STS_IDLE)) {
+            error(status);
+            stop();
+            return;
         }
 
-        while (head != tail) {
-            if (dir == XLNX_PCIE_DMA_TARGET_C2H_CHANS) {
+        if (status & XLNX_PCIE_DMA_CHAN_STS_IDLE ||
+            status & XLNX_PCIE_DMA_CHAN_STS_STOP) {
+            running = false;
+            write_chan(XLNX_PCIE_DMA_CHAN_STS,
+                (XLNX_PCIE_DMA_CHAN_STS_IDLE | XLNX_PCIE_DMA_CHAN_STS_STOP));
+            if (cb != nullptr
+                && dir == XLNX_PCIE_DMA_TARGET_H2C_CHANS) {
+                cb(nullptr);
+            }
+        }
+
+        if (status & XLNX_PCIE_DMA_CHAN_STS_COMP
+            && dir == XLNX_PCIE_DMA_TARGET_C2H_CHANS) {
+            write_chan(XLNX_PCIE_DMA_CHAN_STS, XLNX_PCIE_DMA_CHAN_STS_COMP);
+            auto d = &descs[head];
+            size_t desc_cmpl_count = 0;
+            while (d->wb->valid()
+                && desc_cmpl_count < XLNX_PCIE_DMA_CHAN_DESC_COUNT) {
+                head = (head + 1) % XLNX_PCIE_DMA_CHAN_DESC_COUNT;
+                desc_cmpl_count++;
+                d = &descs[head];
+            }
+
+            if (desc_cmpl_count == XLNX_PCIE_DMA_CHAN_DESC_COUNT) {
+                std::cout << "error: dma: descriptor overrun" << std::endl;
+                stop();
+                return;
+            }
+
+            while (head != tail) {
                 mem::dma_buffer_ptr cmpl_buf;
                 auto& d = descs[tail];
 
@@ -324,13 +345,9 @@ void channel::handle_intr() {
                 if (cb != nullptr) {
                     cb(cmpl_buf);
                 }
-            } else {
-                if (cb != nullptr) {
-                    cb(nullptr);
-                }
             }
         }
-        write_chan(XLNX_PCIE_DMA_CHAN_STS, XLNX_PCIE_DMA_CHAN_STS_COMP);
+        status = read_chan(XLNX_PCIE_DMA_CHAN_STS);
     }
 }
 
@@ -376,6 +393,7 @@ void channel::report() {
     std::cout << "Clock Cycle Count: " << maxed_str << cycle_count
         << std::endl;
 
+    maxed_str = "";
     data_count =
         static_cast<uint64_t>(read_chan(XLNX_PCIE_DMA_CHAN_PERF_DATA_LO));
     data_count |=
@@ -432,7 +450,7 @@ void h2c_channel::add_tx_buffer(mem::dma_buffer_ptr buf) {
     size_t prev_tail;
 
     if (queued == XLNX_PCIE_DMA_CHAN_DESC_COUNT) {
-        throw std::runtime_error("Buffer chain full");
+        throw std::runtime_error("error: dma: buffer chain full");
     }
     ++queued;
 
@@ -447,7 +465,6 @@ void h2c_channel::add_tx_buffer(mem::dma_buffer_ptr buf) {
     descs[tail].zero();
     descs[tail].header(false, true);
     descs[tail].set_length(buf->stats.length);
-
     descs[tail].set_src_buffer(buf);
 
     tail = (tail + 1) % XLNX_PCIE_DMA_CHAN_DESC_COUNT;
@@ -521,7 +538,7 @@ controller::controller(std::string& path) {
     axis.write(api::io::EP_REG_C2H_0_PN23_RATE_OFF, 0x35C28F5C);
     axis.write(api::io::EP_REG_C2H_1_PN23_RATE_OFF, 1);
 
-    for (size_t i = 0; i < XLNX_PCIE_DMA_MAX_CHANS; i++) {
+    for (size_t i = 0; i < XLNX_PCIE_DMA_MAX_CHANS; ++i) {
         if (regs.read(XLNX_PCIE_DMA_TARGET_H2C_CHANS, i, XLNX_PCIE_DMA_CHAN_ID)
             != 0) {
             auto chan = std::make_shared<h2c_channel>(regs,
@@ -532,7 +549,7 @@ controller::controller(std::string& path) {
     }
     h2c_count = h2c_chans.size();
 
-    for (size_t i = 0; i < XLNX_PCIE_DMA_MAX_CHANS; i++) {
+    for (size_t i = 0; i < XLNX_PCIE_DMA_MAX_CHANS; ++i) {
         if (regs.read(XLNX_PCIE_DMA_TARGET_C2H_CHANS, i, XLNX_PCIE_DMA_CHAN_ID)
             != 0) {
             auto chan = std::make_shared<c2h_channel>(regs,
@@ -544,7 +561,7 @@ controller::controller(std::string& path) {
     c2h_count = c2h_chans.size();
 
     uint32_t reg = 0;
-    for (size_t i = 0; i < XLNX_PCIE_DMA_IRQ_USR_VEC_PER_REG; i++) {
+    for (size_t i = 0; i < XLNX_PCIE_DMA_IRQ_USR_VEC_PER_REG; ++i) {
         reg |= (XLNX_PCIE_USR_MSI & XLNX_PCIE_DMA_IRQ_USR_VEC_MASK)
                   << (XLNX_PCIE_DMA_IRQ_USR_VEC_SHIFT * i);
     }
@@ -558,7 +575,7 @@ controller::controller(std::string& path) {
         reg);
 
     reg = 0;
-    for (size_t i = 0; i < XLNX_PCIE_DMA_IRQ_CHAN_VEC_PER_REG; i++) {
+    for (size_t i = 0; i < XLNX_PCIE_DMA_IRQ_CHAN_VEC_PER_REG; ++i) {
         reg |= (XLNX_PCIE_DMA_MSI & XLNX_PCIE_DMA_IRQ_CHAN_VEC_MASK)
                   << (XLNX_PCIE_DMA_IRQ_CHAN_VEC_SHIFT * i);
     }
@@ -577,7 +594,7 @@ void controller::set_user_irq_callback(callback& cb) {
 }
 
 void controller::enable_user_irq(int irq) {
-    if (irq >= 16) {
+    if (irq >= 16 || irq < 0) {
         throw std::runtime_error("IRQ cannot be enabled, out of range");
     }
     lock_guard guard(lock);
@@ -588,7 +605,7 @@ void controller::enable_user_irq(int irq) {
 }
 
 void controller::disable_user_irq(int irq) {
-    if (irq >= 16) {
+    if (irq >= 16 || irq < 0) {
         throw std::runtime_error("IRQ cannot be disabled, out of range");
     }
     lock_guard guard(lock);
@@ -676,14 +693,24 @@ void controller::dma_msi_worker() {
             lock_guard guard(lock);
             uint32_t reqs = regs.read(XLNX_PCIE_DMA_TARGET_IRQ_BLOCK,
                 XLNX_PCIE_DMA_IRQ_CHAN_INT);
-            for (size_t i = 0; i < c2h_count + h2c_count; i++) {
+            for (size_t i = 0; i < c2h_count + h2c_count; ++i) {
                 if (reqs & (1U << i)) {
                     if (i < h2c_count) {
-                        h2c_chans[i]->handle_intr();
+                        try {
+                            h2c_chans[i]->handle_intr();
+                        } catch (const std::exception& e) {
+                            std::cout << "error: dma: intr handler: "
+                                << e.what() << std::endl;
+                        }
                     }
                     if (i >= h2c_count) {
-                        auto chan_index = i - h2c_count;
-                        c2h_chans[chan_index]->handle_intr();
+                        try {
+                            auto chan_index = i - h2c_count;
+                            c2h_chans[chan_index]->handle_intr();
+                        } catch (const std::exception& e) {
+                            std::cout << "error: dma: intr handler: "
+                                << e.what() << std::endl;
+                        }
                     }
                 }
             }
@@ -726,7 +753,7 @@ void controller::usr_msi_worker() {
             lock_guard guard(lock);
             uint32_t reqs = regs.read(XLNX_PCIE_DMA_TARGET_IRQ_BLOCK,
                 XLNX_PCIE_DMA_IRQ_USR_INT);
-            for (int i = 0; i < 16; i++) {
+            for (int i = 0; i < 16; ++i) {
                 if (reqs & (1U << i)) {
                     user_irq_callback(i);
                 }
@@ -766,7 +793,7 @@ static bool probe_dma(std::string path) {
 
 void init() {
 
-    for (int i = 0; i < pcie_device_count; i++) {
+    for (int i = 0; i < pcie_device_count; ++i) {
         std::ostringstream oss;
         oss << "/dev/pci_iodev" << i;
         if (!std::filesystem::exists(oss.str())) {

@@ -133,9 +133,10 @@ struct thread_index {
         }
     }
 
-    void log(size_t uid) {
+    void log(size_t uid_) {
+        lock_guard guard(lock);
         for (auto& item : index) {
-            if (item.uid == uid) {
+            if (item.uid == uid_) {
                 log(item);
                 return;
             }
@@ -147,6 +148,7 @@ struct thread_index {
     }
 
     void log(thread_info& item) {
+        lock_guard guard(lock);
         if (item.active) {
             rtems_status_code sc;
             struct timespec usage_ts;

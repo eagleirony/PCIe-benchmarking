@@ -198,7 +198,6 @@ struct channel {
     size_t id;
     size_t cid;
     bool running;
-    bool stopping;
     bool pipelined;
     size_t head;
     size_t tail;
@@ -216,6 +215,7 @@ struct channel {
 
     void start();
     void stop();
+    void stop(int timeout_sec);
 
     void set_callback(callback& cb);
 
