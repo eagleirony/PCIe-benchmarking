@@ -24,6 +24,8 @@
 #include <rtems/fatal.h>
 #include <rtems/shell.h>
 
+#include <config.hpp>
+
 #include <platform/network.hpp>
 #include <platform/pl.hpp>
 #include <platform/app-build-id.h>
@@ -31,11 +33,12 @@
 #include <platform/nfs.hpp>
 
 #include <framework/cpuuse.hpp>
-#include <framework/dma-pcie.hpp>
+#include <framework/dma.hpp>
 #include <framework/intr.hpp>
 #include <framework/io.hpp>
 #include <framework/logbook.hpp>
 #include <framework/logging.hpp>
+#include <framework/harness.hpp>
 
 static constexpr char emmc_mnt_path[] = "/emmc";
 static constexpr char nfs_mnt_path[] = "/net";
@@ -62,29 +65,14 @@ int main(int argc, char** argv) {
 
     try {
         app::framework::benchmark::log::reset();
-        app::framework::api::cpuuse::init(5);
+        app::framework::api::cpuuse::init(app::config::CPUUSE_LOG_FREQ_MS);
         app::framework::api::io::init();
         app::framework::api::cpuuse::run();
-        app::framework::pcie::dma::init();
+        app::framework::api::dma::init();
         app::framework::api::intr::init();
-
-        app::framework::api::intr::start();
-
-        for (int i = 0; i < 1000; i++) {
-            app::framework::api::intr::log_pl_intr();
-            app::framework::api::intr::log_ep_intr();
-            app::framework::api::io::log_ep_read_latency();
-            app::framework::api::io::log_ep_write_latency();
-            app::framework::api::io::log_ep_one_way_read_latency();
-            app::framework::api::io::log_ep_one_way_write_latency();
-            app::framework::api::io::log_pl_read_latency();
-            app::framework::api::io::log_pl_write_latency();
-        }
-        app::framework::api::intr::stop();
-
+        app::framework::api::harness::start();
         app::framework::api::cpuuse::stop();
-        app::framework::benchmark::log::output_and_reset(
-            "/net/pciebench/logging/test-active.log");
+
     } catch (const std::exception& e) {
         std::cout << "Error in DMA: " << e.what() << std::endl;
     }

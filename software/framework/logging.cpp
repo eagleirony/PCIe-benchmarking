@@ -45,7 +45,6 @@ void record::serialise(json& rj) {
         case EP_DMA_BLOCK_TX_END:
             rj["length"] = buf_stats.length;
             rj["end_of_packet"] = buf_stats.eop;
-            rj["end_of_stream"] = buf_stats.eos;
             break;
         case EP_IO_WRITE_OCCURED:
         case EP_IO_READ_OCCURED:

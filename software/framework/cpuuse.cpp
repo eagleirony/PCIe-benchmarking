@@ -54,6 +54,7 @@ struct thread_index {
 
     lock_type lock;
     bool logging;
+    bool running;
     std::vector<thread_info> index;
     rtems_thread cpuuse_thread;
     size_t uid;
@@ -112,11 +113,11 @@ struct thread_index {
         timeout_ms = timeout_;
     }
 
-    void run() {
+    void start() {
         lock_guard guard(lock);
         uint64_t timeout_us = timeout_ms * 1000;
         start_worker();
-        while(!logging) {
+        while(!running) {
             lock.unlock();
             usleep(timeout_us);
             lock.lock();
@@ -126,11 +127,21 @@ struct thread_index {
     void stop() {
         {
         lock_guard guard(lock);
-        logging = false;
+        running = false;
         }
         if (cpuuse_thread.joinable()) {
             cpuuse_thread.join();
         }
+    }
+
+    void run() {
+        lock_guard guard(lock);
+        logging = true;
+    }
+
+    void suspend() {
+        lock_guard guard(lock);
+        logging = false;
     }
 
     void log(size_t uid_) {
@@ -175,14 +186,14 @@ struct thread_index {
     }
 
     void worker() {
-        log_guard lguard("CPU_USE");
         lock_guard guard(lock);
         uint64_t timeout_us = timeout_ms * 1000;
-        logging = true;
-        while (logging) {
-
-            for (auto& item : index) {
-                log(item);
+        running = true;
+        while (running) {
+            if (logging) {
+                for (auto& item : index) {
+                    log(item);
+                }
             }
 
             lock.unlock();
@@ -209,18 +220,24 @@ struct thread_index {
 
 void init(uint64_t msecs) {
     ti->set_timeout(msecs);
+    ti->start();
 }
 
 void run() {
     ti->run();
 }
 
+void suspend() {
+    ti->suspend();
+}
+
 void reset() {
-    ti->stop();
+    ti->suspend();
     ti->remove_all();
 }
 
 void reset_and_run() {
+    ti->suspend();
     ti->remove_all();
     ti->run();
 }

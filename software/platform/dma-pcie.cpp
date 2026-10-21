@@ -30,31 +30,21 @@
 
 #include <rtems/bsd/pci-iodev.h>
 
-#include <framework/dma-pcie.hpp>
 #include <framework/logging.hpp>
 #include <framework/cpuuse.hpp>
 #include <framework/io.hpp>
 
+#include <platform/dma-pcie.hpp>
+
 namespace app {
-namespace framework {
+namespace platform {
 namespace pcie {
 namespace dma {
-
-constexpr int pcie_device_count = 4;
 
 constexpr uint32_t dma_devid = 0x902410ee;
 constexpr uint16_t dma_vendor = 0x10ee;
 constexpr uint16_t dma_subvendor = 0x10ee;
 constexpr uint16_t dma_subdevice = 0x0007;
-
-controllers_ptr eps;
-
-controllers_ptr make_controllers() {
-    if (!eps) {
-        eps = std::make_shared<controllers>();
-    }
-    return eps;
-}
 
 inline uint32_t* registers::address(uint32_t target,
     uint32_t channel, uint32_t offset) {
@@ -102,9 +92,11 @@ inline void registers::write(uint32_t target, uint32_t offset, uint32_t value) {
 }
 
 channel::channel(registers& reg_, uint32_t dir_, size_t id_, size_t cid_,
-    size_t desc_count_) : regs(reg_), dir(dir_), id(id_), cid(cid_),
-    running(false), pipelined(false), head(0), tail(0) {
-    bufs.create(2 * XLNX_PCIE_DMA_CHAN_DESC_COUNT, DMA_BUFF_SIZE, DMA_BUFF_ALIGN, DMA_BUFF_BOUNDARY);
+    size_t desc_count_, size_t buffer_size_) : regs(reg_), dir(dir_), id(id_),
+    cid(cid_), running(false), pipelined(false), head(0), tail(0) {
+    bufs.create(2 * XLNX_PCIE_DMA_CHAN_DESC_COUNT, buffer_size_);
+
+    buffer_size = buffer_size_;
 
     /* Set performance tracking to auto */
     write_chan(XLNX_PCIE_DMA_CHAN_PERF_CTRL, XLNX_PCIE_DMA_CHAN_PERF_CTRL_RUN
@@ -127,7 +119,7 @@ void channel::set_pipeline() {
     for (size_t i = 0; i < XLNX_PCIE_DMA_CHAN_DESC_COUNT; ++i) {
         descs[i].zero();
         descs[i].header(true, false);
-        descs[i].set_length(DMA_BUFF_SIZE);
+        descs[i].set_length(buffer_size);
         descs[i].set_wb(wbs[i]);
         wbs[i].clear();
         auto buf = bufs.request();
@@ -137,6 +129,9 @@ void channel::set_pipeline() {
         descs[i].set_next(descs[i + 1]);
     }
     descs[XLNX_PCIE_DMA_CHAN_DESC_COUNT - 1].set_next(descs[0]);
+
+    write_sgdma(XLNX_PCIE_DMA_CHAN_SG_DESC_CRED,
+        XLNX_PCIE_DMA_CHAN_DESC_COUNT);
 
     tail = 0;
     head = 0;
@@ -148,23 +143,23 @@ void channel::set_block(size_t length) {
     lock_guard guard(lock);
 
     size_t desc_index = 0;
-    auto desc_chain_len = (length + DMA_BUFF_SIZE - 1) / DMA_BUFF_SIZE;
+    auto desc_chain_len = (length + buffer_size - 1) / buffer_size;
     if (desc_chain_len > XLNX_PCIE_DMA_CHAN_DESC_COUNT) {
         throw std::runtime_error(
             "error: dma: block transfer: length too long for block transfer");
     }
 
-    while (length > DMA_BUFF_SIZE) {
+    while (length > buffer_size) {
         descs[desc_index].zero();
         descs[desc_index].header(true, false);
-        descs[desc_index].set_length(DMA_BUFF_SIZE);
+        descs[desc_index].set_length(buffer_size);
         descs[desc_index].set_wb(wbs[desc_index]);
         wbs[desc_index].clear();
         auto buf = bufs.request();
         descs[desc_index].set_dst_buffer(buf);
 
         ++desc_index;
-        length = length - DMA_BUFF_SIZE;
+        length = length - buffer_size;
     }
 
     descs[desc_index].zero();
@@ -178,6 +173,8 @@ void channel::set_block(size_t length) {
     for (size_t i = 0; i < desc_index; ++i) {
         descs[i].set_next(descs[i + 1]);
     }
+
+    write_sgdma(XLNX_PCIE_DMA_CHAN_SG_DESC_CRED, desc_chain_len);
 
     head = 0;
     tail = 0;
@@ -221,8 +218,6 @@ void channel::start() {
     auto reg = read_chan(XLNX_PCIE_DMA_CHAN_CTRL);
     reg |= XLNX_PCIE_DMA_CHAN_CTRL_RUN;
 
-    benchmark::log::log_and_timestamp(
-        benchmark::log::record::EP_DMA_PIPELINE_START);
     write_chan(XLNX_PCIE_DMA_CHAN_CTRL, reg);
 }
 
@@ -234,8 +229,8 @@ void channel::stop() {
     auto reg = read_chan(XLNX_PCIE_DMA_CHAN_CTRL);
     reg &= ~XLNX_PCIE_DMA_CHAN_CTRL_RUN;
     write_chan(XLNX_PCIE_DMA_CHAN_CTRL, reg);
-    benchmark::log::timestamp_and_log(
-        benchmark::log::record::EP_DMA_PIPELINE_END);
+    framework::benchmark::log::timestamp_and_log(
+        framework::benchmark::log::record::EP_DMA_PIPELINE_END);
     running = false;
 }
 
@@ -336,11 +331,8 @@ void channel::handle_intr() {
                 cmpl_buf->stats.eop = d.wb->eop();
                 cmpl_buf->stats.length = d.wb->length();
                 d.wb->clear();
-                if (!running && tail == head) {
-                    cmpl_buf->stats.eos = true;
-                } else {
-                    cmpl_buf->stats.eos = false;
-                }
+
+                write_sgdma(XLNX_PCIE_DMA_CHAN_SG_DESC_CRED, 1);
 
                 if (cb != nullptr) {
                     cb(cmpl_buf);
@@ -418,6 +410,8 @@ void c2h_channel::run() {
     }
     lock_guard guard(lock);
     set_pipeline();
+    framework::benchmark::log::log_and_timestamp(
+        framework::benchmark::log::record::EP_DMA_PIPELINE_START);
     channel::start();
 }
 
@@ -428,6 +422,8 @@ void c2h_channel::run(size_t length) {
     lock_guard guard(lock);
     pipelined = false;
     set_block(length);
+    framework::benchmark::log::log_and_timestamp(
+        framework::benchmark::log::record::EP_DMA_BLOCK_RX_START);
     channel::start();
 }
 
@@ -438,6 +434,8 @@ void h2c_channel::run() {
     lock_guard guard(lock);
     pipelined = false;
     queued = 0;
+    framework::benchmark::log::log_and_timestamp(
+        framework::benchmark::log::record::EP_DMA_BLOCK_TX_START);
     channel::start();
 }
 
@@ -470,16 +468,25 @@ void h2c_channel::add_tx_buffer(mem::dma_buffer_ptr buf) {
     tail = (tail + 1) % XLNX_PCIE_DMA_CHAN_DESC_COUNT;
 }
 
-controller::controller(std::string& path) {
+mem::dma_buffer_ptr h2c_channel::get_tx_buffer() {
+    return bufs.request();
+}
+
+controller::controller(std::string& path, size_t buffer_size) {
     int status;
     struct rtems_iodev_region region;
 
     h2c_count = 0;
     c2h_count = 0;
 
+    if ((buffer_size % 8) != 0) {
+        throw std::runtime_error(
+            "error: dma: buffer_size must be divisible by 8");
+    }
+
     fd = ::open(path.c_str(), O_RDWR);
     if (fd == -1) {
-        throw std::runtime_error("dma: error: iodev open failed");
+        throw std::runtime_error("error: dma: iodev open failed");
     }
 
     region.index = 1;
@@ -490,7 +497,7 @@ controller::controller(std::string& path) {
     if (status == -1) {
         close(fd);
         fd = 0;
-        throw std::runtime_error("dma: error: IOCTL get region failed");
+        throw std::runtime_error("error: dma: IOCTL get region failed");
     }
 
     regs.base = mmap(
@@ -504,7 +511,7 @@ controller::controller(std::string& path) {
     if (regs.base == MAP_FAILED ) {
         close(fd);
         fd = 0;
-        throw std::runtime_error("dma: error: mmap failed");
+        throw std::runtime_error("error: dma: mmap failed");
     }
 
     region.index = 0;
@@ -515,10 +522,10 @@ controller::controller(std::string& path) {
     if (status == -1) {
         close(fd);
         fd = 0;
-        throw std::runtime_error("dma: error: IOCTL get region failed");
+        throw std::runtime_error("error: dma: IOCTL get region failed");
     }
 
-    axis.base = mmap(
+    axil.base = mmap(
         NULL,
         region.size,
         ( PROT_READ | PROT_WRITE ),
@@ -526,24 +533,26 @@ controller::controller(std::string& path) {
         fd,
         region.index
     );
-    if (axis.base == MAP_FAILED ) {
+    if (axil.base == MAP_FAILED ) {
         close(fd);
         fd = 0;
-        throw std::runtime_error("dma: error: mmap failed");
+        throw std::runtime_error("error: dma: mmap failed");
     }
 
-    axis.write(api::io::EP_REG_C2H_0_PACK_LEN_OFF, DMA_BUFF_SIZE/8 - 1);
-    axis.write(api::io::EP_REG_C2H_1_PACK_LEN_OFF, DMA_BUFF_SIZE/8 - 1);
+    if (axil.read(framework::api::io::EP_REG_SCRATCH_0_OFF) != 0) {
+        std::cout << "warning: dma: controller already attached or not" 
+          << " shutdown properly" << std::endl;
+    }
+    axil.write(framework::api::io::EP_REG_SCRATCH_0_OFF, 0x1);
 
-    axis.write(api::io::EP_REG_C2H_0_PN23_RATE_OFF, 0x35C28F5C);
-    axis.write(api::io::EP_REG_C2H_1_PN23_RATE_OFF, 1);
+    axil.write(framework::api::io::EP_REG_C2H_0_PACK_LEN_OFF, buffer_size/8 - 1);
+    axil.write(framework::api::io::EP_REG_C2H_1_PACK_LEN_OFF, buffer_size/8 - 1);
 
     for (size_t i = 0; i < XLNX_PCIE_DMA_MAX_CHANS; ++i) {
         if (regs.read(XLNX_PCIE_DMA_TARGET_H2C_CHANS, i, XLNX_PCIE_DMA_CHAN_ID)
             != 0) {
-            auto chan = std::make_shared<h2c_channel>(regs,
-                i, i,
-                XLNX_PCIE_DMA_CHAN_DESC_COUNT);
+            auto chan = std::make_shared<h2c_channel>(regs, i, i,
+                XLNX_PCIE_DMA_CHAN_DESC_COUNT, buffer_size);
             h2c_chans.push_back(chan);
         }
     }
@@ -552,9 +561,8 @@ controller::controller(std::string& path) {
     for (size_t i = 0; i < XLNX_PCIE_DMA_MAX_CHANS; ++i) {
         if (regs.read(XLNX_PCIE_DMA_TARGET_C2H_CHANS, i, XLNX_PCIE_DMA_CHAN_ID)
             != 0) {
-            auto chan = std::make_shared<c2h_channel>(regs,
-                i, h2c_count + i,
-                XLNX_PCIE_DMA_CHAN_DESC_COUNT);
+            auto chan = std::make_shared<c2h_channel>(regs, i, h2c_count + i,
+                XLNX_PCIE_DMA_CHAN_DESC_COUNT, buffer_size);
             c2h_chans.push_back(chan);
         }
     }
@@ -584,8 +592,41 @@ controller::controller(std::string& path) {
     regs.write(XLNX_PCIE_DMA_TARGET_IRQ_BLOCK, XLNX_PCIE_DMA_IRQ_CHAN_VEC_HI,
         reg);
 
+    regs.write(XLNX_PCIE_DMA_TARGET_SGDMA, XLNX_PCIE_DMA_SGDMA_DESC_CRED_MODE,
+        ((XLNX_PCIE_DMA_SGDMA_H2C_CRED_MASK
+         << XLNX_PCIE_DMA_SGDMA_H2C_CRED_SHIFT) |
+        (XLNX_PCIE_DMA_SGDMA_C2H_CRED_MASK
+         << XLNX_PCIE_DMA_SGDMA_C2H_CRED_SHIFT)));
+
+    open = true;
+
     start_dma_msi_thread();
     start_usr_msi_thread();
+}
+
+controller::~controller() {
+    lock_guard guard(lock);
+    for (auto& chan : c2h_chans) {
+        chan->stop();
+    }
+    for (auto& chan : h2c_chans) {
+        chan->stop();
+    }
+
+    open = false;
+
+    close(fd);
+
+    lock.unlock();
+    if (dma_msi_thread->joinable()) {
+        dma_msi_thread->join();
+    }
+    if (irq_msi_thread->joinable()) {
+        irq_msi_thread->join();
+    }
+    lock.lock();
+
+    axil.write(framework::api::io::EP_REG_SCRATCH_0_OFF, 0x0);
 }
 
 void controller::set_user_irq_callback(callback& cb) {
@@ -659,7 +700,8 @@ void controller::start_usr_msi_thread() {
 }
 
 void controller::dma_msi_worker() {
-    api::cpuuse::log_guard lguard("CTLR_MSI_DMA");
+    framework::api::cpuuse::log_guard lguard("CTLR_MSI_DMA");
+    lock_guard guard(lock);
     int status;
     size_t count;
     rtems_iodev_event_args event_args;
@@ -676,21 +718,24 @@ void controller::dma_msi_worker() {
         return;
     }
 
-    while (true) {
-        event_args.index = XLNX_PCIE_DMA_MSI;
-        event_args.timeout.tv_sec = 0;
-        event_args.timeout.tv_nsec = 0;
-        event_args.args = NULL;
+    event_args.index = XLNX_PCIE_DMA_MSI;
+    event_args.timeout.tv_sec = 0;
+    event_args.timeout.tv_nsec = 100000000;
+    event_args.args = NULL;
 
+    while (open) {
+        event_args.timedout = false;
+
+        lock.unlock();
         status = ::ioctl(fd, RTEMS_IODEV_IOCTL_EVENT_WAIT, &event_args);
         if (status == -1) {
             std::cout << "controller: msi_worker: event wait failed "
                 << errno << " " << fd << std::endl;
             return;
         }
+        lock.lock();
 
-        {
-            lock_guard guard(lock);
+        if (!event_args.timedout) {
             uint32_t reqs = regs.read(XLNX_PCIE_DMA_TARGET_IRQ_BLOCK,
                 XLNX_PCIE_DMA_IRQ_CHAN_INT);
             for (size_t i = 0; i < c2h_count + h2c_count; ++i) {
@@ -719,7 +764,8 @@ void controller::dma_msi_worker() {
 }
 
 void controller::usr_msi_worker() {
-    api::cpuuse::log_guard lguard("CTLR_MSI_IRQ");
+    framework::api::cpuuse::log_guard lguard("CTLR_MSI_IRQ");
+    lock_guard guard(lock);
     int status;
     size_t count;
     rtems_iodev_event_args event_args;
@@ -736,21 +782,23 @@ void controller::usr_msi_worker() {
         return;
     }
 
-    while (true) {
-        event_args.index = XLNX_PCIE_USR_MSI;
-        event_args.timeout.tv_sec = 0;
-        event_args.timeout.tv_nsec = 0;
-        event_args.args = NULL;
+    event_args.index = XLNX_PCIE_USR_MSI;
+    event_args.timeout.tv_sec = 0;
+    event_args.timeout.tv_nsec = 100000000;
+    event_args.args = NULL;
+    while (open) {
+        event_args.timedout = false;
 
+        lock.unlock();
         status = ::ioctl(fd, RTEMS_IODEV_IOCTL_EVENT_WAIT, &event_args);
         if (status == -1) {
             std::cout << "controller: msi_worker: event wait failed "
                 << errno << " " << fd << std::endl;
             return;
         }
+        lock.lock();
 
-        {
-            lock_guard guard(lock);
+        if (!event_args.timedout) {
             uint32_t reqs = regs.read(XLNX_PCIE_DMA_TARGET_IRQ_BLOCK,
                 XLNX_PCIE_DMA_IRQ_USR_INT);
             for (int i = 0; i < 16; ++i) {
@@ -762,12 +810,22 @@ void controller::usr_msi_worker() {
     }
 }
 
-static bool probe_dma(std::string path) {
+void init() {
+
+}
+
+bool probe_iodev(int id) {
     int fd;
     int status;
     struct pci_iodev_info info;
+    std::ostringstream oss;
 
-    fd = ::open(path.c_str(), O_RDWR);
+    oss << "/dev/pci_iodev" << id;
+    if (!std::filesystem::exists(oss.str())) {
+        return false;
+    }
+
+    fd = ::open(oss.str().c_str(), O_RDWR);
     if (fd == -1) {
         return false;
     }
@@ -787,61 +845,26 @@ static bool probe_dma(std::string path) {
     }
 
     ::close(fd);
-
     return true;
 }
 
-void init() {
+controller_ptr open(size_t buffer_size) {
+    int id;
+    std::ostringstream oss;
 
-    for (int i = 0; i < pcie_device_count; ++i) {
-        std::ostringstream oss;
-        oss << "/dev/pci_iodev" << i;
-        if (!std::filesystem::exists(oss.str())) {
+    for (id = 0; id < 10; ++id) {
+        if (probe_iodev(id)) {
             break;
         }
-
-        auto path = oss.str();
-        if (probe_dma(path)) {
-            try {
-                auto ep = std::make_shared<controller>(path);
-                eps->emplace_back(ep);
-            } catch (const std::runtime_error& e) {
-                std::cout << e.what() << std::endl;
-            }
-        }
     }
 
-    for (auto& ep : *eps) {
-        ep->report();
-    }
+    oss << "/dev/pci_iodev" << id;
+    auto iodev_path = oss.str();
 
-    channel::callback tx_cb = [](mem::dma_buffer_ptr buf){
-        std::cout << "Finished H2C" << std::endl;
-        return;
-    };
-    eps->at(0)->h2c_chans[0]->set_callback(tx_cb);
-
-    channel::callback cb = [](mem::dma_buffer_ptr buf){
-        auto id = benchmark::log::timestamp_and_log(benchmark::log::record::EP_DMA_PIPELINE_RECV);
-        benchmark::log::set_buf_stats(id, buf->stats);
-    };
-
-    eps->at(0)->c2h_chans[0]->set_callback(cb);
-    eps->at(0)->c2h_chans[0]->run();
-    sleep(1);
-    eps->at(0)->c2h_chans[0]->stop();
-}
-
-controller_ptr get_controller(size_t id) {
-    if (id >= eps->size()) {
-        std::ostringstream oss;
-        oss << "dma: get_controller: id out of range: " << id << " >= " << eps->size();
-        throw std::runtime_error(oss.str());
-    }
-    return eps->at(id);
+    return make_shared<controller>(iodev_path, buffer_size);
 }
 
 } // namespace dma
 } // namespace pcie
-} // framework
+} // platform
 } // app

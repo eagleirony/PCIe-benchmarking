@@ -8,10 +8,11 @@ import buildcontrol
 import builditems
 
 directories = [
+    'externals',
     'firmware',
     'framework',
     'platform',
-    'externals',
+    'testsuite',
 ]
 
 

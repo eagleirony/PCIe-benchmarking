@@ -22,11 +22,12 @@
 #include <rtems/rtems/intr.h>
 
 #include <framework/cpuuse.hpp>
-#include <framework/dma-pcie.hpp>
 #include <framework/intr.hpp>
 #include <framework/io.hpp>
 #include <framework/logging.hpp>
 #include <framework/events.hpp>
+
+#include <platform/dma-pcie.hpp>
 
 #include <externals/rtems/thread.hpp>
 
@@ -204,8 +205,10 @@ void init() {
 
     rtems_interrupt_entry_initialize(&ic->rie, pl_intr_handler, NULL, pl_intr_name);
     rtems_interrupt_entry_install(PL_INTR_VECTOR, RTEMS_INTERRUPT_SHARED, &ic->rie);
+}
 
-    pcie::dma::controller::callback ccb = [](int irq) {
+void start_ep(dma::controller_ptr ctlr) {
+    platform::pcie::dma::controller::callback ccb = [](int irq) {
         uint32_t reg;
 
         benchmark::log::timestamp_and_log(
@@ -230,15 +233,10 @@ void init() {
         }
     };
 
-    try {
-        auto ctlr = pcie::dma::get_controller(0);
-        ctlr->set_user_irq_callback(ccb);
-    } catch (const std::runtime_error& e) {
-        throw std::runtime_error("intr: init: dma must be initialised before intr");
-    }
+    ctlr->set_user_irq_callback(ccb);
 }
 
-void start() {
+void start_pl() {
     ic->start();
 }
 
@@ -267,7 +265,7 @@ void log_pl_intr() {
     ic->clear_pl_event();
 }
 
-void log_ep_intr() {
+void log_ep_intr(dma::controller_ptr ctlr) {
     uint32_t reg;
     auto ior = io::get_io_registers();
 
@@ -282,7 +280,6 @@ void log_ep_intr() {
     reg = reg & ~io::EP_REG_SIGNALS_ACK_USER_IRQ;
     ior->endpoint.write(io::EP_REG_SIGNALS_OFF, reg);
 
-    auto ctlr = pcie::dma::get_controller(0);
     ctlr->enable_user_irq(0);
     auto evt = std::make_shared<rtems::events::event>(true, RTEMS_EVENT_0);
     ic->set_ep_event(evt);
@@ -294,8 +291,8 @@ void log_ep_intr() {
     ior->pl.write(io::PL_REG_SIGNALS_OFF, reg);
 
     evt->wait();
-    ic->clear_ep_event();
     ctlr->disable_user_irq(0);
+    ic->clear_ep_event();
 }
 
 } // namespace intr

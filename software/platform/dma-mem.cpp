@@ -16,10 +16,10 @@
  * limitations under the License.
  */
 
-#include <framework/dma-pcie.hpp>
+#include <platform/dma-pcie.hpp>
 
 namespace app {
-namespace framework {
+namespace platform {
 namespace pcie {
 namespace dma {
 namespace mem {
@@ -213,5 +213,5 @@ void descriptor::set_src_buffer(dma_buffer_ptr buf_) {
 } // namespace mem
 } // namespace dma
 } // namespace pcie
-} // namespace framework
+} // namespace platform
 } // namespace app

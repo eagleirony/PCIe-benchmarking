@@ -19,6 +19,9 @@
 #ifndef FRAMEWORK_API_IO_H
 #define FRAMEWORK_API_IO_H
 
+#include <cstdint>
+#include <memory>
+
 namespace app {
 namespace framework {
 namespace api {

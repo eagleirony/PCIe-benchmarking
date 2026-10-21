@@ -16,27 +16,28 @@
  * limitations under the License.
  */
 
-#ifndef FRAMEWORK_PCIE_DMA_H
-#define FRAMEWORK_PCIE_DMA_H
+#ifndef PLATFORM_PCIE_DMA_H
+#define PLATFORM_PCIE_DMA_H
 
 #include <vector>
 #include <cstdint>
 #include <memory>
 #include <mutex>
 
-#include <framework/dma-mem.hpp>
 #include <framework/io.hpp>
+
+#include <platform/dma-mem.hpp>
 
 #include <externals/cs/pool.hpp>
 #include <externals/rtems/thread.hpp>
 
 namespace app {
-namespace framework {
+namespace platform {
 namespace pcie {
 namespace dma {
 
 constexpr uint32_t XLNX_PCIE_DMA_MAX_CHANS = 4;
-constexpr size_t XLNX_PCIE_DMA_CHAN_DESC_COUNT = 16;
+constexpr size_t XLNX_PCIE_DMA_CHAN_DESC_COUNT = 128;
 
 constexpr uint32_t XLNX_PCIE_DMA_MSI = 0;
 constexpr uint32_t XLNX_PCIE_USR_MSI = 1;
@@ -159,14 +160,13 @@ static constexpr uint32_t XLNX_PCIE_DMA_CHAN_SG_DESC_CRED    = 0x8C;
 static constexpr uint32_t XLNX_PCIE_DMA_SGDMA_ID             = 0x00;
 static constexpr uint32_t XLNX_PCIE_DMA_SGDMA_DESC_CTRL      = 0x10;
 static constexpr uint32_t XLNX_PCIE_DMA_SGDMA_DESC_CRED_MODE = 0x20;
+  static constexpr uint32_t XLNX_PCIE_DMA_SGDMA_H2C_CRED_SHIFT = 0;
+  static constexpr uint32_t XLNX_PCIE_DMA_SGDMA_H2C_CRED_MASK  = 0xF;
+  static constexpr uint32_t XLNX_PCIE_DMA_SGDMA_C2H_CRED_SHIFT = 16;
+  static constexpr uint32_t XLNX_PCIE_DMA_SGDMA_C2H_CRED_MASK  = 0xF;
 
 struct controller;
 using controller_ptr = std::shared_ptr<controller>;
-using controllers = std::vector<controller_ptr>;
-using controllers_ptr = std::shared_ptr<controllers>;
-
-controllers_ptr make_controllers();
-static controllers_ptr eps_ = make_controllers();
 
 struct registers {
     void* base;
@@ -201,13 +201,14 @@ struct channel {
     bool pipelined;
     size_t head;
     size_t tail;
+    size_t buffer_size;
     callback cb;
     std::array<mem::descriptor, XLNX_PCIE_DMA_CHAN_DESC_COUNT> descs;
     std::array<mem::writeback, XLNX_PCIE_DMA_CHAN_DESC_COUNT> wbs;
     cs::pool::pool<mem::dma_buffer> bufs;
 
     channel(registers& regs, uint32_t dir, size_t id, size_t cid,
-        size_t desc_count);
+        size_t desc_count, size_t buffer_size);
     channel(const channel&) = delete;
     channel& operator=(const channel&) = delete;
     channel(channel&&) = delete;
@@ -238,12 +239,11 @@ protected:
 class c2h_channel: public channel {
 public:
     c2h_channel(registers& regs, size_t id, size_t cid,
-        size_t desc_count) : channel(regs, XLNX_PCIE_DMA_TARGET_C2H_CHANS,
-        id, cid, desc_count) {};
+        size_t desc_count, size_t buffer_size) : channel(regs,
+        XLNX_PCIE_DMA_TARGET_C2H_CHANS, id, cid, desc_count, buffer_size) {};
 
     void run();
     void run(size_t length);
-
 };
 
 using c2h_channel_ptr = std::shared_ptr<c2h_channel>;
@@ -253,11 +253,13 @@ public:
     size_t queued;
 
     h2c_channel(registers& regs, size_t id, size_t cid,
-        size_t desc_count) : channel(regs, XLNX_PCIE_DMA_TARGET_H2C_CHANS,
-        id, cid, desc_count), queued(0) {};
+        size_t desc_count, size_t buffer_size) : channel(regs,
+        XLNX_PCIE_DMA_TARGET_H2C_CHANS, id, cid, desc_count, buffer_size),
+        queued(0) {};
 
     void run();
 
+    mem::dma_buffer_ptr get_tx_buffer();
     void add_tx_buffer(mem::dma_buffer_ptr buf);
 };
 
@@ -271,22 +273,25 @@ struct controller {
 
     lock_type lock;
     registers regs;
-    api::io::registers axis;
+    framework::api::io::registers axil;
     int fd;
     msi_thread dma_msi_thread;
     msi_thread irq_msi_thread;
     callback user_irq_callback;
+    bool open;
 
     std::vector<c2h_channel_ptr> c2h_chans;
     std::vector<h2c_channel_ptr> h2c_chans;
     size_t c2h_count;
     size_t h2c_count;
 
-    controller(std::string& path);
+    controller(std::string& path, size_t buffer_size);
     controller(const controller&) = delete;
     controller& operator=(const controller&) = delete;
     controller(controller&&) = delete;
     controller& operator=(const controller&&) = delete;
+
+    ~controller();
 
     void set_user_irq_callback(callback& cb);
     void enable_user_irq(int irq);
@@ -302,11 +307,13 @@ protected:
 
 void init();
 
-controller_ptr get_controller(size_t id);
+bool probe_iodev(int id);
+
+controller_ptr open(size_t buffer_size);
 
 } // namespace dma
 } // namespace pcie
-} // namespace framework
+} // namespace platform
 } // namespace app
 
-#endif  // FRAMEWORK_PCIE_DMA_H
+#endif  // PLATFORM_PCIE_DMA_H

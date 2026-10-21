@@ -10,11 +10,11 @@ import software.firmware.fdt as fdt
 
 sources = [
     'cpuuse.cpp',
-    'dma-pcie.cpp',
-    'dma-mem.cpp',
+    'dma.cpp',
     'events.cpp',
-    'io.cpp',
+    'harness.cpp',
     'intr.cpp',
+    'io.cpp',
     'logging.cpp',
 ]
 

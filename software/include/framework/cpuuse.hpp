@@ -35,13 +35,15 @@ static thread_index_ptr ti_ = make_thread_index();
 
 void init(uint64_t msecs);
 
-void stop();
-
 void run();
+
+void suspend();
 
 void reset();
 
 void reset_and_run();
+
+void stop();
 
 void register_thread(std::string name);
 

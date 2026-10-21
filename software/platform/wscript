@@ -17,6 +17,8 @@ sources = [
     'emmc.cpp',
     'nfs.cpp',
     'main.cpp',
+    'dma-mem.cpp',
+    'dma-pcie.cpp',
 ]
 
 includes = ['../include/']

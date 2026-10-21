@@ -16,8 +16,8 @@
  * limitations under the License.
  */
 
-#ifndef FRAMEWORK_PCIE_MEM_H
-#define FRAMEWORK_PCIE_MEM_H
+#ifndef PLATFORM_PCIE_MEM_H
+#define PLATFORM_PCIE_MEM_H
 
 #include <iostream>
 #include <cstdint>
@@ -27,12 +27,8 @@
 
 #include <rtems/rtems/cache.h>
 
-static constexpr size_t DMA_BUFF_SIZE = 0x10000;
-static constexpr size_t DMA_BUFF_ALIGN = 0x100;
-static constexpr size_t DMA_BUFF_BOUNDARY = 0;
-
 namespace app {
-namespace framework {
+namespace platform {
 namespace pcie {
 namespace dma {
 namespace mem {
@@ -45,11 +41,12 @@ static constexpr uint32_t XLNX_PCIE_DMA_WB_SIZE = 0x8;
 static constexpr uint32_t XLNX_PCIE_DMA_WB_ALIGNMENT = 0x8;
 static constexpr uint32_t XLNX_PCIE_DMA_WB_BOUNDARY = 0x0;
 
+static constexpr size_t XLNX_PCIE_DMA_BUFF_ALIGN = 0x100;
+static constexpr size_t XLNX_PCIE_DMA_BUFF_BOUNDARY = 0;
 
 struct buffer {
     struct statistics {
         bool eop;
-        bool eos;
         size_t length;
     };
 
@@ -62,19 +59,12 @@ struct buffer {
     size_t get_size() {
         return size;
     }
-    size_t get_alignment() {
-        return alignment;
-    }
-    size_t get_boundary() {
-        return boundary;
-    }
 
-    buffer(size_t size_, size_t alignment_, size_t boundary_) :
-        size(size_), alignment(alignment_), boundary(boundary_) {
+    buffer(size_t size_) : size(size_) {
         addr = rtems_cache_coherent_allocate(
             size,
-            alignment,
-            boundary);
+            XLNX_PCIE_DMA_BUFF_ALIGN,
+            XLNX_PCIE_DMA_BUFF_BOUNDARY);
         if (addr == nullptr) {
             throw std::bad_alloc();
         }
@@ -167,6 +157,6 @@ protected:
 } // namespace mem
 } // namespace dma
 } // namespace pcie
-} // namespace framework
+} // namespace platform
 } // namespace app
-#endif /* FRAMEWORK_PCIE_MEM_H */
+#endif /* PLATFORM_PCIE_MEM_H */

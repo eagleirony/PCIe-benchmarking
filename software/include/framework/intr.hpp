@@ -22,6 +22,8 @@
 #include <memory>
 #include <mutex>
 
+#include <framework/dma.hpp>
+
 namespace app {
 namespace framework {
 namespace api {
@@ -37,13 +39,15 @@ constexpr uint32_t PL_INTR_VECTOR = 121;
 
 void init();
 
-void start();
+void start_ep(dma::controller_ptr ctlr);
+
+void start_pl();
 
 void stop();
 
 void log_pl_intr();
 
-void log_ep_intr();
+void log_ep_intr(dma::controller_ptr ctlr);
 
 } // namespace intr
 } // namespace api
