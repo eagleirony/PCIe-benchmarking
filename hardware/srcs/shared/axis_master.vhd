@@ -66,25 +66,21 @@ begin
 
   end process tvalid_control;
 
+  tlast <= '1' when (tvalid = '1' and packet_size /= 0 and
+                     transfer_counter >= packet_size) else
+           '0';
+
   tlast_control : process (m_axis_aclk) is
   begin
 
     if (rising_edge(m_axis_aclk)) then
       if (m_axis_aresetn = '0') then
         transfer_counter <= (others => '0');
-        tlast            <= '0';
-      else
-        if (tvalid = '1' and m_axis_tready = '1') then
-          if (packet_size = 0) then
-            transfer_counter <= (others => '0');
-            tlast            <= '0';
-          elsif (transfer_counter = packet_size) then
-            transfer_counter <= (others => '0');
-            tlast            <= '1';
-          else
-            transfer_counter <= transfer_counter + 1;
-            tlast            <= '0';
-          end if;
+      elsif (tvalid = '1' and m_axis_tready = '1') then
+        if (packet_size = 0 or tlast = '1') then
+          transfer_counter <= (others => '0');
+        else
+          transfer_counter <= transfer_counter + 1;
         end if;
       end if;
     end if;
