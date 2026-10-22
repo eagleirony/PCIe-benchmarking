@@ -28,6 +28,8 @@ void test_02();
 void test_03();
 void test_04();
 void test_05();
+void test_06();
+void test_07();
 
 } // namespace msi
 } // namespace testsuite

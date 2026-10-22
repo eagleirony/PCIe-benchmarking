@@ -27,6 +27,7 @@ void test_01();
 void test_02();
 void test_03();
 void test_04();
+void test_05();
 
 } // namespace io
 } // namespace testsuite

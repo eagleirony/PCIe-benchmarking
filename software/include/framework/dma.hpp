@@ -32,6 +32,10 @@ void init();
 
 controller_ptr open(size_t buffer_size);
 
+bool c2h_running(controller_ptr ctlr, size_t channel);
+
+bool h2c_running(controller_ptr ctlr, size_t channel);
+
 void set_c2h_data_rate(size_t channel, int mbs);
 
 void set_h2c_data_rate(int mbs);

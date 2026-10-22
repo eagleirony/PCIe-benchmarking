@@ -32,6 +32,7 @@ using test_function = std::function<void(void)>;
 struct test {
     test_function test;
     std::string_view name;
+    std::string_view desc;
 };
 
 void start();

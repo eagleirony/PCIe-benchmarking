@@ -27,16 +27,19 @@ namespace testsuite {
 
 using test = framework::api::harness::test;
 
-const std::array<test, 9> tests = {
-    test{msi::test_01, "msi_01"},
-    test{msi::test_02, "msi_02"},
-    test{msi::test_03, "msi_03"},
-    test{msi::test_04, "msi_04"},
-    test{msi::test_05, "msi_05"},
-    test{io::test_01, "io_01"},
-    test{io::test_02, "io_02"},
-    test{io::test_03, "io_03"},
-    test{io::test_04, "io_04"},
+const std::array<test, 12> tests = {
+    test{msi::test_07, "msi_07", "EP intrs, block 200mbs c2h"},
+    test{msi::test_01, "msi_01", "1000 EP intr, no dma"},
+    test{msi::test_02, "msi_02", "1000 EP intr, 500mbs c2h"},
+    test{msi::test_03, "msi_03", "1000 EP intr, 420mbs c2h"},
+    test{msi::test_04, "msi_04", "1000 EP intr, 415mbs c2h"},
+    test{msi::test_05, "msi_05", "1000 EP intr, 400mbs c2h"},
+    test{msi::test_06, "msi_06", "1000 EP intr, 200mbs c2h"},
+    test{io::test_01, "io_01", "10000 io read/write, no dma"},
+    test{io::test_02, "io_02", "10000 io read/write, 500mbs c2h"},
+    test{io::test_03, "io_03", "10000 io read/write, 420mbs c2h"},
+    test{io::test_04, "io_04", "10000 io read/write, 415mbs c2h"},
+    test{io::test_05, "io_05", "10000 io read/write, 200mbs c2h"},
 };
 
 } // namespace testsuite

@@ -208,7 +208,7 @@ void init() {
 }
 
 void start_ep(dma::controller_ptr ctlr) {
-    platform::pcie::dma::controller::callback ccb = [](int irq) {
+    platform::pcie::dma::controller::icallback ccb = [](int irq) {
         uint32_t reg;
 
         benchmark::log::timestamp_and_log(

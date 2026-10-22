@@ -26,7 +26,8 @@ namespace framework {
 namespace api {
 namespace dma {
 
-using callback = platform::pcie::dma::channel::callback;
+using pcallback = platform::pcie::dma::channel::pcallback;
+using bcallback = platform::pcie::dma::channel::bcallback;
 
 void init() {
     platform::pcie::dma::init();
@@ -38,6 +39,14 @@ controller_ptr open(size_t buffer_size) {
     usleep(1000);
 
     return ctlr;
+}
+
+bool c2h_running(controller_ptr ctlr, size_t channel) {
+    return ctlr->c2h_chans[channel]->is_running();
+}
+
+bool h2c_running(controller_ptr ctlr, size_t channel) {
+    return ctlr->h2c_chans[channel]->is_running();
 }
 
 static void set_data_rate(uint32_t addr, int mbs) {
@@ -84,13 +93,13 @@ void start_c2h_pipeline(controller_ptr ctlr, size_t channel) {
             "error: dma: start_c2h_pipeline: invalid channel");
     }
 
-    callback cb = [](platform::pcie::dma::mem::dma_buffer_ptr buf){
+    pcallback cb = [](platform::pcie::dma::mem::dma_buffer_ptr buf){
         auto id = benchmark::log::timestamp_and_log(
             benchmark::log::record::EP_DMA_PIPELINE_RECV);
         benchmark::log::set_buf_stats(id, buf->stats);
     };
 
-    ctlr->c2h_chans[channel]->set_callback(cb);
+    ctlr->c2h_chans[channel]->set_pipeline_callback(cb);
 
     ctlr->c2h_chans[channel]->run();
 }
@@ -104,40 +113,46 @@ void stop_c2h_pipeline(controller_ptr ctlr, size_t channel) {
     ctlr->c2h_chans[channel]->stop();
 }
 
-void start_c2h_block(controller_ptr ctlr, size_t channel, size_t buffers) {
-    if (ctlr->c2h_count >= channel || channel < 0) {
+void start_c2h_block(controller_ptr ctlr, size_t channel, size_t length) {
+    if (ctlr->c2h_count <= channel || channel < 0) {
         throw std::runtime_error(
             "error: dma: start_c2h_pipeline: invalid channel");
     }
-    uint32_t length = buffers * ctlr->c2h_chans[channel]->buffer_size;
 
-    callback cb = [length](platform::pcie::dma::mem::dma_buffer_ptr buf){
+    bcallback cb = [length, ctlr](
+        std::vector<platform::pcie::dma::mem::dma_buffer_ptr> bufs) {
         auto id = benchmark::log::timestamp_and_log(
             benchmark::log::record::EP_DMA_BLOCK_RX_END);
         platform::pcie::dma::mem::buffer::statistics stats;
         stats.length = length;
         stats.eop = true;
         benchmark::log::set_buf_stats(id, stats);
+        std::cout << "Hello WOrld " << c2h_running(ctlr, 0) << std::endl;
     };
 
-    ctlr->c2h_chans[channel]->set_callback(cb);
+    ctlr->c2h_chans[channel]->set_block_callback(cb);
 
     ctlr->c2h_chans[channel]->run(length);
+        std::cout << "Hello run " << c2h_running(ctlr, 0) << std::endl;
 }
 
 void start_h2c_block(controller_ptr ctlr, size_t channel, size_t buffers) {
     uint32_t length = buffers * ctlr->c2h_chans[channel]->buffer_size;
 
-    callback cb = [length](platform::pcie::dma::mem::dma_buffer_ptr buf){
+    bcallback cb = [length](
+        std::vector<platform::pcie::dma::mem::dma_buffer_ptr> bufs){
         auto id = benchmark::log::timestamp_and_log(
             benchmark::log::record::EP_DMA_BLOCK_TX_END);
         platform::pcie::dma::mem::buffer::statistics stats;
         stats.length = length;
         stats.eop = true;
         benchmark::log::set_buf_stats(id, stats);
+        for (auto buf : bufs) {
+            std::cout << "Buf: " << buf->stats.length << " " << buf->stats.eop << std::endl;
+        }
     };
 
-    ctlr->h2c_chans[channel]->set_callback(cb);
+    ctlr->h2c_chans[channel]->set_block_callback(cb);
 
     for (size_t i = 0; i < buffers; ++i) {
         auto buf = ctlr->h2c_chans[channel]->get_tx_buffer();

@@ -33,6 +33,7 @@
 #include <framework/logging.hpp>
 #include <framework/cpuuse.hpp>
 #include <framework/io.hpp>
+#include <framework/events.hpp>
 
 #include <platform/dma-pcie.hpp>
 
@@ -94,9 +95,9 @@ inline void registers::write(uint32_t target, uint32_t offset, uint32_t value) {
 channel::channel(registers& reg_, uint32_t dir_, size_t id_, size_t cid_,
     size_t desc_count_, size_t buffer_size_) : regs(reg_), dir(dir_), id(id_),
     cid(cid_), running(false), pipelined(false), head(0), tail(0) {
-    bufs.create(2 * XLNX_PCIE_DMA_CHAN_DESC_COUNT, buffer_size_);
-
     buffer_size = buffer_size_;
+
+    bufs.create(2 * XLNX_PCIE_DMA_CHAN_DESC_COUNT, buffer_size);
 
     /* Set performance tracking to auto */
     write_chan(XLNX_PCIE_DMA_CHAN_PERF_CTRL, XLNX_PCIE_DMA_CHAN_PERF_CTRL_RUN
@@ -104,7 +105,7 @@ channel::channel(registers& reg_, uint32_t dir_, size_t id_, size_t cid_,
         | XLNX_PCIE_DMA_CHAN_PERF_CTRL_AUTO);
 
     /* Enable Intr */
-    write_chan(XLNX_PCIE_DMA_CHAN_CTRL, XLNX_PCIE_DMA_CHAN_CTRL_LOG_ENA);
+    write_chan(XLNX_PCIE_DMA_CHAN_CTRL, XLNX_PCIE_DMA_CHAN_CTRL_LOG_ALL);
 
     uint32_t irq_reg = regs.read(XLNX_PCIE_DMA_TARGET_IRQ_BLOCK,
         XLNX_PCIE_DMA_IRQ_CHAN_EN);
@@ -123,6 +124,9 @@ void channel::set_pipeline() {
         descs[i].set_wb(wbs[i]);
         wbs[i].clear();
         auto buf = bufs.request();
+        if (buf == nullptr) {
+            throw std::runtime_error("error: dma: out of buffers");
+        }
         descs[i].set_dst_buffer(buf);
     }
     for (size_t i = 0; i < XLNX_PCIE_DMA_CHAN_DESC_COUNT - 1; ++i) {
@@ -136,6 +140,7 @@ void channel::set_pipeline() {
     tail = 0;
     head = 0;
 
+    write_chan(XLNX_PCIE_DMA_CHAN_CTRL, XLNX_PCIE_DMA_CHAN_CTRL_LOG_PIPE);
     pipelined = true;
 }
 
@@ -156,6 +161,9 @@ void channel::set_block(size_t length) {
         descs[desc_index].set_wb(wbs[desc_index]);
         wbs[desc_index].clear();
         auto buf = bufs.request();
+        if (buf == nullptr) {
+            throw std::runtime_error("error: dma: out of buffers");
+        }
         descs[desc_index].set_dst_buffer(buf);
 
         ++desc_index;
@@ -163,22 +171,27 @@ void channel::set_block(size_t length) {
     }
 
     descs[desc_index].zero();
-    descs[desc_index].header(true, true, 0);
+    descs[desc_index].header(true, true);
     descs[desc_index].set_length(length);
     descs[desc_index].set_wb(wbs[desc_index]);
     wbs[desc_index].clear();
     auto buf = bufs.request();
+    if (buf == nullptr) {
+        throw std::runtime_error("error: dma: out of buffers");
+    }
     descs[desc_index].set_dst_buffer(buf);
 
     for (size_t i = 0; i < desc_index; ++i) {
         descs[i].set_next(descs[i + 1]);
     }
+    descs[desc_index].clear_next();
 
     write_sgdma(XLNX_PCIE_DMA_CHAN_SG_DESC_CRED, desc_chain_len);
 
     head = 0;
-    tail = 0;
+    tail = desc_chain_len;
 
+    write_chan(XLNX_PCIE_DMA_CHAN_CTRL, XLNX_PCIE_DMA_CHAN_CTRL_LOG_BLK);
     pipelined = false;
 }
 
@@ -187,12 +200,22 @@ bool channel::is_running() {
     return running;
 }
 
-void channel::set_callback(callback& cb_) {
+void channel::set_pipeline_callback(pcallback& cb_) {
     lock_guard guard(lock);
     if (is_running()) {
-        throw std::runtime_error("Channel is running");
+        throw std::runtime_error(
+            "error: set_pipeline_callback: channel is running");
     }
-    cb = cb_;
+    pcb = cb_;
+}
+
+void channel::set_block_callback(bcallback& cb_) {
+    lock_guard guard(lock);
+    if (is_running()) {
+        throw std::runtime_error(
+            "error: set_block_callback: channel is running");
+    }
+    bcb = cb_;
 }
 
 void channel::start() {
@@ -215,13 +238,14 @@ void channel::start() {
     write_sgdma(XLNX_PCIE_DMA_CHAN_SG_DESC_ADJ, 0);
 
     running = true;
+    stopping = false;
     auto reg = read_chan(XLNX_PCIE_DMA_CHAN_CTRL);
     reg |= XLNX_PCIE_DMA_CHAN_CTRL_RUN;
 
     write_chan(XLNX_PCIE_DMA_CHAN_CTRL, reg);
 }
 
-void channel::stop() {
+void channel::hard_stop() {
     if (!is_running()) {
         return;
     }
@@ -229,32 +253,36 @@ void channel::stop() {
     auto reg = read_chan(XLNX_PCIE_DMA_CHAN_CTRL);
     reg &= ~XLNX_PCIE_DMA_CHAN_CTRL_RUN;
     write_chan(XLNX_PCIE_DMA_CHAN_CTRL, reg);
-    framework::benchmark::log::timestamp_and_log(
-        framework::benchmark::log::record::EP_DMA_PIPELINE_END);
+    if (pipelined) {
+        framework::benchmark::log::timestamp_and_log(
+            framework::benchmark::log::record::EP_DMA_PIPELINE_END);
+    }
     running = false;
 }
 
-void channel::stop(int timeout_sec) {
+void channel::stop() {
     if (!is_running()) {
         return;
     }
     lock_guard guard(lock);
-    stop();
+    if (!pipelined) {
+        return;
+    }
+    stopping = true;
+    framework::benchmark::log::timestamp_and_log(
+        framework::benchmark::log::record::EP_DMA_PIPELINE_END);
+    stop_evt = std::make_shared<framework::rtems::events::event>(true,
+        RTEMS_EVENT_2);
 
-    int sec_waited = 0;
-    while (running) {
-        lock.unlock();
-        sleep(1);
-        lock.lock();
-        ++sec_waited;
-        if (timeout_sec != 0
-            && sec_waited >= timeout_sec) {
-            break;
-        }
+    lock.unlock();
+    auto sc = stop_evt->wait(100);
+    lock.lock();
+
+    if (sc != framework::rtems::events::event::status_code::SUCCESSFUL) {
+        hard_stop();
+        throw std::runtime_error("error: stop: failed to stop cleanly");
     }
-    if (running) {
-        throw std::runtime_error("error: dma: stop timed out");
-    }
+    stop_evt = nullptr;
 }
 
 void channel::error(uint32_t status) {
@@ -285,57 +313,81 @@ void channel::handle_intr() {
               | XLNX_PCIE_DMA_CHAN_STS_BUSY
               | XLNX_PCIE_DMA_CHAN_STS_IDLE)) {
             error(status);
-            stop();
+            hard_stop();
             return;
         }
 
-        if (status & XLNX_PCIE_DMA_CHAN_STS_IDLE ||
-            status & XLNX_PCIE_DMA_CHAN_STS_STOP) {
+        if (status & XLNX_PCIE_DMA_CHAN_STS_STOP) {
             running = false;
-            write_chan(XLNX_PCIE_DMA_CHAN_STS,
-                (XLNX_PCIE_DMA_CHAN_STS_IDLE | XLNX_PCIE_DMA_CHAN_STS_STOP));
-            if (cb != nullptr
-                && dir == XLNX_PCIE_DMA_TARGET_H2C_CHANS) {
-                cb(nullptr);
+            stopping = false;
+            std::cout << "HELLO!! " << id << " " << std::hex<< status << std::endl;
+            write_chan(XLNX_PCIE_DMA_CHAN_STS, XLNX_PCIE_DMA_CHAN_STS_STOP);
+            if (!pipelined) {
+                if (bcb != nullptr) {
+                    std::vector<mem::dma_buffer_ptr> bufs;
+                    for (size_t i = 0; i < tail; ++i) {
+                        auto& d = descs[i];
+                        auto cmpl_buf = d.buf;
+                        cmpl_buf->stats.eop = d.wb->eop();
+                        cmpl_buf->stats.length = d.wb->length();
+                        d.buf = nullptr;
+                        bufs.push_back(cmpl_buf);
+                    }
+                    std::cout << "Callback" << std::endl;
+                    bcb(bufs);
+                    std::cout << "Callback 2" << is_running() << std::endl;
+                }
+                return;
+            }
+            if (stop_evt != nullptr) {
+                stop_evt->signal();
             }
         }
 
-        if (status & XLNX_PCIE_DMA_CHAN_STS_COMP
-            && dir == XLNX_PCIE_DMA_TARGET_C2H_CHANS) {
+        if (status & XLNX_PCIE_DMA_CHAN_STS_COMP && pipelined) {
             write_chan(XLNX_PCIE_DMA_CHAN_STS, XLNX_PCIE_DMA_CHAN_STS_COMP);
-            auto d = &descs[head];
+            auto dp = &descs[head];
             size_t desc_cmpl_count = 0;
-            while (d->wb->valid()
+            while (dp->wb->valid()
                 && desc_cmpl_count < XLNX_PCIE_DMA_CHAN_DESC_COUNT) {
                 head = (head + 1) % XLNX_PCIE_DMA_CHAN_DESC_COUNT;
                 desc_cmpl_count++;
-                d = &descs[head];
+                dp = &descs[head];
             }
 
             if (desc_cmpl_count == XLNX_PCIE_DMA_CHAN_DESC_COUNT) {
                 std::cout << "error: dma: descriptor overrun" << std::endl;
-                stop();
+                hard_stop();
                 return;
             }
 
             while (head != tail) {
-                mem::dma_buffer_ptr cmpl_buf;
                 auto& d = descs[tail];
 
                 tail = (tail + 1) % XLNX_PCIE_DMA_CHAN_DESC_COUNT;
 
-                cmpl_buf = d.buf;
+                auto cmpl_buf = d.buf;
                 d.buf = bufs.request();
+                if (d.buf == nullptr) {
+                    throw std::runtime_error("error: dma: out of buffers");
+                }
                 d.set_dst_buffer(d.buf);
+                if (stopping) {
+                    d.header(true, true);
+                    d.clear_next();
+                }
 
                 cmpl_buf->stats.eop = d.wb->eop();
                 cmpl_buf->stats.length = d.wb->length();
+                if (d.wb->length() != buffer_size) {
+                    std::cout << "BUf: " << d.wb->length() << " " << d.wb->eop() << std::endl;
+                }
                 d.wb->clear();
 
                 write_sgdma(XLNX_PCIE_DMA_CHAN_SG_DESC_CRED, 1);
 
-                if (cb != nullptr) {
-                    cb(cmpl_buf);
+                if (pcb != nullptr) {
+                    pcb(cmpl_buf);
                 }
             }
         }
@@ -382,7 +434,7 @@ void channel::report() {
             XLNX_PCIE_DMA_CHAN_PERF_HI_MAXED_MASK) {
         maxed_str = "Maxed ";
     }
-    std::cout << "Clock Cycle Count: " << maxed_str << cycle_count
+    std::cout << "Clock Cycle Count: " << maxed_str << std::dec << cycle_count
         << std::endl;
 
     maxed_str = "";
@@ -421,6 +473,7 @@ void c2h_channel::run(size_t length) {
     }
     lock_guard guard(lock);
     pipelined = false;
+    std::cout << "BLOCK " << std::dec << length << std::endl;
     set_block(length);
     framework::benchmark::log::log_and_timestamp(
         framework::benchmark::log::record::EP_DMA_BLOCK_RX_START);
@@ -539,12 +592,14 @@ controller::controller(std::string& path, size_t buffer_size) {
         throw std::runtime_error("error: dma: mmap failed");
     }
 
-    if (axil.read(framework::api::io::EP_REG_SCRATCH_0_OFF) != 0) {
+    if (axil.read(framework::api::io::EP_REG_SCRATCH_3_OFF) != 0) {
         std::cout << "warning: dma: controller already attached or not" 
           << " shutdown properly" << std::endl;
     }
-    axil.write(framework::api::io::EP_REG_SCRATCH_0_OFF, 0x1);
+    axil.write(framework::api::io::EP_REG_SCRATCH_3_OFF, 0x1);
 
+    axil.write(framework::api::io::EP_REG_C2H_0_PACK_LEN_OFF, 0);
+    axil.write(framework::api::io::EP_REG_C2H_1_PACK_LEN_OFF, 0);
     axil.write(framework::api::io::EP_REG_C2H_0_PACK_LEN_OFF, buffer_size/8 - 1);
     axil.write(framework::api::io::EP_REG_C2H_1_PACK_LEN_OFF, buffer_size/8 - 1);
 
@@ -626,10 +681,10 @@ controller::~controller() {
     }
     lock.lock();
 
-    axil.write(framework::api::io::EP_REG_SCRATCH_0_OFF, 0x0);
+    axil.write(framework::api::io::EP_REG_SCRATCH_3_OFF, 0x0);
 }
 
-void controller::set_user_irq_callback(callback& cb) {
+void controller::set_user_irq_callback(icallback& cb) {
     lock_guard guard(lock);
     user_irq_callback = cb;
 }

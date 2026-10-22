@@ -40,26 +40,25 @@
 #include <framework/logging.hpp>
 #include <framework/harness.hpp>
 
-static constexpr char emmc_mnt_path[] = "/emmc";
-static constexpr char nfs_mnt_path[] = "/net";
-
 int main(int argc, char** argv) {
     rtems_status_code sc;
+    std::ostringstream oss;
 
     app::platform::network::init();
 
-    std::string emmc_mnt_path_str = emmc_mnt_path;
-    app::platform::emmc::mount(emmc_mnt_path_str);
+    std::string emmc_mnt(app::config::EMMC_MNT_PATH);
+    app::platform::emmc::mount(emmc_mnt);
 
     app::platform::pl::init();
 
     app::platform::network::start(30, false);
 
-    std::string nfs_mnt_path_str = nfs_mnt_path;
-    app::platform::nfs::mount(nfs_mnt_path_str);
+    std::string nfs_mnt(app::config::NFS_MNT_PATH);
+    app::platform::nfs::mount(nfs_mnt);
 
-    std::string pl_bitfile_path_str = "/emmc/pl_5.bit";
-    app::platform::pl::load(pl_bitfile_path_str);
+    oss << app::config::EMMC_MNT_PATH << "/" << app::config::PL_IMAGE_NAME;
+    auto pl_path = oss.str();
+    app::platform::pl::load(pl_path);
 
     std::cout << std::endl << "PCITB version: " << app_build_id() << std::endl;
 

@@ -26,14 +26,33 @@ namespace app {
 namespace testsuite {
 namespace msi {
 
+static void ep_intr_with_dma(int irqs, int mbs) {
+    constexpr size_t buffer_size = 0x10000;
+
+    auto ctlr = framework::api::dma::open(buffer_size);
+    framework::api::dma::set_c2h_data_rate(0, mbs);
+
+    framework::api::intr::start_ep(ctlr);
+
+    framework::api::dma::start_c2h_pipeline(ctlr, 0);
+    for (int i = 0; i < irqs; ++i) {
+        framework::api::intr::log_ep_intr(ctlr);
+        usleep(1000);
+    }
+    framework::api::dma::stop_c2h_pipeline(ctlr, 0);
+
+    framework::api::intr::stop();
+}
+
 void test_01() {
     constexpr size_t buffer_size = 0x10000;
+    constexpr int irqs = 1000;
 
     auto ctlr = framework::api::dma::open(buffer_size);
 
     framework::api::intr::start_ep(ctlr);
 
-    for (int i = 0; i < 1000; ++i) {
+    for (int i = 0; i < irqs; ++i) {
         framework::api::intr::log_ep_intr(ctlr);
         usleep(1000);
     }
@@ -42,73 +61,42 @@ void test_01() {
 }
 
 void test_02() {
-    constexpr size_t buffer_size = 0x10000;
-
-    auto ctlr = framework::api::dma::open(buffer_size);
-    framework::api::dma::set_c2h_data_rate(0, 400);
-
-    framework::api::intr::start_ep(ctlr);
-
-    framework::api::dma::start_c2h_pipeline(ctlr, 0);
-    for (int i = 0; i < 1000; ++i) {
-        framework::api::intr::log_ep_intr(ctlr);
-        usleep(1000);
-    }
-    framework::api::dma::stop_c2h_pipeline(ctlr, 0);
-
-    framework::api::intr::stop();
+    ep_intr_with_dma(1000, 500);
 }
 
 void test_03() {
-    constexpr size_t buffer_size = 0x10000;
-
-    auto ctlr = framework::api::dma::open(buffer_size);
-    framework::api::dma::set_c2h_data_rate(0, 415);
-
-    framework::api::intr::start_ep(ctlr);
-
-    framework::api::dma::start_c2h_pipeline(ctlr, 0);
-    for (int i = 0; i < 1000; ++i) {
-        framework::api::intr::log_ep_intr(ctlr);
-        usleep(1000);
-    }
-    framework::api::dma::stop_c2h_pipeline(ctlr, 0);
-
-    framework::api::intr::stop();
+    ep_intr_with_dma(1000, 420);
 }
 
 void test_04() {
+    ep_intr_with_dma(1000, 415);
+}
+
+void test_05() {
+    ep_intr_with_dma(1000, 400);
+}
+
+void test_06() {
+    ep_intr_with_dma(1000, 200);
+}
+
+void test_07() {
     constexpr size_t buffer_size = 0x10000;
+    constexpr int runs = 100;
 
     auto ctlr = framework::api::dma::open(buffer_size);
     framework::api::dma::set_c2h_data_rate(0, 200);
 
     framework::api::intr::start_ep(ctlr);
 
-    framework::api::dma::start_c2h_pipeline(ctlr, 0);
-    for (int i = 0; i < 1000; ++i) {
-        framework::api::intr::log_ep_intr(ctlr);
-        usleep(1000);
+    for (int i = 0; i < runs; ++i) {
+        framework::api::dma::start_c2h_block(ctlr, 0, 0x20000);
+        bool running = framework::api::dma::c2h_running(ctlr, 0);
+        while (running) {
+            usleep(1000);
+            running = framework::api::dma::c2h_running(ctlr, 0);
+        }
     }
-    framework::api::dma::stop_c2h_pipeline(ctlr, 0);
-
-    framework::api::intr::stop();
-}
-
-void test_05() {
-    constexpr size_t buffer_size = 0x10000;
-
-    auto ctlr = framework::api::dma::open(buffer_size);
-    framework::api::dma::set_c2h_data_rate(0, 500);
-
-    framework::api::intr::start_ep(ctlr);
-
-    framework::api::dma::start_c2h_pipeline(ctlr, 0);
-    for (int i = 0; i < 1000; ++i) {
-        framework::api::intr::log_ep_intr(ctlr);
-        usleep(1000);
-    }
-    framework::api::dma::stop_c2h_pipeline(ctlr, 0);
 
     framework::api::intr::stop();
 }

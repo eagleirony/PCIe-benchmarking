@@ -27,6 +27,7 @@
 #include <framework/io.hpp>
 
 #include <platform/dma-mem.hpp>
+#include <framework/events.hpp>
 
 #include <externals/cs/pool.hpp>
 #include <externals/rtems/thread.hpp>
@@ -90,8 +91,10 @@ static constexpr uint32_t XLNX_PCIE_DMA_TARGET_MSIX      = 8;
 static constexpr uint32_t XLNX_PCIE_DMA_CHAN_ID           = 0x00;
   static constexpr uint32_t XLNX_PCIE_CHAN_ID_AXIS_MASK     = (1 << 15);
 static constexpr uint32_t XLNX_PCIE_DMA_CHAN_CTRL         = 0x04;
-  static constexpr uint32_t XLNX_PCIE_DMA_CHAN_CTRL_RUN     = (1 << 0);
-  static constexpr uint32_t XLNX_PCIE_DMA_CHAN_CTRL_LOG_ENA = 0x00F83E7E;
+  static constexpr uint32_t XLNX_PCIE_DMA_CHAN_CTRL_RUN      = (1 << 0);
+  static constexpr uint32_t XLNX_PCIE_DMA_CHAN_CTRL_LOG_ALL  = 0x00F83E3E;
+  static constexpr uint32_t XLNX_PCIE_DMA_CHAN_CTRL_LOG_BLK  = 0x00F83E3A;
+  static constexpr uint32_t XLNX_PCIE_DMA_CHAN_CTRL_LOG_PIPE = 0x00F83E3E;
 static constexpr uint32_t XLNX_PCIE_DMA_CHAN_STS          = 0x40;
   static constexpr uint32_t XLNX_PCIE_DMA_CHAN_STS_BUSY     = (1 << 0);
   static constexpr uint32_t XLNX_PCIE_DMA_CHAN_STS_STOP     = (1 << 1);
@@ -188,7 +191,9 @@ protected:
 };
 
 struct channel {
-    using callback = std::function<void(mem::dma_buffer_ptr buf)>;
+    using pcallback = std::function<void(mem::dma_buffer_ptr buf)>;
+    using bcallback =
+        std::function<void(std::vector<mem::dma_buffer_ptr> bufs)>;
     using lock_type = std::recursive_mutex;
     using lock_guard = std::lock_guard<lock_type>;
 
@@ -198,11 +203,14 @@ struct channel {
     size_t id;
     size_t cid;
     bool running;
+    bool stopping;
     bool pipelined;
     size_t head;
     size_t tail;
     size_t buffer_size;
-    callback cb;
+    pcallback pcb;
+    bcallback bcb;
+    std::shared_ptr<framework::rtems::events::event> stop_evt;
     std::array<mem::descriptor, XLNX_PCIE_DMA_CHAN_DESC_COUNT> descs;
     std::array<mem::writeback, XLNX_PCIE_DMA_CHAN_DESC_COUNT> wbs;
     cs::pool::pool<mem::dma_buffer> bufs;
@@ -218,7 +226,8 @@ struct channel {
     void stop();
     void stop(int timeout_sec);
 
-    void set_callback(callback& cb);
+    void set_pipeline_callback(pcallback& cb);
+    void set_block_callback(bcallback& cb);
 
     bool is_running();
     void report();
@@ -226,6 +235,7 @@ struct channel {
     void handle_intr();
 protected:
     void error(uint32_t status);
+    void hard_stop();
 
     void set_pipeline();
     void set_block(size_t length);
@@ -269,7 +279,7 @@ struct controller {
     using lock_type = std::recursive_mutex;
     using lock_guard = std::lock_guard<lock_type>;
     using msi_thread = std::shared_ptr<rtems::thread::thread>;
-    using callback = std::function<void(int)>;
+    using icallback = std::function<void(int)>;
 
     lock_type lock;
     registers regs;
@@ -277,7 +287,7 @@ struct controller {
     int fd;
     msi_thread dma_msi_thread;
     msi_thread irq_msi_thread;
-    callback user_irq_callback;
+    icallback user_irq_callback;
     bool open;
 
     std::vector<c2h_channel_ptr> c2h_chans;
@@ -293,7 +303,7 @@ struct controller {
 
     ~controller();
 
-    void set_user_irq_callback(callback& cb);
+    void set_user_irq_callback(icallback& cb);
     void enable_user_irq(int irq);
     void disable_user_irq(int irq);
     void report();

@@ -23,90 +23,60 @@ namespace app {
 namespace testsuite {
 namespace io {
 
-void test_01() {
+static void io_with_dma(int requests, int mbs) {
+    constexpr size_t buffer_size = 0x10000;
 
-    for (int i = 0; i < 1000; ++i) {
+    auto ctlr = framework::api::dma::open(buffer_size);
+    framework::api::dma::set_c2h_data_rate(0, mbs);
+
+    framework::api::dma::start_c2h_pipeline(ctlr, 0);
+    for (int i = 0; i < requests; ++i) {
         framework::api::io::log_ep_read_latency();
     }
-    for (int i = 0; i < 1000; ++i) {
+    for (int i = 0; i < requests; ++i) {
         framework::api::io::log_ep_write_latency();
     }
-    for (int i = 0; i < 1000; ++i) {
+    for (int i = 0; i < requests; ++i) {
         framework::api::io::log_ep_one_way_read_latency();
     }
-    for (int i = 0; i < 1000; ++i) {
+    for (int i = 0; i < requests; ++i) {
+        framework::api::io::log_ep_one_way_write_latency();
+    }
+    framework::api::dma::stop_c2h_pipeline(ctlr, 0);
+}
+
+void test_01() {
+    int requests = 10000;
+
+    for (int i = 0; i < requests; ++i) {
+        framework::api::io::log_ep_read_latency();
+    }
+    for (int i = 0; i < requests; ++i) {
+        framework::api::io::log_ep_write_latency();
+    }
+    for (int i = 0; i < requests; ++i) {
+        framework::api::io::log_ep_one_way_read_latency();
+    }
+    for (int i = 0; i < requests; ++i) {
         framework::api::io::log_ep_one_way_write_latency();
     }
 
 }
 
 void test_02() {
-    constexpr size_t buffer_size = 0x10000;
-
-    auto ctlr = framework::api::dma::open(buffer_size);
-    framework::api::dma::set_c2h_data_rate(0, 500);
-
-    framework::api::dma::start_c2h_pipeline(ctlr, 0);
-    for (int i = 0; i < 1000; ++i) {
-        framework::api::io::log_ep_read_latency();
-    }
-    for (int i = 0; i < 1000; ++i) {
-        framework::api::io::log_ep_write_latency();
-    }
-    for (int i = 0; i < 1000; ++i) {
-        framework::api::io::log_ep_one_way_read_latency();
-    }
-    for (int i = 0; i < 1000; ++i) {
-        framework::api::io::log_ep_one_way_write_latency();
-    }
-    framework::api::dma::stop_c2h_pipeline(ctlr, 0);
-
+    io_with_dma(10000, 500);
 }
 
 void test_03() {
-    constexpr size_t buffer_size = 0x10000;
-
-    auto ctlr = framework::api::dma::open(buffer_size);
-    framework::api::dma::set_c2h_data_rate(0, 400);
-
-    framework::api::dma::start_c2h_pipeline(ctlr, 0);
-    for (int i = 0; i < 1000; ++i) {
-        framework::api::io::log_ep_read_latency();
-    }
-    for (int i = 0; i < 1000; ++i) {
-        framework::api::io::log_ep_write_latency();
-    }
-    for (int i = 0; i < 1000; ++i) {
-        framework::api::io::log_ep_one_way_read_latency();
-    }
-    for (int i = 0; i < 1000; ++i) {
-        framework::api::io::log_ep_one_way_write_latency();
-    }
-    framework::api::dma::stop_c2h_pipeline(ctlr, 0);
-
+    io_with_dma(10000, 420);
 }
 
 void test_04() {
-    constexpr size_t buffer_size = 0x10000;
+    io_with_dma(10000, 415);
+}
 
-    auto ctlr = framework::api::dma::open(buffer_size);
-    framework::api::dma::set_c2h_data_rate(0, 200);
-
-    framework::api::dma::start_c2h_pipeline(ctlr, 0);
-    for (int i = 0; i < 1000; ++i) {
-        framework::api::io::log_ep_read_latency();
-    }
-    for (int i = 0; i < 1000; ++i) {
-        framework::api::io::log_ep_write_latency();
-    }
-    for (int i = 0; i < 1000; ++i) {
-        framework::api::io::log_ep_one_way_read_latency();
-    }
-    for (int i = 0; i < 1000; ++i) {
-        framework::api::io::log_ep_one_way_write_latency();
-    }
-    framework::api::dma::stop_c2h_pipeline(ctlr, 0);
-
+void test_05() {
+    io_with_dma(10000, 200);
 }
 
 } // namespace io
