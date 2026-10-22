@@ -134,13 +134,13 @@ void channel::set_pipeline() {
     }
     descs[XLNX_PCIE_DMA_CHAN_DESC_COUNT - 1].set_next(descs[0]);
 
-    write_sgdma(XLNX_PCIE_DMA_CHAN_SG_DESC_CRED,
-        XLNX_PCIE_DMA_CHAN_DESC_COUNT);
-
     tail = 0;
     head = 0;
 
     write_chan(XLNX_PCIE_DMA_CHAN_CTRL, XLNX_PCIE_DMA_CHAN_CTRL_LOG_PIPE);
+    write_sgdma(XLNX_PCIE_DMA_CHAN_SG_DESC_CRED,
+        XLNX_PCIE_DMA_CHAN_DESC_COUNT);
+
     pipelined = true;
 }
 
@@ -186,12 +186,12 @@ void channel::set_block(size_t length) {
     }
     descs[desc_index].clear_next();
 
-    write_sgdma(XLNX_PCIE_DMA_CHAN_SG_DESC_CRED, desc_chain_len);
-
     head = 0;
     tail = desc_chain_len;
 
     write_chan(XLNX_PCIE_DMA_CHAN_CTRL, XLNX_PCIE_DMA_CHAN_CTRL_LOG_BLK);
+    write_sgdma(XLNX_PCIE_DMA_CHAN_SG_DESC_CRED, desc_chain_len);
+
     pipelined = false;
 }
 
@@ -320,8 +320,12 @@ void channel::handle_intr() {
         if (status & XLNX_PCIE_DMA_CHAN_STS_STOP) {
             running = false;
             stopping = false;
-            std::cout << "HELLO!! " << id << " " << std::hex<< status << std::endl;
             write_chan(XLNX_PCIE_DMA_CHAN_STS, XLNX_PCIE_DMA_CHAN_STS_STOP);
+
+            auto ctrl_reg = read_chan(XLNX_PCIE_DMA_CHAN_CTRL);
+            ctrl_reg &= ~XLNX_PCIE_DMA_CHAN_CTRL_RUN;
+            write_chan(XLNX_PCIE_DMA_CHAN_CTRL, ctrl_reg);
+
             if (!pipelined) {
                 if (bcb != nullptr) {
                     std::vector<mem::dma_buffer_ptr> bufs;
@@ -333,9 +337,7 @@ void channel::handle_intr() {
                         d.buf = nullptr;
                         bufs.push_back(cmpl_buf);
                     }
-                    std::cout << "Callback" << std::endl;
                     bcb(bufs);
-                    std::cout << "Callback 2" << is_running() << std::endl;
                 }
                 return;
             }
@@ -473,7 +475,6 @@ void c2h_channel::run(size_t length) {
     }
     lock_guard guard(lock);
     pipelined = false;
-    std::cout << "BLOCK " << std::dec << length << std::endl;
     set_block(length);
     framework::benchmark::log::log_and_timestamp(
         framework::benchmark::log::record::EP_DMA_BLOCK_RX_START);
@@ -785,7 +786,7 @@ void controller::dma_msi_worker() {
         status = ::ioctl(fd, RTEMS_IODEV_IOCTL_EVENT_WAIT, &event_args);
         if (status == -1) {
             std::cout << "controller: msi_worker: event wait failed "
-                << errno << " " << fd << std::endl;
+                << strerror(errno) << " " << fd << std::endl;
             return;
         }
         lock.lock();

@@ -30,6 +30,10 @@ void test_04();
 void test_05();
 void test_06();
 void test_07();
+void test_08();
+void test_09();
+void test_10();
+void test_11();
 
 } // namespace msi
 } // namespace testsuite

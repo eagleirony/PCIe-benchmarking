@@ -119,7 +119,7 @@ void start_c2h_block(controller_ptr ctlr, size_t channel, size_t length) {
             "error: dma: start_c2h_pipeline: invalid channel");
     }
 
-    bcallback cb = [length, ctlr](
+    bcallback cb = [length](
         std::vector<platform::pcie::dma::mem::dma_buffer_ptr> bufs) {
         auto id = benchmark::log::timestamp_and_log(
             benchmark::log::record::EP_DMA_BLOCK_RX_END);
@@ -127,13 +127,11 @@ void start_c2h_block(controller_ptr ctlr, size_t channel, size_t length) {
         stats.length = length;
         stats.eop = true;
         benchmark::log::set_buf_stats(id, stats);
-        std::cout << "Hello WOrld " << c2h_running(ctlr, 0) << std::endl;
     };
 
     ctlr->c2h_chans[channel]->set_block_callback(cb);
 
     ctlr->c2h_chans[channel]->run(length);
-        std::cout << "Hello run " << c2h_running(ctlr, 0) << std::endl;
 }
 
 void start_h2c_block(controller_ptr ctlr, size_t channel, size_t buffers) {
@@ -147,9 +145,6 @@ void start_h2c_block(controller_ptr ctlr, size_t channel, size_t buffers) {
         stats.length = length;
         stats.eop = true;
         benchmark::log::set_buf_stats(id, stats);
-        for (auto buf : bufs) {
-            std::cout << "Buf: " << buf->stats.length << " " << buf->stats.eop << std::endl;
-        }
     };
 
     ctlr->h2c_chans[channel]->set_block_callback(cb);

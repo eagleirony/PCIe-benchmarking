@@ -26,7 +26,23 @@ namespace app {
 namespace testsuite {
 namespace msi {
 
-static void ep_intr_with_dma(int irqs, int mbs) {
+void test_01() {
+    constexpr size_t buffer_size = 0x10000;
+    constexpr int irqs = 1000;
+
+    auto ctlr = framework::api::dma::open(buffer_size);
+
+    framework::api::intr::start_ep(ctlr);
+
+    for (int i = 0; i < irqs; ++i) {
+        framework::api::intr::log_ep_intr(ctlr);
+        usleep(1000);
+    }
+
+    framework::api::intr::stop();
+}
+
+static void ep_intr_with_pipeline(int irqs, int mbs) {
     constexpr size_t buffer_size = 0x10000;
 
     auto ctlr = framework::api::dma::open(buffer_size);
@@ -44,45 +60,28 @@ static void ep_intr_with_dma(int irqs, int mbs) {
     framework::api::intr::stop();
 }
 
-void test_01() {
-    constexpr size_t buffer_size = 0x10000;
-    constexpr int irqs = 1000;
-
-    auto ctlr = framework::api::dma::open(buffer_size);
-
-    framework::api::intr::start_ep(ctlr);
-
-    for (int i = 0; i < irqs; ++i) {
-        framework::api::intr::log_ep_intr(ctlr);
-        usleep(1000);
-    }
-
-    framework::api::intr::stop();
-}
-
 void test_02() {
-    ep_intr_with_dma(1000, 500);
+    ep_intr_with_pipeline(1000, 500);
 }
 
 void test_03() {
-    ep_intr_with_dma(1000, 420);
+    ep_intr_with_pipeline(1000, 420);
 }
 
 void test_04() {
-    ep_intr_with_dma(1000, 415);
+    ep_intr_with_pipeline(1000, 415);
 }
 
 void test_05() {
-    ep_intr_with_dma(1000, 400);
+    ep_intr_with_pipeline(1000, 400);
 }
 
 void test_06() {
-    ep_intr_with_dma(1000, 200);
+    ep_intr_with_pipeline(1000, 200);
 }
 
-void test_07() {
+static void ep_intr_with_block(int runs, int mbs) {
     constexpr size_t buffer_size = 0x10000;
-    constexpr int runs = 100;
 
     auto ctlr = framework::api::dma::open(buffer_size);
     framework::api::dma::set_c2h_data_rate(0, 200);
@@ -90,15 +89,33 @@ void test_07() {
     framework::api::intr::start_ep(ctlr);
 
     for (int i = 0; i < runs; ++i) {
-        framework::api::dma::start_c2h_block(ctlr, 0, 0x20000);
-        bool running = framework::api::dma::c2h_running(ctlr, 0);
-        while (running) {
-            usleep(1000);
-            running = framework::api::dma::c2h_running(ctlr, 0);
+        framework::api::dma::start_c2h_block(ctlr, 0, 64 * buffer_size);
+        while (framework::api::dma::c2h_running(ctlr, 0)) {
+            framework::api::intr::log_ep_intr(ctlr);
         }
     }
 
     framework::api::intr::stop();
+}
+
+void test_07() {
+    ep_intr_with_block(100, 500);
+}
+
+void test_08() {
+    ep_intr_with_block(100, 420);
+}
+
+void test_09() {
+    ep_intr_with_block(100, 415);
+}
+
+void test_10() {
+    ep_intr_with_block(100, 400);
+}
+
+void test_11() {
+    ep_intr_with_block(100, 200);
 }
 
 } // namespace msi
