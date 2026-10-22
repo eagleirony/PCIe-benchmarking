@@ -530,9 +530,6 @@ controller::controller(std::string& path, size_t buffer_size) {
     int status;
     struct rtems_iodev_region region;
 
-    h2c_count = 0;
-    c2h_count = 0;
-
     if ((buffer_size % 8) != 0) {
         throw std::runtime_error(
             "error: dma: buffer_size must be divisible by 8");
@@ -687,6 +684,12 @@ controller::~controller() {
 
 void controller::set_user_irq_callback(icallback& cb) {
     lock_guard guard(lock);
+    auto reg = regs.read(XLNX_PCIE_DMA_TARGET_IRQ_BLOCK,
+        XLNX_PCIE_DMA_IRQ_USR_EN);
+    if (reg != 0) {
+        throw std::runtime_error("error: dma: cannot set user irq callback "
+            "while user irqs are enabled");
+    }
     user_irq_callback = cb;
 }
 
@@ -757,7 +760,6 @@ void controller::start_usr_msi_thread() {
 
 void controller::dma_msi_worker() {
     framework::api::cpuuse::log_guard lguard("CTLR_MSI_DMA");
-    lock_guard guard(lock);
     int status;
     size_t count;
     rtems_iodev_event_args event_args;
@@ -782,14 +784,12 @@ void controller::dma_msi_worker() {
     while (open) {
         event_args.timedout = false;
 
-        lock.unlock();
         status = ::ioctl(fd, RTEMS_IODEV_IOCTL_EVENT_WAIT, &event_args);
         if (status == -1) {
             std::cout << "controller: msi_worker: event wait failed "
                 << strerror(errno) << " " << fd << std::endl;
             return;
         }
-        lock.lock();
 
         if (!event_args.timedout) {
             uint32_t reqs = regs.read(XLNX_PCIE_DMA_TARGET_IRQ_BLOCK,
@@ -821,7 +821,6 @@ void controller::dma_msi_worker() {
 
 void controller::usr_msi_worker() {
     framework::api::cpuuse::log_guard lguard("CTLR_MSI_IRQ");
-    lock_guard guard(lock);
     int status;
     size_t count;
     rtems_iodev_event_args event_args;
@@ -845,21 +844,21 @@ void controller::usr_msi_worker() {
     while (open) {
         event_args.timedout = false;
 
-        lock.unlock();
         status = ::ioctl(fd, RTEMS_IODEV_IOCTL_EVENT_WAIT, &event_args);
         if (status == -1) {
             std::cout << "controller: msi_worker: event wait failed "
                 << errno << " " << fd << std::endl;
             return;
         }
-        lock.lock();
 
         if (!event_args.timedout) {
             uint32_t reqs = regs.read(XLNX_PCIE_DMA_TARGET_IRQ_BLOCK,
                 XLNX_PCIE_DMA_IRQ_USR_INT);
             for (int i = 0; i < 16; ++i) {
                 if (reqs & (1U << i)) {
-                    user_irq_callback(i);
+                    if (user_irq_callback != nullptr) {
+                        user_irq_callback(i);
+                    }
                 }
             }
         }
