@@ -221,6 +221,7 @@ struct channel {
     channel& operator=(const channel&) = delete;
     channel(channel&&) = delete;
     channel& operator=(const channel&&) = delete;
+    ~channel();
 
     void start();
     void stop();

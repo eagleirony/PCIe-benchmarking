@@ -115,6 +115,12 @@ channel::channel(registers& reg_, uint32_t dir_, size_t id_, size_t cid_,
     write_chan(XLNX_PCIE_DMA_CHAN_INTR, XLNX_PCIE_DMA_CHAN_INTR_ENA);
 }
 
+channel::~channel() {
+    for (size_t i = 0; i < XLNX_PCIE_DMA_CHAN_DESC_COUNT - 1; ++i) {
+        descs[i].buf = nullptr;
+    }
+}
+
 void channel::set_pipeline() {
     lock_guard guard(lock);
     for (size_t i = 0; i < XLNX_PCIE_DMA_CHAN_DESC_COUNT; ++i) {
@@ -332,12 +338,18 @@ void channel::handle_intr() {
                     for (size_t i = 0; i < tail; ++i) {
                         auto& d = descs[i];
                         auto cmpl_buf = d.buf;
-                        cmpl_buf->stats.eop = d.wb->eop();
-                        cmpl_buf->stats.length = d.wb->length();
+                        if (dir == XLNX_PCIE_DMA_TARGET_C2H_CHANS) {
+                            cmpl_buf->stats.eop = d.wb->eop();
+                            cmpl_buf->stats.length = d.wb->length();
+                        }
                         d.buf = nullptr;
                         bufs.push_back(cmpl_buf);
                     }
                     bcb(bufs);
+                    if (dir == XLNX_PCIE_DMA_TARGET_H2C_CHANS) {
+                        head = 0;
+                        tail = 0;
+                    }
                 }
                 return;
             }
@@ -487,6 +499,13 @@ void h2c_channel::run() {
     }
     lock_guard guard(lock);
     pipelined = false;
+    if (queued == 0) {
+        throw std::runtime_error("error: dma: buffer chain empty");
+    }
+
+    write_chan(XLNX_PCIE_DMA_CHAN_CTRL, XLNX_PCIE_DMA_CHAN_CTRL_LOG_BLK);
+    write_sgdma(XLNX_PCIE_DMA_CHAN_SG_DESC_CRED, queued);
+
     queued = 0;
     framework::benchmark::log::log_and_timestamp(
         framework::benchmark::log::record::EP_DMA_BLOCK_TX_START);
@@ -504,15 +523,14 @@ void h2c_channel::add_tx_buffer(mem::dma_buffer_ptr buf) {
     if (queued == XLNX_PCIE_DMA_CHAN_DESC_COUNT) {
         throw std::runtime_error("error: dma: buffer chain full");
     }
-    ++queued;
 
-    if (tail == 0) {
-        prev_tail = XLNX_PCIE_DMA_CHAN_DESC_COUNT - 1;
-    } else {
+    if (queued > 0) {
         prev_tail = tail - 1;
+        descs[prev_tail].header(false, false);
+        descs[prev_tail].set_next(descs[tail]);
     }
-    descs[prev_tail].header(false, false);
-    descs[prev_tail].set_next(descs[tail]);
+
+    ++queued;
 
     descs[tail].zero();
     descs[tail].header(false, true);
@@ -523,7 +541,10 @@ void h2c_channel::add_tx_buffer(mem::dma_buffer_ptr buf) {
 }
 
 mem::dma_buffer_ptr h2c_channel::get_tx_buffer() {
-    return bufs.request();
+    auto buf = bufs.request();
+    buf->stats.length = buffer_size;
+    buf->stats.eop = false;
+    return buf;
 }
 
 controller::controller(std::string& path, size_t buffer_size) {

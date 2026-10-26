@@ -34,6 +34,9 @@ void test_08();
 void test_09();
 void test_10();
 void test_11();
+void test_12();
+void test_13();
+void test_14();
 
 } // namespace msi
 } // namespace testsuite

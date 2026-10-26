@@ -79,6 +79,96 @@ void test_05() {
     io_with_dma(10000, 200);
 }
 
+void test_06() {
+    constexpr size_t buffer_size = 0x10000;
+    constexpr int runs = 100;
+
+    auto ctlr = framework::api::dma::open(buffer_size);
+    framework::api::dma::set_h2c_data_rate(0, 500);
+
+    for (int i = 0; i < runs; ++i) {
+        framework::api::dma::start_h2c_block(ctlr, 0, 64);
+        while (framework::api::dma::h2c_running(ctlr, 0)) {
+            framework::api::io::log_ep_read_latency();
+        }
+    }
+}
+
+void test_07() {
+    constexpr size_t buffer_size = 0x10000;
+    constexpr int runs = 10;
+
+    auto ctlr = framework::api::dma::open(buffer_size);
+    framework::api::dma::set_h2c_data_rate(0, 500);
+
+    for (int i = 0; i < runs; ++i) {
+        framework::api::dma::start_h2c_block(ctlr, 0, 64);
+        while (framework::api::dma::h2c_running(ctlr, 0)) {
+            framework::api::io::log_ep_write_latency();
+        }
+    }
+}
+
+void test_08() {
+    constexpr size_t buffer_size = 0x10000;
+    constexpr int runs = 100;
+
+    auto ctlr = framework::api::dma::open(buffer_size);
+    framework::api::dma::set_h2c_data_rate(0, 500);
+
+    for (int i = 0; i < runs; ++i) {
+        framework::api::dma::start_h2c_block(ctlr, 0, 64);
+        while (framework::api::dma::h2c_running(ctlr, 0)) {
+            framework::api::io::log_ep_one_way_read_latency();
+        }
+    }
+}
+
+void test_09() {
+    constexpr size_t buffer_size = 0x10000;
+    constexpr int runs = 10;
+
+    auto ctlr = framework::api::dma::open(buffer_size);
+    framework::api::dma::set_h2c_data_rate(0, 500);
+
+    for (int i = 0; i < runs; ++i) {
+        framework::api::dma::start_h2c_block(ctlr, 0, 64);
+        while (framework::api::dma::h2c_running(ctlr, 0)) {
+            framework::api::io::log_ep_one_way_write_latency();
+        }
+    }
+}
+
+void test_10() {
+    constexpr size_t buffer_size = 0x10000;
+    constexpr int runs = 10;
+
+    auto ctlr = framework::api::dma::open(buffer_size);
+    framework::api::dma::set_h2c_data_rate(0, 500);
+
+    for (int i = 0; i < runs; ++i) {
+        framework::api::dma::start_h2c_block(ctlr, 0, 64);
+        while (framework::api::dma::h2c_running(ctlr, 0)) {
+            usleep(1000);
+        }
+    }
+}
+
+void test_11() {
+    constexpr size_t buffer_size = 0x10000;
+    constexpr int runs = 10;
+
+    auto ctlr = framework::api::dma::open(buffer_size);
+    framework::api::dma::set_h2c_data_rate(0, 200);
+
+    for (int i = 0; i < runs; ++i) {
+        framework::api::dma::start_h2c_block(ctlr, 0, 64);
+        while (framework::api::dma::h2c_running(ctlr, 0)) {
+            usleep(1000);
+        }
+    }
+}
+
 } // namespace io
 } // namespace testsuite
 } // namespace app

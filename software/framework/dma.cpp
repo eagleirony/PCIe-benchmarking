@@ -65,7 +65,7 @@ static void set_data_rate(uint32_t addr, int mbs) {
 
     ior->endpoint.write(addr, reg_value);
 }
-void set_h2c_data_rate(int mbs) {
+void set_h2c_data_rate(size_t channel, int mbs) {
     set_data_rate(io::EP_REG_H2C_0_PN23_RATE_OFF, mbs);
 }
 

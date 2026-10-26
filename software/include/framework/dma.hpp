@@ -38,7 +38,7 @@ bool h2c_running(controller_ptr ctlr, size_t channel);
 
 void set_c2h_data_rate(size_t channel, int mbs);
 
-void set_h2c_data_rate(int mbs);
+void set_h2c_data_rate(size_t channel, int mbs);
 
 void test_data_validation(controller_ptr ctlr);
 
@@ -48,7 +48,7 @@ void stop_c2h_pipeline(controller_ptr ctlr, size_t channel);
 
 void start_c2h_block(controller_ptr ctlr, size_t channel, size_t length);
 
-void start_h2c_block(controller_ptr ctlr, size_t channel, size_t length);
+void start_h2c_block(controller_ptr ctlr, size_t channel, size_t buffers);
 
 } // namespace dma
 } // namespace api
