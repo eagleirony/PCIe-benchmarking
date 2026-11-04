@@ -21,13 +21,15 @@
 
 #include <testsuite/msi.hpp>
 #include <testsuite/io.hpp>
+#include <testsuite/dma.hpp>
 
 namespace app {
 namespace testsuite {
 
 using test = framework::api::harness::test;
 
-const std::array<test, 25> tests = {
+const std::array<test, 26> tests = {
+    test{dma::test_01, "dma_01", "500mbs c2h"},
     test{msi::test_01, "msi_01", "1000 EP intr, no dma"},
     test{msi::test_02, "msi_02", "1000 EP intr, 500mbs c2h"},
     test{msi::test_03, "msi_03", "1000 EP intr, 420mbs c2h"},

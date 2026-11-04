@@ -25,10 +25,14 @@ namespace config {
 constexpr int CPUUSE_LOG_FREQ_MS = 1;
 
 constexpr std::string_view PL_IMAGE_NAME = "pl_5.bit";
-constexpr std::string_view EMMC_MNT_PATH = "/emmc";
-constexpr std::string_view NFS_MNT_PATH = "/net";
-constexpr std::string_view LOGGING_PATH = "/pciebench/logging";
 
+constexpr std::string_view EMMC_MNT_PATH = "/emmc";
+constexpr std::string_view EMMC_PATH = "/dev/mmcsd1";
+
+constexpr std::string_view NFS_MNT_PATH = "/net";
+constexpr std::string_view NFS_PATH = "10.10.5.4:/opt/src";
+
+constexpr std::string_view LOGGING_PATH = "/pciebench/logging";
 } // namespace config
 } // namespace app
 #endif /* APP_CONFIG_H */

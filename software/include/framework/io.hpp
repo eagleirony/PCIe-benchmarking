@@ -171,6 +171,10 @@ void log_pl_read_latency();
 
 void log_pl_write_latency();
 
+std::string ep_build_id();
+
+std::string pl_build_id();
+
 } // namespace io
 } // namespace api
 } // namespace framework

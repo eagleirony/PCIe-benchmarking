@@ -21,26 +21,28 @@
 
 #include <rtems/fsmount.h>
 
+#include <config.hpp>
+
 #include <platform/emmc.hpp>
 
 namespace app {
 namespace platform {
 namespace emmc {
 
-static constexpr char emmc_path[] = "/dev/mmcsd1";
-
 void init() {
 
 }
 
 void mount(std::string& mnt_path) {
+    std::string emmc_path(config::EMMC_PATH);
+
     if (!std::filesystem::exists(emmc_path)) {
         throw std::runtime_error("error: fs: dosfs: no emmc device");
     }
 
     std::filesystem::create_directories(mnt_path);
 
-    auto r = ::mount(emmc_path, mnt_path.c_str(), "dosfs",
+    auto r = ::mount(emmc_path.c_str(), mnt_path.c_str(), "dosfs",
                 RTEMS_FILESYSTEM_READ_WRITE, nullptr);
     if (r < 0) {
         std::ostringstream oss;

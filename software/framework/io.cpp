@@ -21,6 +21,7 @@
 #include <iostream>
 #include <sstream>
 #include <filesystem>
+#include <format>
 
 #include <fcntl.h>
 #include <sys/ioctl.h>
@@ -120,8 +121,6 @@ void init() {
     int status;
     struct rtems_iodev_region region;
     std::string path;
-    bool modified;
-    uint32_t git_hash;
     bool found = false;
 
     for (int i = 0; i < pcie_device_count; i++) {
@@ -176,21 +175,8 @@ void init() {
 
     verify_registers();
 
-    std::cout << "Endpoint Git Hash: ";
-    git_hash = ior->endpoint.read(EP_REG_BUILD_VER_OFF) & 0x0FFFFFFF;
-    modified = ((ior->endpoint.read(EP_REG_BUILD_VER_OFF) & 0x80000000) != 0);
-    std::cout << std::hex << git_hash << " modified: " << modified
-        << std::endl;
-    std::cout << "Endpoint Build ID: 0x" << ior->endpoint.read(EP_REG_BUILD_ID_OFF)
-        << std::endl;
-
-    std::cout << "PL Git Hash: ";
-    git_hash = ior->pl.read(PL_REG_BUILD_VER_OFF) & 0x0FFFFFFF;
-    modified = ((ior->pl.read(PL_REG_BUILD_VER_OFF) & 0x80000000) != 0);
-    std::cout << std::hex << git_hash << " modified: " << modified
-        << std::endl;
-    std::cout << "PL Build ID: 0x" << ior->pl.read(PL_REG_BUILD_ID_OFF)
-        << std::endl;
+    std::cout << "Endpoint Git Hash: " << ep_build_id() << std::endl;
+    std::cout << "PL Git Hash: " << pl_build_id() << std::endl;
 }
 
 io_registers_ptr get_io_registers() {
@@ -262,6 +248,32 @@ void log_pl_write_latency() {
     benchmark::log::log_and_timestamp(benchmark::log::record::PL_IO_WRITE_START);
     ior->pl.write(PL_REG_SCRATCH_0_OFF, PL_REG_PATTERN_0_VAL);
     benchmark::log::timestamp_and_log(benchmark::log::record::PL_IO_WRITE_RETURNED);
+}
+
+std::string ep_build_id() {
+    bool modified;
+    uint32_t git_hash;
+    uint32_t build_time;
+
+    git_hash = ior->endpoint.read(EP_REG_BUILD_VER_OFF) & 0x0FFFFFFF;
+    modified = ((ior->endpoint.read(EP_REG_BUILD_VER_OFF) & 0x80000000) != 0);
+    build_time = ior->endpoint.read(EP_REG_BUILD_ID_OFF);
+
+    return std::format("{:07x}-{}{:08x}", git_hash, modified ? "m-" : "",
+        build_time);
+}
+
+std::string pl_build_id() {
+    bool modified;
+    uint32_t git_hash;
+    uint32_t build_time;
+
+    git_hash = ior->pl.read(PL_REG_BUILD_VER_OFF) & 0x0FFFFFFF;
+    modified = ((ior->pl.read(PL_REG_BUILD_VER_OFF) & 0x80000000) != 0);
+    build_time = ior->pl.read(PL_REG_BUILD_ID_OFF);
+
+    return std::format("{:07x}-{}{:08x}", git_hash, modified ? "m-" : "",
+        build_time);
 }
 
 } // namespace io

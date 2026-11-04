@@ -21,22 +21,24 @@
 
 #include <rtems/fsmount.h>
 
+#include <config.hpp>
+
 #include <platform/nfs.hpp>
 
 namespace app {
 namespace platform {
 namespace nfs {
 
-static constexpr char nfs_path[] = "10.10.5.4:/opt/src";
-
 void init() {
 
 }
 
 void mount(std::string& mnt_path) {
+    std::string nfs_path(config::NFS_PATH);
+
     std::filesystem::create_directories(mnt_path);
 
-    auto r = ::mount(nfs_path, mnt_path.c_str(), "nfs",
+    auto r = ::mount(nfs_path.c_str(), mnt_path.c_str(), "nfs",
                 RTEMS_FILESYSTEM_READ_WRITE, nullptr);
     if (r < 0) {
         std::ostringstream oss;

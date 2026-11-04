@@ -22,6 +22,7 @@
 #include <config.hpp>
 
 #include <framework/harness.hpp>
+#include <framework/io.hpp>
 #include <framework/cpuuse.hpp>
 #include <framework/logging.hpp>
 
@@ -57,6 +58,10 @@ static void run(const std::array<test, N>& tests) {
     std::filesystem::remove(index);
     std::ofstream ofile(index, std::ios::out | std::ios::trunc);
 
+    ofile << "Software: " << app_build_id() << std::endl;
+    ofile << "PL image: " << framework::api::io::pl_build_id() << std::endl;
+    ofile << "EP image: " << framework::api::io::ep_build_id() << std::endl;
+
     for (const auto& test : tests) {
         std::string name(test.name);
         std::cout << "Running " << test.name << std::endl;
@@ -80,7 +85,6 @@ static void run(const std::array<test, N>& tests) {
         framework::benchmark::log::output_and_reset(log_path.str());
         ofile << name << ".log: " << test.desc << std::endl;
     }
-    ofile.close();
 }
 
 void start() {
