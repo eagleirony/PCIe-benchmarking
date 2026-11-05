@@ -116,10 +116,17 @@ channel::channel(registers& reg_, uint32_t dir_, size_t id_, size_t cid_,
 }
 
 channel::~channel() {
-    for (size_t i = 0; i < XLNX_PCIE_DMA_CHAN_DESC_COUNT - 1; ++i) {
-        descs[i].buf = nullptr;
+    try {
+        if (running) {
+            hard_stop();
+        }
+        for (auto& d : descs) {
+            d.buf = nullptr;
+        }
+        bufs.destroy();
+    } catch (...) {
+        std::cout << "error: dma: channel teardown failed" << std::endl;
     }
-    bufs.destroy();
 }
 
 void channel::set_pipeline() {
@@ -586,6 +593,7 @@ controller::controller(std::string& path, size_t buffer_size) {
         fd = 0;
         throw std::runtime_error("error: dma: mmap failed");
     }
+    regs.size = region.size;
 
     region.index = 0;
     region.address = NULL;
@@ -611,6 +619,7 @@ controller::controller(std::string& path, size_t buffer_size) {
         fd = 0;
         throw std::runtime_error("error: dma: mmap failed");
     }
+    axil.size = region.size;
 
     if (axil.read(framework::api::io::EP_REG_SCRATCH_3_OFF) != 0) {
         std::cout << "warning: dma: controller already attached or not" 
@@ -690,8 +699,6 @@ controller::~controller() {
 
     open = false;
 
-    close(fd);
-
     lock.unlock();
     if (dma_msi_thread->joinable()) {
         dma_msi_thread->join();
@@ -702,6 +709,11 @@ controller::~controller() {
     lock.lock();
 
     axil.write(framework::api::io::EP_REG_SCRATCH_3_OFF, 0x0);
+
+    ::munmap(axil.base, axil.size);
+    ::munmap(regs.base, regs.size);
+
+    close(fd);
 }
 
 void controller::set_user_irq_callback(icallback& cb) {

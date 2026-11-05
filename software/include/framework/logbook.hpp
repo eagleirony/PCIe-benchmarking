@@ -59,13 +59,11 @@ template<size_t Size, RecordStruct Record> struct logbook {
     }
 
     void output_and_reset(std::string out_path) {
-        json j;
         size_t records_len;
 
         std::filesystem::remove(out_path);
         std::ofstream ofile(out_path, std::ios::out | std::ios::trunc);
         if (!ofile.is_open()) {
-            ofile.close();
             std::ostringstream oss;
             oss << "logbook: unable to open: " + out_path << ": "
                 << std::strerror(errno);
@@ -78,12 +76,8 @@ template<size_t Size, RecordStruct Record> struct logbook {
             json rj;
             records[i].serialise(rj);
 
-            j.push_back(rj);
+            ofile << rj.dump() << std::endl;
         }
-
-        ofile << j.dump(2);
-        ofile.close();
-
         reset();
     }
 

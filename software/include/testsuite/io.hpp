@@ -23,6 +23,37 @@ namespace app {
 namespace testsuite {
 namespace io {
 
+template <int requests, int interval_ms>
+void read() {
+    for (int i = 0; i < requests; ++i) {
+        framework::api::io::log_ep_read_latency();
+        if (interval_ms != 0) {
+            usleep(interval_ms * 1000);
+        }
+    }
+}
+
+template <int requests>
+void write() {
+    for (int i = 0; i < requests; ++i) {
+        framework::api::io::log_ep_write_latency();
+    }
+}
+
+template <int requests>
+void one_way_read() {
+    for (int i = 0; i < requests; ++i) {
+        framework::api::io::log_ep_one_way_read_latency();
+    }
+}
+
+template <int requests>
+void one_way_write() {
+    for (int i = 0; i < requests; ++i) {
+        framework::api::io::log_ep_one_way_write_latency();
+    }
+}
+
 template <size_t buffer_size, int mbs, int requests, int interval_ms>
 void read_with_pipeline() {
     auto ctlr = framework::api::dma::open(buffer_size);
@@ -90,7 +121,7 @@ void read_with_c2h_block() {
     }
 }
 
-template <size_t buffer_size, int mbs, int requests, int interval_ms>
+template <size_t buffer_size, int mbs, int requests>
 void write_with_c2h_block() {
     auto ctlr = framework::api::dma::open(buffer_size);
     framework::api::dma::set_c2h_data_rate(0, mbs);
@@ -100,13 +131,10 @@ void write_with_c2h_block() {
             framework::api::dma::start_c2h_block(ctlr, 0, 128 * buffer_size);
         }
         framework::api::io::log_ep_write_latency();
-        if (interval_ms != 0) {
-            usleep(interval_ms * 1000);
-        }
     }
 }
 
-template <size_t buffer_size, int mbs, int requests, int interval_ms>
+template <size_t buffer_size, int mbs, int requests>
 void one_way_read_with_c2h_block() {
     auto ctlr = framework::api::dma::open(buffer_size);
     framework::api::dma::set_c2h_data_rate(0, mbs);
@@ -116,13 +144,10 @@ void one_way_read_with_c2h_block() {
             framework::api::dma::start_c2h_block(ctlr, 0, 128 * buffer_size);
         }
         framework::api::io::log_ep_one_way_read_latency();
-        if (interval_ms != 0) {
-            usleep(interval_ms * 1000);
-        }
     }
 }
 
-template <size_t buffer_size, int mbs, int requests, int interval_ms>
+template <size_t buffer_size, int mbs, int requests>
 void one_way_write_with_c2h_block() {
     auto ctlr = framework::api::dma::open(buffer_size);
     framework::api::dma::set_c2h_data_rate(0, mbs);
@@ -132,9 +157,6 @@ void one_way_write_with_c2h_block() {
             framework::api::dma::start_c2h_block(ctlr, 0, 128 * buffer_size);
         }
         framework::api::io::log_ep_one_way_write_latency();
-        if (interval_ms != 0) {
-            usleep(interval_ms * 1000);
-        }
     }
 }
 
@@ -154,7 +176,7 @@ void read_with_h2c_block() {
     }
 }
 
-template <size_t buffer_size, int mbs, int requests, int interval_ms>
+template <size_t buffer_size, int mbs, int requests>
 void write_with_h2c_block() {
     auto ctlr = framework::api::dma::open(buffer_size);
     framework::api::dma::set_h2c_data_rate(0, mbs);
@@ -164,13 +186,10 @@ void write_with_h2c_block() {
             framework::api::dma::start_h2c_block(ctlr, 0, 128);
         }
         framework::api::io::log_ep_write_latency();
-        if (interval_ms != 0) {
-            usleep(interval_ms * 1000);
-        }
     }
 }
 
-template <size_t buffer_size, int mbs, int requests, int interval_ms>
+template <size_t buffer_size, int mbs, int requests>
 void one_way_read_with_h2c_block() {
     auto ctlr = framework::api::dma::open(buffer_size);
     framework::api::dma::set_h2c_data_rate(0, mbs);
@@ -180,13 +199,10 @@ void one_way_read_with_h2c_block() {
             framework::api::dma::start_h2c_block(ctlr, 0, 128);
         }
         framework::api::io::log_ep_one_way_read_latency();
-        if (interval_ms != 0) {
-            usleep(interval_ms * 1000);
-        }
     }
 }
 
-template <size_t buffer_size, int mbs, int requests, int interval_ms>
+template <size_t buffer_size, int mbs, int requests>
 void one_way_write_with_h2c_block() {
     auto ctlr = framework::api::dma::open(buffer_size);
     framework::api::dma::set_h2c_data_rate(0, mbs);
@@ -196,9 +212,6 @@ void one_way_write_with_h2c_block() {
             framework::api::dma::start_h2c_block(ctlr, 0, 128);
         }
         framework::api::io::log_ep_one_way_write_latency();
-        if (interval_ms != 0) {
-            usleep(interval_ms * 1000);
-        }
     }
 }
 
@@ -222,7 +235,7 @@ void read_with_bidir_blocks() {
     }
 }
 
-template <size_t buffer_size, int mbs, int requests, int interval_ms>
+template <size_t buffer_size, int mbs, int requests>
 void write_with_bidir_blocks() {
     auto ctlr = framework::api::dma::open(buffer_size);
     framework::api::dma::set_c2h_data_rate(0, mbs);
@@ -236,13 +249,10 @@ void write_with_bidir_blocks() {
             framework::api::dma::start_h2c_block(ctlr, 0, 128);
         }
         framework::api::io::log_ep_write_latency();
-        if (interval_ms != 0) {
-            usleep(interval_ms * 1000);
-        }
     }
 }
 
-template <size_t buffer_size, int mbs, int requests, int interval_ms>
+template <size_t buffer_size, int mbs, int requests>
 void one_way_read_with_bidir_blocks() {
     auto ctlr = framework::api::dma::open(buffer_size);
     framework::api::dma::set_c2h_data_rate(0, mbs);
@@ -256,13 +266,10 @@ void one_way_read_with_bidir_blocks() {
             framework::api::dma::start_h2c_block(ctlr, 0, 128);
         }
         framework::api::io::log_ep_one_way_read_latency();
-        if (interval_ms != 0) {
-            usleep(interval_ms * 1000);
-        }
     }
 }
 
-template <size_t buffer_size, int mbs, int requests, int interval_ms>
+template <size_t buffer_size, int mbs, int requests>
 void one_way_write_with_bidir_blocks() {
     auto ctlr = framework::api::dma::open(buffer_size);
     framework::api::dma::set_c2h_data_rate(0, mbs);
@@ -276,9 +283,6 @@ void one_way_write_with_bidir_blocks() {
             framework::api::dma::start_h2c_block(ctlr, 0, 128);
         }
         framework::api::io::log_ep_one_way_write_latency();
-        if (interval_ms != 0) {
-            usleep(interval_ms * 1000);
-        }
     }
 }
 
@@ -287,6 +291,24 @@ void pl_read() {
     for (int i = 0; i < requests; ++i) {
         framework::api::io::log_pl_read_latency();
     }
+    if (interval_ms != 0) {
+        usleep(interval_ms * 1000);
+    }
+}
+
+template <size_t buffer_size, int mbs, int requests, int interval_ms>
+void pl_read_with_pipeline() {
+    auto ctlr = framework::api::dma::open(buffer_size);
+    framework::api::dma::set_c2h_data_rate(0, mbs);
+
+    framework::api::dma::start_c2h_pipeline(ctlr, 0);
+    for (int i = 0; i < requests; ++i) {
+        framework::api::io::log_ep_read_latency();
+        if (interval_ms != 0) {
+            usleep(interval_ms * 1000);
+        }
+    }
+    framework::api::dma::stop_c2h_pipeline(ctlr, 0);
 }
 
 } // namespace io

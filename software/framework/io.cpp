@@ -170,8 +170,10 @@ void init() {
         fd = 0;
         throw std::runtime_error("io: error: mmap failed");
     }
+    ior->endpoint.size = region.size;
 
     ior->pl.base = reinterpret_cast<void*>(PL_REG_BASE);
+    ior->pl.size = PL_REG_SIZE;
 
     verify_registers();
 

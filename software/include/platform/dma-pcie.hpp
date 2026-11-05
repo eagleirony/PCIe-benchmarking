@@ -173,6 +173,7 @@ using controller_ptr = std::shared_ptr<controller>;
 
 struct registers {
     void* base;
+    size_t size;
 
     registers() : base(nullptr) {};
     registers(const registers& src) {
@@ -211,9 +212,9 @@ struct channel {
     pcallback pcb;
     bcallback bcb;
     std::shared_ptr<framework::rtems::events::event> stop_evt;
+    cs::pool::pool<mem::dma_buffer> bufs;
     std::array<mem::descriptor, XLNX_PCIE_DMA_CHAN_DESC_COUNT> descs;
     std::array<mem::writeback, XLNX_PCIE_DMA_CHAN_DESC_COUNT> wbs;
-    cs::pool::pool<mem::dma_buffer> bufs;
 
     channel(registers& regs, uint32_t dir, size_t id, size_t cid,
         size_t desc_count, size_t buffer_size);

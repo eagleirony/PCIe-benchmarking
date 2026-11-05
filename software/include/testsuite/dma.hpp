@@ -58,7 +58,7 @@ template <size_t buffer_size, int mbs, int runs> void run_h2c_block() {
     }
 }
 
-template <size_t buffer_size, int mbs, int runs> void run_bidir_block() {
+template <size_t buffer_size, int mbs, int runs> void run_bidir_blocks() {
     auto ctlr = framework::api::dma::open(buffer_size);
     framework::api::dma::set_c2h_data_rate(0, mbs);
     framework::api::dma::set_h2c_data_rate(0, mbs);

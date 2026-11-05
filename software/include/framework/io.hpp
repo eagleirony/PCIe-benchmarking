@@ -35,6 +35,7 @@ constexpr uint16_t dma_subvendor = 0x10ee;
 constexpr uint16_t dma_subdevice = 0x0007;
 
 constexpr uint64_t PL_REG_BASE = 0x80000000;
+constexpr size_t   PL_REG_SIZE = 0x1000;
 
 constexpr uint32_t PL_REG_PATTERN_0_OFF   = 0x00;
   constexpr uint32_t PL_REG_PATTERN_0_VAL   = 0x55AA55AA;
@@ -117,10 +118,12 @@ constexpr uint32_t CLK_PERIOD_NS = 0x4;
 
 struct registers {
     void* base;
+    size_t size;
 
-    registers() : base(nullptr) {};
+    registers() : base(nullptr), size(0) {};
     registers(const registers& src) {
         base = src.base;
+        size = src.size;
     }
 
     inline uint32_t read(uint32_t offset) {

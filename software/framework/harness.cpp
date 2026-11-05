@@ -86,15 +86,16 @@ static void run(const std::array<test, N>& tests) {
             throw std::runtime_error("error: harness: test_task not joinable");
         }
 
+        framework::api::cpuuse::suspend();
+        framework::benchmark::log::output_and_reset(log_path.str());
+        ofile << name << ".log: " << test.desc << std::endl;
+
         if (first == true) {
             std::cout << test.name << std::flush;
             first = false;
         } else {
             std::cout << ", " << test.name << std::flush;
         }
-        framework::api::cpuuse::suspend();
-        framework::benchmark::log::output_and_reset(log_path.str());
-        ofile << name << ".log: " << test.desc << std::endl;
     }
     std::cout << std::endl;
 }
