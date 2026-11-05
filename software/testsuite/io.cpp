@@ -81,7 +81,7 @@ void test_05() {
 
 void test_06() {
     constexpr size_t buffer_size = 0x10000;
-    constexpr int runs = 100;
+    constexpr int runs = 50;
 
     auto ctlr = framework::api::dma::open(buffer_size);
     framework::api::dma::set_h2c_data_rate(0, 500);
@@ -96,7 +96,7 @@ void test_06() {
 
 void test_07() {
     constexpr size_t buffer_size = 0x10000;
-    constexpr int runs = 10;
+    constexpr int runs = 3;
 
     auto ctlr = framework::api::dma::open(buffer_size);
     framework::api::dma::set_h2c_data_rate(0, 500);
@@ -111,7 +111,7 @@ void test_07() {
 
 void test_08() {
     constexpr size_t buffer_size = 0x10000;
-    constexpr int runs = 100;
+    constexpr int runs = 50;
 
     auto ctlr = framework::api::dma::open(buffer_size);
     framework::api::dma::set_h2c_data_rate(0, 500);

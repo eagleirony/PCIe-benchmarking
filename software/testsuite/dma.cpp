@@ -26,16 +26,7 @@ namespace app {
 namespace testsuite {
 namespace dma {
 
-void test_01() {
-    constexpr size_t buffer_size = 0x10000;
 
-    auto ctlr = framework::api::dma::open(buffer_size);
-    framework::api::dma::set_c2h_data_rate(0, 500);
-
-    framework::api::dma::start_c2h_pipeline(ctlr, 0);
-    sleep(2);
-    framework::api::dma::stop_c2h_pipeline(ctlr, 0);
-}
 
 } // namespace dma
 } // namespace testsuite

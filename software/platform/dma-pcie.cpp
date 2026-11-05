@@ -119,6 +119,7 @@ channel::~channel() {
     for (size_t i = 0; i < XLNX_PCIE_DMA_CHAN_DESC_COUNT - 1; ++i) {
         descs[i].buf = nullptr;
     }
+    bufs.destroy();
 }
 
 void channel::set_pipeline() {

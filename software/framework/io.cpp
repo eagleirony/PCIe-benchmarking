@@ -175,8 +175,8 @@ void init() {
 
     verify_registers();
 
-    std::cout << "Endpoint Git Hash: " << ep_build_id() << std::endl;
-    std::cout << "PL Git Hash: " << pl_build_id() << std::endl;
+    std::cout << "Endpoint version: " << ep_build_id() << std::endl;
+    std::cout << "PL version: " << pl_build_id() << std::endl;
 }
 
 io_registers_ptr get_io_registers() {

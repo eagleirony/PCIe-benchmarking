@@ -47,6 +47,7 @@ static void test_runner(const test t) {
 template <size_t N>
 static void run(const std::array<test, N>& tests) {
     std::ostringstream logging_dir;
+    bool first = true;
     logging_dir << config::NFS_MNT_PATH << "/"
         << config::LOGGING_PATH << "/" << app_build_id() << "/";
     std::string index = logging_dir.str() + "index.txt";
@@ -62,13 +63,13 @@ static void run(const std::array<test, N>& tests) {
     ofile << "PL image: " << framework::api::io::pl_build_id() << std::endl;
     ofile << "EP image: " << framework::api::io::ep_build_id() << std::endl;
 
+    std::cout << "Completed: ";
     for (const auto& test : tests) {
         std::string name(test.name);
-        std::cout << "Running " << test.name << std::endl;
 
         std::ostringstream log_path;
         log_path << logging_dir.str() << name << ".log";
-        rtems::thread::attributes attr;
+        ::rtems::thread::attributes attr;
 
         framework::api::cpuuse::reset_and_run();
 
@@ -76,15 +77,26 @@ static void run(const std::array<test, N>& tests) {
         attr.set_rtems_priority(99);
         attr.set_stack_size(64 * 1024);
 
-        auto test_task = rtems::thread::thread(
+        auto test_task = ::rtems::thread::thread(
               attr, &test_runner, test); 
 
-        test_task.join();
+        if (test_task.joinable()) {
+            test_task.join();
+        } else {
+            throw std::runtime_error("error: harness: test_task not joinable");
+        }
 
+        if (first == true) {
+            std::cout << test.name << std::flush;
+            first = false;
+        } else {
+            std::cout << ", " << test.name << std::flush;
+        }
         framework::api::cpuuse::suspend();
         framework::benchmark::log::output_and_reset(log_path.str());
         ofile << name << ".log: " << test.desc << std::endl;
     }
+    std::cout << std::endl;
 }
 
 void start() {
