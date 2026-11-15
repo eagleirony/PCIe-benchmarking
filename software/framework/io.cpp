@@ -29,6 +29,7 @@
 
 #include <dev/io/iodev.h>
 #include <rtems/bsd/pci-iodev.h>
+#include <rtems/rtems/cache.h>
 
 #include <framework/io.hpp>
 #include <framework/logging.hpp>
@@ -250,6 +251,17 @@ void log_pl_write_latency() {
     benchmark::log::log_and_timestamp(benchmark::log::record::PL_IO_WRITE_START);
     ior->pl.write(PL_REG_SCRATCH_0_OFF, PL_REG_PATTERN_0_VAL);
     benchmark::log::timestamp_and_log(benchmark::log::record::PL_IO_WRITE_RETURNED);
+}
+
+void log_ddr_read_latency() {
+    void* addr = rtems_cache_coherent_allocate(sizeof(uint32_t), sizeof(uint32_t), 0);
+    volatile uint32_t* mem = static_cast<volatile uint32_t*>(addr);
+
+    benchmark::log::log_and_timestamp(benchmark::log::record::DDR_IO_READ_START);
+    (void)*mem;
+    benchmark::log::timestamp_and_log(benchmark::log::record::DDR_IO_READ_RETURNED);
+
+    rtems_cache_coherent_free(addr);
 }
 
 std::string ep_build_id() {

@@ -24,7 +24,7 @@ namespace testsuite {
 namespace io {
 
 template <int requests, int interval_ms>
-void read() {
+void ep_read() {
     for (int i = 0; i < requests; ++i) {
         framework::api::io::log_ep_read_latency();
         if (interval_ms != 0) {
@@ -34,21 +34,21 @@ void read() {
 }
 
 template <int requests>
-void write() {
+void ep_write() {
     for (int i = 0; i < requests; ++i) {
         framework::api::io::log_ep_write_latency();
     }
 }
 
 template <int requests>
-void one_way_read() {
+void ep_one_way_read() {
     for (int i = 0; i < requests; ++i) {
         framework::api::io::log_ep_one_way_read_latency();
     }
 }
 
 template <int requests>
-void one_way_write() {
+void ep_one_way_write() {
     for (int i = 0; i < requests; ++i) {
         framework::api::io::log_ep_one_way_write_latency();
     }
@@ -309,6 +309,16 @@ void pl_read_with_pipeline() {
         }
     }
     framework::api::dma::stop_c2h_pipeline(ctlr, 0);
+}
+
+template <int requests, int interval_ms>
+void ddr_read() {
+    for (int i = 0; i < requests; ++i) {
+        framework::api::io::log_ddr_read_latency();
+    }
+    if (interval_ms != 0) {
+        usleep(interval_ms * 1000);
+    }
 }
 
 } // namespace io

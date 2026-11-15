@@ -522,16 +522,22 @@ const auto tests = std::array{
         "0x1000 buf, 400 c2h pipeline, 1000 pl read latency 1ms interval"},
 
     /* EP baseline IO tests */
-    test{io::read<10000, 0>, "io_167",
+    test{io::ep_read<10000, 0>, "io_167",
         "10000 ep read latency 0ms intervals"},
-    test{io::read<10000, 1>, "io_168",
+    test{io::ep_read<10000, 1>, "io_168",
         "10000 ep read latency 1ms intervals"},
-    test{io::write<10000>, "io_169",
+    test{io::ep_write<10000>, "io_169",
         "10000 ep writes"},
-    test{io::one_way_read<1000>, "io_170",
+    test{io::ep_one_way_read<1000>, "io_170",
         "1000 one way read latency"},
-    test{io::one_way_write<1000>, "io_171",
+    test{io::ep_one_way_write<1000>, "io_171",
         "1000 one way write latency"},
+
+    /* DDR baseline IO tests */
+    test{io::ddr_read<10000, 0>, "io_172",
+        "10000 ddr read latency 0ms intervals"},
+    test{io::ddr_read<10000, 1>, "io_173",
+        "10000 ddr read latency 1ms intervals"},
 };
 
 } // namespace testsuite

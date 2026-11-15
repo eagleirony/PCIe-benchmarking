@@ -66,6 +66,8 @@ struct record {
     static constexpr type EP_IO_READ_RETURNED = 32;
     static constexpr type PL_IO_READ_START = 33;
     static constexpr type PL_IO_READ_RETURNED = 34;
+    static constexpr type DDR_IO_READ_START = 35;
+    static constexpr type DDR_IO_READ_RETURNED = 36;
 
     static constexpr type EP_IO_WRITE_START = 40;
     static constexpr type EP_IO_WRITE_OCCURED = 41;
@@ -140,6 +142,10 @@ struct record {
                 return "PL_IO_READ_START";
             case PL_IO_READ_RETURNED:
                 return "PL_IO_READ_RETURNED";
+            case DDR_IO_READ_START:
+                return "DDR_IO_READ_START";
+            case DDR_IO_READ_RETURNED:
+                return "DDR_IO_READ_RETURNED";
 
             case EP_IO_WRITE_START:
                 return "EP_IO_WRITE_START";
