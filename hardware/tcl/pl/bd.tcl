@@ -46,7 +46,7 @@ if { [string first $scripts_vivado_version $current_vivado_version] == -1 } {
 
 # The design that will be created by this Tcl script contains the following 
 # module references:
-# registers, counter, counter, build_info, blink, pulse, pulse
+# registers, counter, counter, build_info, blink, pulse
 
 # Please add the sources of those modules before sourcing this Tcl script.
 
@@ -171,7 +171,6 @@ counter\
 counter\
 build_info\
 blink\
-pulse\
 pulse\
 "
 
@@ -577,7 +576,7 @@ Port;FD4A0000;FD4AFFFF;1|FPD;DPDMA;FD4C0000;FD4CFFFF;1|FPD;DDR_XMPU5_CFG;FD05000
      catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
      return 1
    }
-    set_property CONFIG.data_width {64} $counter_1
+    set_property CONFIG.DATA_WIDTH {64} $counter_1
 
 
   # Create instance: build_info_0, and set properties
@@ -630,17 +629,6 @@ Port;FD4A0000;FD4AFFFF;1|FPD;DPDMA;FD4C0000;FD4CFFFF;1|FPD;DDR_XMPU5_CFG;FD05000
   set_property CONFIG.CONST_VAL {0} $ilconstant_0
 
 
-  # Create instance: pulse_1, and set properties
-  set block_name pulse
-  set block_cell_name pulse_1
-  if { [catch {set pulse_1 [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   } elseif { $pulse_1 eq "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   }
-  
   # Create interface connections
   connect_bd_intf_net -intf_net axi_smc_M00_AXI [get_bd_intf_pins registers_0/s_axil] [get_bd_intf_pins axi_smc/M00_AXI]
   connect_bd_intf_net -intf_net zynq_ultra_ps_e_0_M_AXI_HPM0_LPD [get_bd_intf_pins zynq_ultra_ps_e_0/M_AXI_HPM0_LPD] [get_bd_intf_pins axi_smc/S00_AXI]
@@ -668,12 +656,10 @@ Port;FD4A0000;FD4AFFFF;1|FPD;DPDMA;FD4C0000;FD4CFFFF;1|FPD;DDR_XMPU5_CFG;FD05000
   [get_bd_pins ilconcat_0/In1]
   connect_bd_net -net pulse_0_sync_out  [get_bd_pins pulse_0/sync_out] \
   [get_bd_pins counter_0/stop]
-  connect_bd_net -net pulse_1_sync_out  [get_bd_pins pulse_1/sync_out] \
-  [get_bd_pins zynq_ultra_ps_e_0/pl_ps_irq0]
   connect_bd_net -net registers_0_expansion_out  [get_bd_pins registers_0/expansion_out] \
   [get_bd_ports expansion_out]
   connect_bd_net -net registers_0_irq_out  [get_bd_pins registers_0/irq_out] \
-  [get_bd_pins pulse_1/async_in]
+  [get_bd_pins zynq_ultra_ps_e_0/pl_ps_irq0]
   connect_bd_net -net registers_0_rstn_user_counter  [get_bd_pins registers_0/rstn_user_counter] \
   [get_bd_pins counter_0/rstn]
   connect_bd_net -net rst_ps8_0_99M_peripheral_aresetn  [get_bd_pins rst_ps8_0_99M/peripheral_aresetn] \
@@ -690,8 +676,7 @@ Port;FD4A0000;FD4AFFFF;1|FPD;DPDMA;FD4C0000;FD4CFFFF;1|FPD;DDR_XMPU5_CFG;FD05000
   [get_bd_pins blink_0/clk] \
   [get_bd_pins pulse_0/clk] \
   [get_bd_pins registers_0/s_axil_aclk] \
-  [get_bd_pins zynq_ultra_ps_e_0/saxihp0_fpd_aclk] \
-  [get_bd_pins pulse_1/clk]
+  [get_bd_pins zynq_ultra_ps_e_0/saxihp0_fpd_aclk]
   connect_bd_net -net zynq_ultra_ps_e_0_pl_resetn0  [get_bd_pins zynq_ultra_ps_e_0/pl_resetn0] \
   [get_bd_pins rst_ps8_0_99M/ext_reset_in]
 
