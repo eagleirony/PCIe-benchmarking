@@ -303,7 +303,32 @@ void pl_read_with_pipeline() {
 
     framework::api::dma::start_c2h_pipeline(ctlr, 0);
     for (int i = 0; i < requests; ++i) {
-        framework::api::io::log_ep_read_latency();
+        framework::api::io::log_pl_read_latency();
+        if (interval_ms != 0) {
+            usleep(interval_ms * 1000);
+        }
+    }
+    framework::api::dma::stop_c2h_pipeline(ctlr, 0);
+}
+
+template <int requests, int interval_ms>
+void pl_write() {
+    for (int i = 0; i < requests; ++i) {
+        framework::api::io::log_pl_write_latency();
+    }
+    if (interval_ms != 0) {
+        usleep(interval_ms * 1000);
+    }
+}
+
+template <size_t buffer_size, int mbs, int requests, int interval_ms>
+void pl_write_with_pipeline() {
+    auto ctlr = framework::api::dma::open(buffer_size);
+    framework::api::dma::set_c2h_data_rate(0, mbs);
+
+    framework::api::dma::start_c2h_pipeline(ctlr, 0);
+    for (int i = 0; i < requests; ++i) {
+        framework::api::io::log_pl_write_latency();
         if (interval_ms != 0) {
             usleep(interval_ms * 1000);
         }
@@ -315,6 +340,16 @@ template <int requests, int interval_ms>
 void ddr_read() {
     for (int i = 0; i < requests; ++i) {
         framework::api::io::log_ddr_read_latency();
+    }
+    if (interval_ms != 0) {
+        usleep(interval_ms * 1000);
+    }
+}
+
+template <int requests, int interval_ms>
+void ddr_write() {
+    for (int i = 0; i < requests; ++i) {
+        framework::api::io::log_ddr_write_latency();
     }
     if (interval_ms != 0) {
         usleep(interval_ms * 1000);

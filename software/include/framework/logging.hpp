@@ -74,10 +74,14 @@ struct record {
     static constexpr type EP_IO_WRITE_RETURNED = 42;
     static constexpr type PL_IO_WRITE_START = 43;
     static constexpr type PL_IO_WRITE_RETURNED = 44;
+    static constexpr type DDR_IO_WRITE_START = 45;
+    static constexpr type DDR_IO_WRITE_RETURNED = 46;
 
     static constexpr type CPU_USE = 50;
     static constexpr type THREAD_START = 51;
     static constexpr type THREAD_END = 52;
+    static constexpr type BASELINE_START = 53;
+    static constexpr type BASELINE_END = 54;
 
     id id_;
     type type_;
@@ -157,6 +161,10 @@ struct record {
                 return "PL_IO_WRITE_START";
             case PL_IO_WRITE_RETURNED:
                 return "PL_IO_WRITE_RETURNED";
+            case DDR_IO_WRITE_START:
+                return "DDR_IO_WRITE_START";
+            case DDR_IO_WRITE_RETURNED:
+                return "DDR_IO_WRITE_RETURNED";
 
             case CPU_USE:
                 return "CPU USE";
@@ -164,6 +172,10 @@ struct record {
                 return "THREAD START";
             case THREAD_END:
                 return "THREAD END";
+            case BASELINE_START:
+                return "BASELINE START";
+            case BASELINE_END:
+                return "BASELINE END";
 
             default:
                 return "UNKNOWN TYPE";

@@ -176,6 +176,8 @@ void log_pl_write_latency();
 
 void log_ddr_read_latency();
 
+void log_ddr_write_latency();
+
 std::string ep_build_id();
 
 std::string pl_build_id();

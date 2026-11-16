@@ -264,6 +264,17 @@ void log_ddr_read_latency() {
     rtems_cache_coherent_free(addr);
 }
 
+void log_ddr_write_latency() {
+    void* addr = rtems_cache_coherent_allocate(sizeof(uint32_t), sizeof(uint32_t), 0);
+    volatile uint32_t* mem = static_cast<volatile uint32_t*>(addr);
+
+    benchmark::log::log_and_timestamp(benchmark::log::record::DDR_IO_WRITE_START);
+    *mem = 0x00000000;
+    benchmark::log::timestamp_and_log(benchmark::log::record::DDR_IO_WRITE_RETURNED);
+
+    rtems_cache_coherent_free(addr);
+}
+
 std::string ep_build_id() {
     bool modified;
     uint32_t git_hash;

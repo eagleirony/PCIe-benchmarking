@@ -22,6 +22,7 @@
 #include <testsuite/msi.hpp>
 #include <testsuite/io.hpp>
 #include <testsuite/dma.hpp>
+#include <testsuite/log.hpp>
 
 namespace app {
 namespace testsuite {
@@ -521,23 +522,48 @@ const auto tests = std::array{
     test{io::pl_read_with_pipeline<0x10000, 400, 1000, 0>, "io_166",
         "0x1000 buf, 400 c2h pipeline, 1000 pl read latency 1ms interval"},
 
+    /* PL baseline write tests */
+    test{io::pl_write<10000, 0>, "io_167",
+        "10000 pl write latency 0ms interval"},
+    test{io::pl_write<1000, 0>, "io_168",
+        "1000 pl write latency 1ms interval"},
+    test{io::pl_write_with_pipeline<0x10000, 500, 10000, 0>, "io_169",
+        "10000 pl write latency 0ms interval"},
+    test{io::pl_write_with_pipeline<0x10000, 500, 1000, 0>, "io_170",
+        "0x1000 buf, 500 c2h pipeline, 1000 pl write latency 1ms interval"},
+    test{io::pl_write_with_pipeline<0x10000, 400, 10000, 0>, "io_171",
+        "0x1000 buf, 400 c2h pipeline, 10000 pl write latency 0ms interval"},
+    test{io::pl_write_with_pipeline<0x10000, 400, 1000, 0>, "io_172",
+        "0x1000 buf, 400 c2h pipeline, 1000 pl write latency 1ms interval"},
+
     /* EP baseline IO tests */
-    test{io::ep_read<10000, 0>, "io_167",
+    test{io::ep_read<10000, 0>, "io_173",
         "10000 ep read latency 0ms intervals"},
-    test{io::ep_read<10000, 1>, "io_168",
+    test{io::ep_read<10000, 1>, "io_174",
         "10000 ep read latency 1ms intervals"},
-    test{io::ep_write<10000>, "io_169",
+    test{io::ep_write<10000>, "io_175",
         "10000 ep writes"},
-    test{io::ep_one_way_read<1000>, "io_170",
+    test{io::ep_one_way_read<1000>, "io_176",
         "1000 one way read latency"},
-    test{io::ep_one_way_write<1000>, "io_171",
+    test{io::ep_one_way_write<1000>, "io_177",
         "1000 one way write latency"},
 
     /* DDR baseline IO tests */
-    test{io::ddr_read<10000, 0>, "io_172",
+    test{io::ddr_read<10000, 0>, "io_178",
         "10000 ddr read latency 0ms intervals"},
-    test{io::ddr_read<10000, 1>, "io_173",
+    test{io::ddr_read<10000, 1>, "io_179",
         "10000 ddr read latency 1ms intervals"},
+    test{io::ddr_write<10000, 0>, "io_180",
+        "10000 ddr write latency 0ms intervals"},
+    test{io::ddr_write<10000, 1>, "io_181",
+        "10000 ddr write latency 1ms intervals"},
+
+    /* Logging baseline */
+    test{log::baseline_log<10000, 0>, "log_01",
+        "10000 back to back log 0ms intervals"},
+    test{log::baseline_log<10000, 1>, "log_02",
+        "10000 back to back log latency 1ms intervals"},
+
 };
 
 } // namespace testsuite
